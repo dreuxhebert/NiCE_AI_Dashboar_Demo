@@ -32,4 +32,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## For easy Demo View
 I have created a Zip folder that supports, Windows, Mac, and Linux OS. I can provide ZIP folder so you can run locally. Start the given file, for example on windows start "start-windows.bat".
 
-IMPORTANT:  Make sure to run the file as ADMIN, so it can install the required downloads to run locally. If you need help viewing it please reach out and I can guide you through it.
+IMPORTANT:  Make sure to run the file as ADMIN, so it can install the required downloads to run locally. You can see README to see what it installs, after it installs copy the EX: http://localhost:5173 and paste into your browser. If you need help viewing it please reach out and I can guide you through it.
