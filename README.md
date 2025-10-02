@@ -30,6 +30,8 @@ To learn more about Next.js, take a look at the following resources:
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## For easy Demo View
-I have created a Zip folder that supports, Windows, Mac, and Linux OS. I can provide ZIP folder so you can run locally. Start the given file, for example on windows start "start-windows.bat".
+I’ve created a ZIP folder that supports Windows, macOS, and Linux. You can run the demo locally by starting the appropriate file (for example, on Windows run start-windows.bat).
 
-IMPORTANT:  Make sure to run the file as ADMIN, so it can install the required downloads to run locally. You can see README to see what it installs, after it installs copy the EX: http://localhost:5173 and paste into your browser. If you need help viewing it please reach out and I can guide you through it.
+Important: Run the file as Administrator so it can install the required dependencies. After installation, copy the example URL (e.g., http://localhost:5173) shown in the terminal and paste it into your browser.
+
+If you need help viewing the demo, please reach out and I’ll guide you through the process.
