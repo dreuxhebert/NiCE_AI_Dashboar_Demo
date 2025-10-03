@@ -45,6 +45,7 @@ This will start the app on http://localhost:3000
 .
 You can now edit files in VS Code, and the page will auto-refresh as you save changes. 
 
-Important: ⚡ About Vercel
+Important: ⚡ 
+About Vercel
 Pushing changes to the main branch on GitHub will automatically redeploy the production site on Vercel.
 Use npm run dev locally for testing before pushing to GitHub.
