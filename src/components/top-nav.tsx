@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 
 export function TopNav() {
   return (
@@ -19,6 +20,18 @@ export function TopNav() {
         <div className="flex items-center gap-4">
           <h2 className="font-sans text-lg font-medium text-foreground">Dashboard</h2>
         </div>
+
+        {/* Center: Logo */}
+    <div className="absolute left-1/2 transform -translate-x-1/2">
+      <Image
+        src="/NiCE_SMILE.svg"
+        alt="Smile Logo"
+        width={120}
+        height={40}
+        className="h-8 w-auto"
+        priority
+      />
+    </div>
 
         <div className="flex items-center gap-4">
           {/* Notifications */}
