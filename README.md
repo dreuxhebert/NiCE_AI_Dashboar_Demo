@@ -14,7 +14,7 @@ Follow these steps to get the project running locally so you can code on it too.
 
 ---
 
-### 🖥️ Windows Setup
+### 🖥️ Windows Setup So You Can Code Locally
 
 1. **Install prerequisites**
    - [Git](https://git-scm.com/download/win)  
