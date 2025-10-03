@@ -27,3 +27,24 @@ Follow these steps to get the project running locally so you can code on it too.
    git clone https://github.com/dreuxhebert/NiCE_AI_Dashboar_Demo.git
    cd NiCE_AI_Dashboar_Demo
 
+ 3. Open the project in VS Code
+
+code .
+
+ 4. Install dependencies
+    
+ npm ci
+
+(If npm ci doesn’t work, use npm install instead.)
+
+ 5. Run the dev server
+
+npm run dev
+
+This will start the app on http://localhost:3000
+.
+You can now edit files in VS Code, and the page will auto-refresh as you save changes. 
+
+Important: ⚡ About Vercel
+Pushing changes to the main branch on GitHub will automatically redeploy the production site on Vercel.
+Use npm run dev locally for testing before pushing to GitHub.
