@@ -1,31 +1,45 @@
+// src/hooks/use-toast.ts
 "use client"
 
-// src/hooks/use-toast.ts
 import { toast as sonnerToast, type ExternalToast } from "sonner"
+
+type Variant =
+  | "default"
+  | "destructive"
+  | "success"
+  | "warning"
+  | "info"
 
 type ShadcnToastInput = {
   title?: string
   description?: string
-  // keep room for future fields if you add them later:
+  variant?: Variant
   duration?: number
-  action?: React.ReactNode
-  // etc.
+  // you can add fields later as needed (e.g., action), they’ll be ignored by Sonner unless mapped
 }
 
 export function useToast() {
   const toast = (input: ShadcnToastInput) => {
-    const message = input.title ?? "" // shadcn uses title as the main line
+    const message = input.title ?? ""
     const options: ExternalToast = {
       description: input.description,
       duration: input.duration,
-      // Sonner doesn't support arbitrary React children as "action" in the same way,
-      // so keep it minimal unless you add a custom renderer.
     }
-    return sonnerToast(message, options)
+
+    // Map shadcn-style variants to Sonner
+    switch (input.variant) {
+      case "destructive":
+        return sonnerToast.error(message, options)
+      case "success":
+        return sonnerToast.success(message, options)
+      case "warning":
+        return sonnerToast.warning?.(message, options) ?? sonnerToast(message, options)
+      case "info":
+        return sonnerToast.info?.(message, options) ?? sonnerToast(message, options)
+      default:
+        return sonnerToast(message, options)
+    }
   }
 
   return { toast }
 }
-
-// If you also export a Toaster component via "@/components/ui/toaster",
-// just ensure it's rendering Sonner's <Toaster /> (see below).
