@@ -1,3 +1,11 @@
+## 🚀 Live Demo
+
+The dashboard is deployed on Vercel:  
+👉 [https://ni-ce-ai-dashboar-demo.vercel.app](https://ni-ce-ai-dashboar-demo.vercel.app)
+
+[![Vercel](https://img.shields.io/badge/deployed-Vercel-brightgreen?logo=vercel)](https://ni-ce-ai-dashboar-demo.vercel.app)
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -28,11 +36,3 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## 🚀 Live Demo
-
-The dashboard is deployed on Vercel:  
-👉 [https://ni-ce-ai-dashboar-demo.vercel.app](https://ni-ce-ai-dashboar-demo.vercel.app)
-
-[![Vercel](https://img.shields.io/badge/deployed-Vercel-brightgreen?logo=vercel)](https://ni-ce-ai-dashboar-demo.vercel.app)
-
