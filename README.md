@@ -8,23 +8,20 @@ The dashboard is deployed on Vercel:
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## How to set up your IDE (Windows + VS Code)
 
-First, run the development server:
+Follow these steps to get the project running locally so you can code on it too:
 
+### 1. Install prerequisites
+- [Git](https://git-scm.com/download/win)  
+- [Node.js 20+](https://nodejs.org/en/download/)  
+- [Visual Studio Code](https://code.visualstudio.com/Download)  
+
+### 2. Clone this repo
+Open **PowerShell** (or Git Bash) and run:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+git clone https://github.com/dreuxhebert/NiCE_AI_Dashboar_Demo.git
+cd NiCE_AI_Dashboar_Demo
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
