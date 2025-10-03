@@ -228,11 +228,11 @@ export const callsTrendData = [
 ]
 
 export const callsByTypeData = [
-  { type: "Medical", count: 145, fill: "hsl(var(--chart-1))" },
-  { type: "Fire", count: 78, fill: "hsl(var(--chart-2))" },
-  { type: "Traffic", count: 92, fill: "hsl(var(--chart-3))" },
-  { type: "Shooting", count: 34, fill: "hsl(var(--chart-4))" },
-  { type: "Other", count: 67, fill: "hsl(var(--chart-5))" },
+  { type: "Medical", count: 145, fill: "var(--primary)" },
+  { type: "Fire", count: 78, fill: "var(--primary)" },
+  { type: "Traffic", count: 92, fill: "var(--primary)" },
+  { type: "Shooting", count: 34, fill: "var(--primary)" },
+  { type: "Other", count: 67, fill: "var(--primary)" },
 ]
 
 export interface DispatcherStats {

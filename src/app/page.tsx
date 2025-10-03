@@ -48,23 +48,23 @@ export default function OverviewPage() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={callsChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border))" />
+                <XAxis dataKey="time" stroke="var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="var(--muted-foreground))" fontSize={12} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    backgroundColor: "var(--card))",
+                    border: "1px solid var(--border))",
                     borderRadius: "var(--radius)",
-                    color: "hsl(var(--foreground))",
+                    color: "var(--foreground))",
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="calls"
-                  stroke="hsl(var(--primary))"
+                  stroke="var(--primary))"
                   strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  dot={{ fill: "var(--primary))", r: 4 }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>

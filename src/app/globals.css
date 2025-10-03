@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   /* Updated theme for professional dark dashboard with blue/gray palette */
   --card: oklch(1 0 0);

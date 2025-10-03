@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings } from "lucide-react"
+import Image from "next/image"
+
 
 const menuItems = [
   {
@@ -41,15 +43,26 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname()
 
-  return (
+   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar">
       <div className="flex h-full flex-col">
         {/* Logo/Brand */}
-        <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-          <h1 className="font-sans text-xl font-semibold tracking-tight text-sidebar-foreground">
-            NICE <span className="text-primary">Ai</span>
-          </h1>
-        </div>
+        <div className="flex h-16 items-center border-b border-sidebar-border px-6 gap-3">
+  <Image
+    src="/NiCE_LOGO.svg"
+    alt="Company Logo"
+    width={80}   
+    height={80}  
+    priority
+    className="h-8 w-auto"   
+  />
+  <span className="font-sans text-[44px] font-extrabold tracking-tight text-primary">
+  AI
+</span>
+</div>
+
+
+
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
