@@ -1,11 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { Toaster as SonnerToaster } from "sonner"
 
 /**
  * Wrapper so the app can import `@/components/ui/toaster`
- * without caring which toast lib we use under the hood.
+ * without caring which toast library is used under the hood.
  */
 export function Toaster() {
   return (
@@ -20,3 +19,4 @@ export function Toaster() {
 }
 
 export default Toaster
+

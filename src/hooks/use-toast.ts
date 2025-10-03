@@ -1,18 +1,31 @@
 "use client"
 
-import { toast as sonnerToast } from "sonner"
+// src/hooks/use-toast.ts
+import { toast as sonnerToast, type ExternalToast } from "sonner"
 
-/**
- * Minimal shadcn-style toast hook that forwards to `sonner`.
- * Usage in components:
- *   const { toast } = useToast()
- *   toast("Uploaded!")
- */
-export function useToast() {
-  return {
-    toast: sonnerToast,
-  }
+type ShadcnToastInput = {
+  title?: string
+  description?: string
+  // keep room for future fields if you add them later:
+  duration?: number
+  action?: React.ReactNode
+  // etc.
 }
 
-// Optional: named export for direct imports if you ever want it.
-// export const toast = sonnerToast
+export function useToast() {
+  const toast = (input: ShadcnToastInput) => {
+    const message = input.title ?? "" // shadcn uses title as the main line
+    const options: ExternalToast = {
+      description: input.description,
+      duration: input.duration,
+      // Sonner doesn't support arbitrary React children as "action" in the same way,
+      // so keep it minimal unless you add a custom renderer.
+    }
+    return sonnerToast(message, options)
+  }
+
+  return { toast }
+}
+
+// If you also export a Toaster component via "@/components/ui/toaster",
+// just ensure it's rendering Sonner's <Toaster /> (see below).
