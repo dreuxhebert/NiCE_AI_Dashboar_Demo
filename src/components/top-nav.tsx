@@ -46,9 +46,9 @@ export function TopNav() {
               <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">JD</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground">DH</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">John Doe</span>
+                <span className="text-sm font-medium">Dreux Demo</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>

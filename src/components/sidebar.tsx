@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings } from "lucide-react"
 import Image from "next/image"
 
-
 const menuItems = [
   {
     title: "Overview",
@@ -38,6 +37,7 @@ const menuItems = [
     href: "/settings",
     icon: Settings,
   },
+  
 ]
 
 export function Sidebar() {
@@ -49,20 +49,14 @@ export function Sidebar() {
         {/* Logo/Brand */}
         <div className="flex h-16 items-center border-b border-sidebar-border px-6 gap-3">
   <Image
-    src="/NiCE_LOGO.svg"
+    src="/NiCE_ELEVATE.svg"
     alt="Company Logo"
-    width={80}   
-    height={80}  
+    width={60}   
+    height={60}  
     priority
     className="h-8 w-auto"   
   />
-  <span className="font-sans text-[44px] font-extrabold tracking-tight text-primary">
-  AI
-</span>
 </div>
-
-
-
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
