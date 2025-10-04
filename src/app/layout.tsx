@@ -11,8 +11,11 @@ import { Suspense } from "react"
 
 export const metadata: Metadata = {
   title: "NICE Ai - 911 Call Management Dashboard",
-  description: "Professional dashboard for managing and reviewing 911 phone call transcripts",
-  generator: "v0.app",
+  description:
+    "Professional dashboard for managing and reviewing 911 phone call transcripts",
+  icons: {
+    icon: "/NiCE_SMILE.svg",
+  },
 }
 
 export default function RootLayout({
