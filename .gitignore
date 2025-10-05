@@ -15,7 +15,20 @@ coverage
 *.log
 .env
 .env.*.local
+.env.local
 
 # editor
 .vscode
 .idea
+
+# backend python
+src/backend/.venv/
+src/backend/__pycache__/
+
+# backend python
+src/backend/.venv/
+src/backend/__pycache__/
+
+# backend python
+src/backend/.venv/
+src/backend/__pycache__/

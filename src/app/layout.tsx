@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: "NICE Ai - 911 Call Management Dashboard",
+  title: "NiCE - 911 Call Management Dashboard",
   description:
     "Professional dashboard for managing and reviewing 911 phone call transcripts",
   icons: {
