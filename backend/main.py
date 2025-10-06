@@ -9,15 +9,21 @@ from typing import List, Dict, Any
 #Call link i was testing with
 #https://drive.google.com/uc?export=download&id=1YDr9U9qBr9Aogi93t1FwBotxWUMd0wKT
 
-# Load .env next to this file
+# Load .env file (local dev only)
 ENV_PATH = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 app = FastAPI()
 
+# Read from env, fallback to localhost
+origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[o.strip() for o in origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
