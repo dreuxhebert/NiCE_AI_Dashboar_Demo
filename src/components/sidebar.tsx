@@ -49,7 +49,7 @@ export function Sidebar() {
         {/* Logo/Brand */}
         <div className="flex h-16 items-center border-b border-sidebar-border px-6 gap-3">
   <Image
-    src="/NiCE_ELEVATE.svg"
+    src="/NiCE_Inform_Ai.svg"
     alt="Company Logo"
     width={60}   
     height={60}  
