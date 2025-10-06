@@ -12,6 +12,7 @@ export default function TranscriptionPage() {
   const [audioUrl, setAudioUrl] = useState("")
   const [lines, setLines] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 
   const handleSubmit = async () => {
     if (!audioUrl) {
@@ -23,11 +24,11 @@ export default function TranscriptionPage() {
     setLines([])
 
     try {
-      const resp = await fetch("http://127.0.0.1:8000/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ downloadUri: audioUrl }),
-      })
+      const resp = await fetch(`${API}/transcribe`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ downloadUri: audioUrl }),
+})
 
       if (!resp.ok) throw new Error(await resp.text())
       const data = await resp.json()
