@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings } from "lucide-react"
+import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings, Users } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 
@@ -12,6 +12,7 @@ const menuItems = [
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
   { title: "Upload", href: "/upload", icon: Upload },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Directory", href: "/directory", icon: Users },
   { title: "Dispatcher Grading", href: "/grading", icon: ClipboardCheck },
   { title: "Settings", href: "/settings", icon: Settings },
 ]
@@ -57,7 +58,8 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href
+            // root exact match, otherwise prefix match so children keep the parent active
+            const isActive = item.href === "/" ? pathname === item.href : pathname?.startsWith(item.href)
             const Icon = item.icon
             return (
               <Link
