@@ -33,6 +33,8 @@ export function TopNav() {
     } catch {}
   }, [])
 
+  
+
   const toggleTheme = () => {
     const next = !isDark
     setIsDark(next)
@@ -96,7 +98,7 @@ export function TopNav() {
           )}
 
           {/* User menu */}
-          <DropdownMenu>
+  <DropdownMenu modal={false}>
   <DropdownMenuTrigger asChild>
     <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
       <Avatar className="h-8 w-8">
