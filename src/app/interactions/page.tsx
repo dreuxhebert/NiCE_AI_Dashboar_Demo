@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { InteractionDrawer } from "@/components/interaction-drawer"
 import { Search, Filter } from "lucide-react"
-
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
 
 export default function InteractionsPage() {
   const [interactions, setInteractions] = useState<any[]>([])
@@ -26,7 +26,7 @@ export default function InteractionsPage() {
 
   const fetchInteractions = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5001/calls")       // After Uploading on render -> "https://inform-ai-backend.onrender.com/calls"
+      const res = await fetch(`${API_BASE}/calls`);
       const data = await res.json()
       const mappedData = data.map((item: any) => ({
         id: item.id || item._id,
