@@ -3,14 +3,65 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { callsTrendData, callsByTypeData, dispatcherLeaderboard } from "@/lib/sample-data"
+import { dispatcherLeaderboard, callsByTypeData, callsTrendData } from "@/lib/sample-data"
 import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export default function AnalyticsPage() {
+
+  
+  type CallData = {
+    date: string;
+    calls: number;
+  };
+
+  const [callsData, setCallsData] = useState<any[]>([])
+  const [callsByDateData, setCallsByDateData] = useState<CallData[]>([])
+
+  const fetchCallsByTypeData = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5001/calls/byType")       // After Uploading on render -> "https://inform-ai-backend.onrender.com/calls/byType"
+      if(res.ok !== true) {
+        throw new Error(`Error fetching calls by type: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json()
+      setCallsData(data)
+    } catch (error) {
+      console.error("Error fetching calls by type:", error)
+    }
+  }
+
+  
+  const fetchCallsByDateData = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5001/calls/byDate");
+      if (!res.ok) {
+        throw new Error(`Error fetching calls by date: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+
+      // Map to expected format
+      
+      const formatted = data.map((item: { type: string; count: number }) => ({
+        date: item.type,
+        calls: item.count,
+      }));
+      setCallsByDateData(formatted);
+    } catch (error) {
+      console.error("Error fetching calls by date:", error);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchCallsByTypeData()
+    fetchCallsByDateData()
+  }, [])
+
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-5 w-5 text-amber-400" />
     if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />
@@ -60,7 +111,7 @@ export default function AnalyticsPage() {
     const key = item.payload?.type ?? item.name ?? label
     // prefer any color provided by the chart payload (many recharts shapes include stroke/fill)
     const payloadColor = item.color || item.fill || item.stroke
-    const dataIndex = callsByTypeData.findIndex((d) => d.type === key)
+    const dataIndex = callsData.findIndex((d) => d.type === key)
     const paletteColor = chartColors[dataIndex >= 0 ? dataIndex % chartColors.length : 0] || "var(--primary)"
     const color = payloadColor || paletteColor
 
@@ -91,25 +142,24 @@ export default function AnalyticsPage() {
   const [customEnd, setCustomEnd] = useState<string>("")
 
   const filteredCallsTrendData = useMemo(() => {
-    const len = callsTrendData.length
-    if (timeRange === "7d") return callsTrendData.slice(Math.max(0, len - 7))
-    if (timeRange === "30d") return callsTrendData.slice(Math.max(0, len - 30))
-    if (timeRange === "1y") return callsTrendData.slice(Math.max(0, len - 365))
+    const len = callsByDateData.length
+    if (timeRange === "7d") return callsByDateData.slice(Math.max(len - 7, 0))
+    if (timeRange === "30d") return callsByDateData.slice(Math.max(len - 30, 0))
+    if (timeRange === "1y") return callsByDateData.slice(Math.max(len - 365, 0))
     // custom: filter by parsed date range when possible
     if (timeRange === "custom") {
-      if (!customStart || !customEnd) return callsTrendData
+      if (!customStart || !customEnd) return callsByDateData
       const start = new Date(customStart)
       const end = new Date(customEnd)
-      // include whole end day
       end.setHours(23, 59, 59, 999)
-      return callsTrendData.filter((d) => {
+      return callsByDateData.filter((d) => {
         const parsed = new Date(d.date)
         if (isNaN(parsed.getTime())) return false
         return parsed >= start && parsed <= end
       })
     }
-    return callsTrendData
-  }, [timeRange, customStart, customEnd])
+    return callsByDateData
+  }, [timeRange, customStart, customEnd, callsByDateData])
 
   const rangeLabel = useMemo(() => {
     if (timeRange === "7d") return "Last 7 Days"
@@ -184,13 +234,13 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={callsByTypeData}>
+                <BarChart data={callsData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="type" stroke="var(--muted-foreground)" fontSize={12} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={12} />
                   <Tooltip content={<ChartTooltip />} />
                   <Bar dataKey="count">
-                    {callsByTypeData.map((entry, index) => (
+                    {callsData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                     ))}
                   </Bar>

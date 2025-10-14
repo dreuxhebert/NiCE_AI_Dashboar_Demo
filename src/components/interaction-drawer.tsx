@@ -12,11 +12,11 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import type { Interaction } from "@/lib/sample-data"
 import { ClipboardList, Info, Languages, List, Brain, X, Settings, Save, RotateCcw, Smile } from "lucide-react"
 
+
 interface InteractionDrawerProps {
-  interaction: Interaction | null
+  interaction: any | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
