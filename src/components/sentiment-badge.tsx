@@ -11,15 +11,19 @@ interface SentimentBadgeProps {
 const sentimentConfig = {
   positive: {
     label: "Positive",
-    className: "bg-green-500/20 text-green-300 hover:bg-green-500/30",
+    // light: soft green background, dark: stronger green background with readable foreground
+    className:
+      "bg-green-500/10 text-green-700 dark:bg-green-600/30 dark:text-green-200 hover:dark:bg-green-600/40",
   },
   neutral: {
     label: "Neutral",
-    className: "bg-gray-500/20 text-gray-300 hover:bg-gray-500/30",
+    className:
+      "bg-gray-500/10 text-gray-700 dark:bg-gray-600/30 dark:text-gray-200 hover:dark:bg-gray-600/40",
   },
   negative: {
     label: "Negative",
-    className: "bg-red-500/20 text-red-300 hover:bg-red-500/30",
+    className:
+      "bg-red-500/10 text-red-700 dark:bg-red-600/30 dark:text-red-200 hover:dark:bg-red-600/40",
   },
 }
 

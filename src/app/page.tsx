@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Phone, TrendingUp, AlertCircle, Clock } from "lucide-react"
 import { recentActivities, callsChartData } from "@/lib/sample-data"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export default function OverviewPage() {
   return (
@@ -47,27 +47,19 @@ export default function OverviewPage() {
         <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={callsChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border))" />
-                <XAxis dataKey="time" stroke="var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="var(--muted-foreground))" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card))",
-                    border: "1px solid var(--border))",
-                    borderRadius: "var(--radius)",
-                    color: "var(--foreground))",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="calls"
-                  stroke="var(--primary))"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--primary))", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
+              <AreaChart data={callsChartData}>
+                <defs>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2f87df" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#2f87df" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={12} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", color: "var(--foreground)", padding: 8 }} />
+                <Area type="monotone" dataKey="calls" stroke="#2f87df" fillOpacity={1} fill="url(#areaGradient)" />
+            </AreaChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
