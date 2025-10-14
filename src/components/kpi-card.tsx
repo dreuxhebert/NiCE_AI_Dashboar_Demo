@@ -23,7 +23,7 @@ export function KpiCard({ title, value, icon: Icon, trend, description }: KpiCar
       <CardContent>
         <div className="text-2xl font-bold text-foreground">{value}</div>
         {trend && (
-          <p className={cn("text-xs mt-1", trend.isPositive ? "text-green-500" : "text-red-500")}>
+          <p className={cn("text-xs mt-1", trend.isPositive ? "text-green-400" : "text-red-400")}>
             {trend.isPositive ? "↑" : "↓"} {trend.value}
           </p>
         )}

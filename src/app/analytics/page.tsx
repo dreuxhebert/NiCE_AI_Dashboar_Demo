@@ -25,9 +25,12 @@ export default function AnalyticsPage() {
   }
 
   const getScoreBadgeColor = (score: number) => {
-    if (score >= 90) return "bg-green-500/20 text-green-300 hover:bg-green-500/30"
-    if (score >= 85) return "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-    return "bg-red-500/20 text-red-300 hover:bg-red-500/30"
+    // Use the same light/dark-aware utility classes used by Sentiment/Status badges
+    if (score >= 90)
+      return "bg-green-500/10 text-green-700 dark:bg-green-600/30 dark:text-green-200 hover:dark:bg-green-600/40"
+    if (score >= 85)
+      return "bg-amber-500/10 text-amber-700 dark:bg-amber-600/30 dark:text-amber-200 hover:dark:bg-amber-600/40"
+    return "bg-red-500/10 text-red-700 dark:bg-red-600/30 dark:text-red-200 hover:dark:bg-red-600/40"
   }
 
   const chartColors = useMemo(() => {

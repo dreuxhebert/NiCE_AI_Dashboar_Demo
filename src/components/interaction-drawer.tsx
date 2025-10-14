@@ -115,11 +115,11 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
       case "Positive":
         return "text-green-400"
       case "Mod. Positive":
-        return "text-green-300"
+        return "text-green-400"
       case "Negative":
         return "text-red-400"
       case "Mod. Negative":
-        return "text-red-300"
+        return "text-red-400"
       default:
         return "text-muted-foreground"
     }
