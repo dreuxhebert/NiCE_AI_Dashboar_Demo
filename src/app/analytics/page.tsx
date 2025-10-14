@@ -37,7 +37,7 @@ export default function AnalyticsPage() {
   
   const fetchCallsByDateData = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5001/calls/byDate");
+      const res = await fetch("http://127.0.0.1:5001/calls/byDate");                   //When the backend is hosted on render use "https://inform-ai-backend.onrender.com/calls/byDate"
       if (!res.ok) {
         throw new Error(`Error fetching calls by date: ${res.status} ${res.statusText}`);
       }
