@@ -18,12 +18,15 @@ export default function AnalyticsPage() {
     calls: number;
   };
 
+// Base URL for the API (Vercel uses the env var; local dev can use fallback)
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+
   const [callsData, setCallsData] = useState<any[]>([])
   const [callsByDateData, setCallsByDateData] = useState<CallData[]>([])
 
   const fetchCallsByTypeData = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5001/calls/byType")       // After Uploading on render -> "https://inform-ai-backend.onrender.com/calls/byType"
+      const res = await fetch(`${API_BASE}/calls/byType`)        
       if(res.ok !== true) {
         throw new Error(`Error fetching calls by type: ${res.status} ${res.statusText}`);
       }
@@ -34,10 +37,9 @@ export default function AnalyticsPage() {
     }
   }
 
-  
   const fetchCallsByDateData = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5001/calls/byDate");                   //When the backend is hosted on render use "https://inform-ai-backend.onrender.com/calls/byDate"
+      const res = await fetch(`${API_BASE}/calls/byDate`);                   
       if (!res.ok) {
         throw new Error(`Error fetching calls by date: ${res.status} ${res.statusText}`);
       }
