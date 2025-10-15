@@ -91,7 +91,7 @@ export default function UploadPage() {
     formData.append("language", language)
     console.log(selectedFile)
     const result = await axios.post(
-      "http://localhost:5001/elevate.api/uploadAudio", 
+      "http://localhost:5001/elevate.api/uploadAudio",     //https://inform-ai-backend.onrender.com/elevate.api/uploadAudio
       formData,
       {
           headers: { "Content-Type": "multipart/form-data" },
@@ -129,7 +129,7 @@ export default function UploadPage() {
 
     // Now POST this JSON to your backend create endpoint:
     const output = await axios.post(
-      "http://localhost:5001/calls/createCall",
+      "http://localhost:5001/calls/createCall",       // https://inform-ai-backend.onrender.com/calls/createCall
       call,
       { headers: { "Content-Type": "application/json" } }
     );
