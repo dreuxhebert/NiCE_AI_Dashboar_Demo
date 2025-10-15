@@ -91,7 +91,7 @@ export default function UploadPage() {
     formData.append("language", language)
     console.log(selectedFile)
     const result = await axios.post(
-      "http://localhost:5001/elevate.api/uploadAudio",     //https://inform-ai-backend.onrender.com/elevate.api/uploadAudio
+      "https://inform-ai-backend.onrender.com/elevate.api/uploadAudio",     
       formData,
       {
           headers: { "Content-Type": "multipart/form-data" },
