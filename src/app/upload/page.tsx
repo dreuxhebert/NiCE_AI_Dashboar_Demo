@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, FileAudio, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import axios from "axios"
 
 export default function UploadPage() {
   const [isDragging, setIsDragging] = useState(false)
@@ -62,7 +63,7 @@ export default function UploadPage() {
     setSelectedFile(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!selectedFile) {
@@ -83,12 +84,61 @@ export default function UploadPage() {
       return
     }
 
-    // Simulate upload
-    toast({
-      title: "Upload successful",
-      description: `${selectedFile.name} has been queued for processing`,
-    })
+    const formData = new FormData()
+    formData.append("audio_file", selectedFile)
+    formData.append("dispatcher", dispatcher)
+    formData.append("call_type", callType)
+    formData.append("language", language)
+    console.log(selectedFile)
+    const result = await axios.post(
+      "http://localhost:5001/elevate.api/uploadAudio", 
+      formData,
+      {
+          headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+    
+    const { interaction_id, transcription, summary } = result.data;
 
+    // Helper to turn empty strings into undefined (so they don’t get inserted as "")
+    const clean = (v: any) => {
+      if (v === null || v === undefined) return undefined;
+      const s = String(v).trim();
+      return s.length ? s : undefined;
+    };
+
+    // Pull original form fields (sent earlier with the upload)
+    const dispatcher_c = clean(formData.get("dispatcher"));
+    const callType_c = clean(formData.get("call_type"));
+    const language_c = clean(formData.get("language"));
+    const timestamp = new Date().toISOString();
+
+    const call = {
+      dispatcher_id: dispatcher_c,         
+      call_id: interaction_id,
+      duration_seconds: 320,
+      direction: "Inbound",
+      language: language_c,
+      model: "general", 
+      callType: callType_c,
+      status: "processed",
+      sentiment: "positive",     
+      transcript: transcription,         
+      summary: summary,         
+    };
+
+    // Now POST this JSON to your backend create endpoint:
+    const output = await axios.post(
+      "http://localhost:5001/calls/createCall",
+      call,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    console.log("Create call response:", output.data);
+    toast({
+        title: "Audio uploaded successfully",
+        description: "Your audio file has been uploaded.",
+        variant: "default",
+    })
     // Reset form
     setSelectedFile(null)
     setDispatcher("")
