@@ -36,7 +36,7 @@ export function Sidebar() {
   const isDark = useIsDark()
 
   const logoSrc = useMemo(
-    () => (isDark ? "/NiCE_Inform-Ai_white-blue.svg" : "/NiCE_Inform-Ai_black-blue.svg"),
+    () => (isDark ? "/Inform-QA_white.svg" : "/Inform-QA_blk.svg"),
     [isDark]
   )
 
