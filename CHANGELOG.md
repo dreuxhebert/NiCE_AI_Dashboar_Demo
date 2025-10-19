@@ -1,5 +1,37 @@
 # Changelog
 
+## [2025.10.19] - 2025-10-19
+
+### Changed
+- **Interaction Drawer**
+  - Major UI/UX redesign for a cleaner and more modern feel.
+  - Replaced logo with direct usage of `NiCE_SMILE.svg` logo in the header.
+  - Improved layout for better readability and usability.
+
+### Added
+- **APCO/NENA QA Evaluation**
+  - Integrated QA Evaluation tab where users can manually override AI-evaluated results.
+  - Each QA question now displays confidence levels, evidence pulled directly from the transcript, and progress bars for compliance.
+  - Provides clear compliance percentage based on APCO/NENA “All Call Interrogation” standards.
+  - We can remove the % since I think Patrick said he doesnt like the % but it does show the AI models confidence so we can talk about it.
+
+---
+
+## [2025.10.18] - 2025-10-18
+
+### Changed
+- **Grading → Coaching**
+  - Renamed `grading/` folder to `coaching/`.
+  - Rebuilt `page.tsx` to serve as the new **Dispatcher Coaching** page.
+  - Updated `sidebar.tsx` to show “Dispatcher Coaching” with `href="/coaching"`.
+
+### Added
+- **Coaching Page**
+  - Created `loading.tsx` for coaching route to handle suspense/loading state.
+  - Added sample data in sample-data.ts for the coaching page to support development and testing.
+
+---
+
 ## [2025.10.06] - 2025-10-17
 
 ### Added
@@ -40,4 +72,5 @@
 ### Misc
 - Initial project commit and structure setup.
 - Added dependencies for Render deployment (`dnspython`, etc.).
+
 
