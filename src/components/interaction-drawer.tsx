@@ -12,15 +12,32 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { ClipboardList, Info, Languages, List, Brain, X, Settings, Save, RotateCcw, Smile } from "lucide-react"
+import {
+  ClipboardList,
+  Info,
+  Languages,
+  List,
+  Brain,
+  X,
+  Settings,
+  Save,
+  RotateCcw,
+  Smile,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  MinusCircle,
+} from "lucide-react"
 
-
+// --- Props ---
 interface InteractionDrawerProps {
-  interaction: any | null
+  interaction: any | null 
   open: boolean
   onOpenChange: (open: boolean) => void
+  logoUrl?: string 
 }
 
+// --- Grading ---
 interface GradingCriterion {
   id: string
   label: string
@@ -38,6 +55,7 @@ const initialCriteria: GradingCriterion[] = [
   { id: "response", label: "Appropriate Response Time", checked: false, notes: "", weight: 15 },
 ]
 
+// --- Scores ---
 interface ScoreItem {
   label: string
   sentiment: "Positive" | "Negative" | "Neutral" | "Mod. Positive" | "Mod. Negative"
@@ -64,14 +82,95 @@ const salesEffectivenessScores: ScoreItem[] = [
   { label: "Demonstrate Empathy", sentiment: "Positive", score: 17.82 },
 ]
 
-type TabType = "summary" | "details" | "scores" | "grading" | "sentiment" | "transcript"
+// --- QA Evaluation ---
+interface QAQuestion {
+  id: string
+  question: string
+  result: "Yes" | "No" | "Refused"
+  confidence: number
+  evidence: string
+  category: string
+}
 
-export function InteractionDrawer({ interaction, open, onOpenChange }: InteractionDrawerProps) {
+const qaEvaluationData: QAQuestion[] = [   // hardcoded data for display for you to remove
+  {
+    id: "location",
+    question: "Was the location of the incident obtained?",
+    result: "Yes",
+    confidence: 95,
+    evidence: "Dispatcher: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "phone",
+    question: "Was the phone number verified?",
+    result: "Yes",
+    confidence: 88,
+    evidence: "Dispatcher: 'What's the best callback number?' Caller: '555-0123'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "emergency",
+    question: "Was the nature of the emergency determined?",
+    result: "Yes",
+    confidence: 98,
+    evidence: "Dispatcher: 'What's your emergency?' Caller: 'My friend is having chest pain'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "name",
+    question: "Was the caller's name gathered?",
+    result: "Yes",
+    confidence: 92,
+    evidence: "Dispatcher: 'Can I have your name please?' Caller: 'Rachel Johnson'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "safety",
+    question: "Were safety concerns assessed?",
+    result: "Yes",
+    confidence: 85,
+    evidence:
+      "Dispatcher: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "callback",
+    question: "Was callback information confirmed?",
+    result: "Yes",
+    confidence: 90,
+    evidence: "Dispatcher: 'I have your number as 555-0123, is that correct?' Caller: 'Yes, that's right'",
+    category: "All Call Interrogation",
+  },
+  {
+    id: "responders",
+    question: "Were responders appropriately notified?",
+    result: "Yes",
+    confidence: 100,
+    evidence: "Dispatcher: 'I'm sending paramedics to your location now'",
+    category: "All Call Interrogation",
+  },
+]
+
+// --- Tabs ---
+type TabType =
+  | "summary"
+  | "details"
+  | "scores"
+  | "grading"
+  | "sentiment"
+  | "transcript"
+  | "qa-evaluation"
+
+export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: InteractionDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
+  const [qaQuestions, setQaQuestions] = useState<QAQuestion[]>(qaEvaluationData)
+  const [hasQaChanges, setHasQaChanges] = useState(false)
   const { toast } = useToast()
 
+  // --- Effects ---
   useEffect(() => {
     const checkedCriteria = criteria.filter((c) => c.checked)
     const totalWeight = checkedCriteria.reduce((sum, c) => sum + c.weight, 0)
@@ -82,11 +181,14 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
     if (!open) {
       setActiveTab("summary")
       setCriteria(initialCriteria)
+      setQaQuestions(qaEvaluationData)
+      setHasQaChanges(false)
     }
   }, [open])
 
   if (!interaction) return null
 
+  // --- Handlers ---
   const handleCheckChange = (id: string, checked: boolean) => {
     setCriteria((prev) => prev.map((criterion) => (criterion.id === id ? { ...criterion, checked } : criterion)))
   }
@@ -97,29 +199,41 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
 
   const handleReset = () => {
     setCriteria(initialCriteria)
-    toast({
-      title: "Grading reset",
-      description: "All criteria have been reset to default",
-    })
+    toast({ title: "Grading reset", description: "All criteria have been reset to default" })
   }
 
   const handleSave = () => {
-    toast({
-      title: "Grading saved",
-      description: `Score of ${overallScore}/100 has been saved`,
-    })
+    toast({ title: "Grading saved", description: `Score of ${overallScore}/100 has been saved` })
   }
 
+  const handleQaResultChange = (id: string, newResult: "Yes" | "No" | "Refused") => {
+    setQaQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, result: newResult } : q)))
+    setHasQaChanges(true)
+  }
+
+  const handleSaveQaChanges = () => {
+    // Hook for DB save/patch if needed
+    toast({ title: "QA Evaluation saved", description: "Manual overrides have been saved successfully" })
+    setHasQaChanges(false)
+  }
+
+  const handleResetQaChanges = () => {
+    setQaQuestions(qaEvaluationData)
+    setHasQaChanges(false)
+    toast({ title: "QA Evaluation reset", description: "All changes have been reverted to AI evaluation" })
+  }
+
+  // --- Utils ---
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case "Positive":
         return "text-green-400"
       case "Mod. Positive":
-        return "text-green-400"
+        return "text-green-300" 
       case "Negative":
         return "text-red-400"
       case "Mod. Negative":
-        return "text-red-400"
+        return "text-red-300"
       default:
         return "text-muted-foreground"
     }
@@ -149,185 +263,431 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
     })
   }
 
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 90) return "text-green-400"
+    if (confidence >= 75) return "text-amber-400"
+    return "text-red-400"
+  }
+
+  const isQaEvaluationActive = activeTab === "qa-evaluation"
+  const leftPanelWidth = isQaEvaluationActive ? "w-[40%]" : "w-[60%]"
+  const rightPanelWidth = isQaEvaluationActive ? "w-[60%]" : "w-[40%]"
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-  showCloseButton={false}
-  className="p-0 gap-0 overflow-hidden max-w-none"
-  style={{
-    width: "min(96vw, 1400px)",   // responsive width cap
-    maxWidth: "min(96vw, 1400px)",// ensure no shrink issues
-    height: "90vh"             // a little taller but still safe
-  }}
->
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-5 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">Ai</span>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">{interaction.fileName}</h2>
-              <p className="text-sm text-muted-foreground">Call Analysis</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+        showCloseButton={false}
+        className="p-0 gap-0 overflow-hidden max-w-none"
+        style={{ width: "min(96vw, 1400px)", maxWidth: "min(96vw, 1400px)", height: "90vh" }}
+      >
+        {/* Header (enhanced visual) */}
+        <div className="relative flex items-center justify-between border-b border-border px-8 py-6 shrink-0 bg-gradient-to-r from-background via-muted/30 to-background overflow-hidden">
+  <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
+
+  <div className="flex items-center gap-5 relative z-10">
+    <div className="flex h-16 w-16 items-center justify-center">
+      <img
+        src="/NiCE_SMILE.svg"
+        alt="Company Logo"
+        className="h-11 w-11 object-contain"
+      />
+    </div>
+
+    <div className="space-y-1">
+      <h2 className="text-xl font-bold text-foreground tracking-tight">
+        {interaction.fileName}
+      </h2>
+      <p className="text-sm text-muted-foreground font-medium">
+        Call Analysis & Quality Assurance
+      </p>
+    </div>
+  </div>
+
+  <Button
+    variant="ghost"
+    size="icon"
+    className="relative z-10 h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+    onClick={() => onOpenChange(false)}
+  >
+    <X className="h-5 w-5" />
+  </Button>
+</div>
+
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden min-h-0 min-w-0">
-          {/* Left Side - Transcript */}
-          <div className="w-[60%] min-w-0 border-r border-border flex flex-col overflow-hidden">
-            <div className="border-b border-border bg-muted/30 px-6 py-5 shrink-0">
-              <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-base">
-                <div>
-                  <span className="text-muted-foreground">Duration: </span>
-                  <span className="text-foreground font-medium">{interaction.duration}</span>
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Left Side - Transcript / Info */}
+          <div className={cn("border-r border-border flex flex-col overflow-hidden transition-all duration-300", leftPanelWidth)}>
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-8 py-6 shrink-0">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Duration Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Duration</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.duration}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Silence: </span>
-                  <span className="text-foreground font-medium">0%</span>
+
+                {/* Model Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium mb-0.5">AI Model</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.model}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Identifier: </span>
-                  <span className="text-foreground font-mono text-xs">{interaction.id}</span>
+
+                {/* Language Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Languages className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Language</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.language}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">File: </span>
-                  <span className="text-foreground font-medium">{interaction.fileName}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Model: </span>
-                  <span className="text-foreground font-medium">{interaction.model}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Initial Language: </span>
-                  <span className="text-foreground font-medium">{interaction.language}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Detected Language: </span>
-                  <span className="text-foreground font-medium">{interaction.language}</span>
+
+                {/* ID Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Call ID</p>
+                      <p className="text-xs font-mono font-bold text-foreground truncate">{String(interaction.id).slice(0, 12)}...</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-8">
-                <h3 className="mb-8 text-base font-semibold text-foreground">Participant One</h3>
-                {parseTranscript(interaction.transcript)}
+              <div className="px-8 py-8">
+                <div className="mb-8 flex items-center gap-3">
+                  <div className="h-8 w-1 rounded-full bg-gradient-to-b from-primary to-primary/50" />
+                  <h3 className="text-lg font-bold text-foreground">Call Transcript</h3>
+                </div>
+                <div className="space-y-6">{parseTranscript(interaction.transcript)}</div>
               </div>
             </div>
           </div>
 
-          {/* Right Side - Tabbed Content */}
-          <div className="flex w-[40%] min-w-0 flex-col overflow-hidden">
+          {/* Right Side - Tabs */}
+          <div className={cn("flex flex-col overflow-hidden transition-all duration-300", rightPanelWidth)}>
             {/* Tab Header */}
-            <div className="border-b border-border bg-muted/30 px-6 py-5 shrink-0">
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-8 py-6 shrink-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-foreground">AI Scores</h3>
-                <Button variant="ghost" size="icon">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Brain className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground">AI Analysis</h3>
+                </div>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
                   <Settings className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
-            
             {/* Tab Icons */}
-<div className="flex items-center justify-around border-b border-border bg-muted/20 px-6 py-4 shrink-0">
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "summary" && "bg-muted")}
-    onClick={() => setActiveTab("summary")}
-  >
-    <ClipboardList className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "details" && "bg-muted")}
-    onClick={() => setActiveTab("details")}
-  >
-    <Info className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "transcript" && "bg-muted")}
-    onClick={() => setActiveTab("transcript")}
-  >
-    <Languages className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "scores" && "bg-muted")}
-    onClick={() => setActiveTab("scores")}
-  >
-    <List className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "sentiment" && "bg-muted")}
-    onClick={() => setActiveTab("sentiment")}
-  >
-    <Smile className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "grading" && "bg-muted")}
-    onClick={() => setActiveTab("grading")}
-  >
-    <Brain className="h-6 w-6" />
-  </Button>
-</div>
+            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-6 py-5 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "summary" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("summary")}
+              >
+                <ClipboardList className="h-6 w-6" />
+              </Button>
 
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "qa-evaluation" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("qa-evaluation")}
+              >
+                <CheckCircle className="h-6 w-6" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "details" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("details")}
+              >
+                <Info className="h-6 w-6" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "scores" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("scores")}
+              >
+                <List className="h-6 w-6" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "sentiment" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("sentiment")}
+              >
+                <Smile className="h-6 w-6" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "grading" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("grading")}
+              >
+                <Brain className="h-6 w-6" />
+              </Button>
+            </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-8">
-                {/* Summary Tab */}
+              <div className="px-8 py-8">
+                {/* Summary */}
                 {activeTab === "summary" && (
                   <div className="space-y-8">
-                    <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Call Summary</h4>
+                    <div className="rounded-2xl bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 p-6">
+                      <h4 className="mb-4 text-lg font-bold text-foreground flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        Call Summary
+                      </h4>
                       <p className="text-base leading-relaxed text-muted-foreground">{interaction.summary}</p>
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-border/50" />
 
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Key Points</h4>
+                      <h4 className="mb-6 text-lg font-bold text-foreground flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        Key Points
+                      </h4>
                       <ul className="space-y-4 text-base text-muted-foreground">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Emergency type identified and confirmed</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Caller location obtained successfully</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Professional tone maintained throughout</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Appropriate resources dispatched</span>
-                        </li>
+                        {[
+                          "Emergency type identified and confirmed",
+                          "Caller location obtained successfully",
+                          "Professional tone maintained throughout",
+                          "Appropriate resources dispatched",
+                        ].map((kp) => (
+                          <li key={kp} className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
+                            <div className="mt-1 h-6 w-6 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <CheckCircle className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="leading-relaxed">{kp}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
                 )}
 
-                {/* Details Tab */}
+                {/* QA Evaluation */}
+                {activeTab === "qa-evaluation" && (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 p-6 shadow-lg shadow-primary/5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <CheckCircle className="h-7 w-7 text-primary" />
+                        </div>
+                        <h4 className="text-xl font-bold text-foreground">APCO/NENA QA Evaluation</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                        Automated evaluation based on ANS 1.107.1-2015 "All Call Interrogation" standards
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span className="font-medium">Review transcript on the left to verify or manually override AI evaluations</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      {qaQuestions.map((qa) => (
+                        <div key={qa.id} className="rounded-2xl border-2 border-border/50 bg-gradient-to-br from-card to-card/50 p-6 space-y-5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="text-base font-semibold text-foreground leading-relaxed mb-5">{qa.question}</p>
+
+                              <div className="flex items-center gap-3 mb-5">
+                                <span className="text-sm text-muted-foreground font-semibold">Result:</span>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant={qa.result === "Yes" ? "default" : "outline"}
+                                    className={cn(
+                                      "h-9 px-4 rounded-xl font-semibold transition-all",
+                                      qa.result === "Yes" && "bg-green-600 hover:bg-green-700 border-green-600 shadow-lg shadow-green-600/20",
+                                    )}
+                                    onClick={() => handleQaResultChange(qa.id, "Yes")}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1.5" />
+                                    Yes
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={qa.result === "No" ? "default" : "outline"}
+                                    className={cn(
+                                      "h-9 px-4 rounded-xl font-semibold transition-all",
+                                      qa.result === "No" && "bg-red-600 hover:bg-red-700 border-red-600 shadow-lg shadow-red-600/20",
+                                    )}
+                                    onClick={() => handleQaResultChange(qa.id, "No")}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1.5" />
+                                    No
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={qa.result === "Refused" ? "default" : "outline"}
+                                    className={cn(
+                                      "h-9 px-4 rounded-xl font-semibold transition-all",
+                                      qa.result === "Refused" && "bg-gray-600 hover:bg-gray-700 border-gray-600 shadow-lg shadow-gray-600/20",
+                                    )}
+                                    onClick={() => handleQaResultChange(qa.id, "Refused")}
+                                  >
+                                    <MinusCircle className="h-4 w-4 mr-1.5" />
+                                    Refused
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-muted/50">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-muted-foreground font-medium">AI Confidence:</span>
+                                  <span className={cn("text-sm font-bold", getConfidenceColor(qa.confidence))}>{qa.confidence}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator className="bg-border/50" />
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>Evidence from Transcript:</span>
+                            </div>
+                            <div className="rounded-xl bg-muted/50 p-5 border-l-4 border-primary/50 shadow-inner">
+                              <p className="text-sm leading-relaxed text-foreground italic">{qa.evidence}</p>
+                            </div>
+                          </div>
+
+                          <div className="h-2.5 overflow-hidden rounded-full bg-muted shadow-inner">
+                            <div
+                              className={cn(
+                                "h-full transition-all duration-500 shadow-lg",
+                                qa.confidence >= 90
+                                  ? "bg-gradient-to-r from-green-500 to-green-400"
+                                  : qa.confidence >= 75
+                                  ? "bg-gradient-to-r from-amber-500 to-amber-400"
+                                  : "bg-gradient-to-r from-red-500 to-red-400",
+                              )}
+                              style={{ width: `${qa.confidence}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border-2 border-border/50 p-6 mt-6 shadow-lg">
+                      <div className="flex items-center justify-between mb-5">
+                        <h5 className="text-lg font-bold text-foreground">Overall Compliance</h5>
+                        <Badge variant="default" className="text-base px-5 py-1.5 rounded-xl font-bold shadow-lg">
+                          {qaQuestions.filter((q) => q.result === "Yes").length} / {qaQuestions.length}
+                        </Badge>
+                      </div>
+                      <div className="h-4 overflow-hidden rounded-full bg-muted shadow-inner mb-4">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary via-primary/80 to-green-500 shadow-lg transition-all duration-500"
+                          style={{
+                            width: `${(qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        This call meets{" "}
+                        <span className="font-bold text-foreground">
+                          {((qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100).toFixed(0)}%
+                        </span>{" "}
+                        of APCO/NENA All Call Interrogation standards.
+                      </p>
+                    </div>
+
+                    {hasQaChanges && (
+                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent backdrop-blur-sm border-t-2 border-border/50 -mx-8 px-8 py-5 shadow-2xl">
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={handleResetQaChanges}
+                          className="flex-1 h-12 rounded-xl font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all bg-transparent"
+                        >
+                          <RotateCcw className="mr-2 h-5 w-5" />
+                          Reset to AI
+                        </Button>
+                        <Button
+                          size="default"
+                          onClick={handleSaveQaChanges}
+                          className="flex-1 h-12 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+                        >
+                          <Save className="mr-2 h-5 w-5" />
+                          Save Changes
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Details */}
                 {activeTab === "details" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Call Metadata</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Info className="h-5 w-5 text-primary" />
+                      Call Metadata
+                    </h4>
                     <div className="space-y-5">
                       <div className="flex justify-between items-center">
                         <span className="text-base text-muted-foreground">Dispatcher</span>
@@ -374,10 +734,13 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Transcript Tab */}
+                {/* Transcript */}
                 {activeTab === "transcript" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Full Transcript</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Languages className="h-5 w-5 text-primary" />
+                      Full Transcript
+                    </h4>
                     <div className="rounded-lg bg-muted/50 p-6">
                       <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
                         {interaction.transcript}
@@ -386,11 +749,14 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Scores Tab */}
+                {/* Scores */}
                 {activeTab === "scores" && (
                   <div className="space-y-8">
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Agent Behavior Score</h4>
+                      <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                        Agent Behavior Score
+                      </h4>
                       <div className="mb-6 rounded-lg bg-muted/50 p-6">
                         <div className="flex items-baseline gap-3">
                           <span className="text-4xl font-bold text-foreground">54</span>
@@ -402,12 +768,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                           <div key={index} className="flex items-center justify-between py-2">
                             <span className="text-base text-muted-foreground">{item.label}</span>
                             <div className="flex items-center gap-6">
-                              <span
-                                className={cn(
-                                  "text-base font-medium min-w-[140px] text-right",
-                                  getSentimentColor(item.sentiment),
-                                )}
-                              >
+                              <span className={cn("text-base font-medium min-w-[140px] text-right", getSentimentColor(item.sentiment))}>
                                 {item.sentiment}
                               </span>
                               <span className="w-16 text-right font-mono text-base text-foreground">{item.score}</span>
@@ -420,18 +781,16 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                     <Separator />
 
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Sales Effectiveness</h4>
+                      <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                        Sales Effectiveness
+                      </h4>
                       <div className="space-y-4">
                         {salesEffectivenessScores.map((item, index) => (
                           <div key={index} className="flex items-center justify-between py-2">
                             <span className="text-base text-muted-foreground">{item.label}</span>
                             <div className="flex items-center gap-6">
-                              <span
-                                className={cn(
-                                  "text-base font-medium min-w-[140px] text-right",
-                                  getSentimentColor(item.sentiment),
-                                )}
-                              >
+                              <span className={cn("text-base font-medium min-w-[140px] text-right", getSentimentColor(item.sentiment))}>
                                 {item.sentiment}
                               </span>
                               <span className="w-16 text-right font-mono text-base text-foreground">{item.score}</span>
@@ -443,10 +802,13 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Sentiment Tab */}
+                {/* Sentiment */}
                 {activeTab === "sentiment" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Sentiment Analysis</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Smile className="h-5 w-5 text-primary" />
+                      Sentiment Analysis
+                    </h4>
                     <div className="rounded-lg bg-muted/50 p-8">
                       <div className="mb-8 flex items-center justify-between">
                         <span className="text-base text-muted-foreground">Overall Sentiment</span>
@@ -454,7 +816,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <div className="mb-3 flex justify-between text-base">
+                          <div className="mb-3 flex justify_between text-base">
                             <span className="text-muted-foreground">Confidence</span>
                             <span className="text-foreground font-medium">{interaction.sentimentScore}%</span>
                           </div>
@@ -466,18 +828,17 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                     </div>
                     <div className="space-y-4 text-base">
                       <p className="leading-relaxed text-muted-foreground">
-                        The conversation shows a {interaction.sentiment} sentiment with a confidence score of{" "}
-                        {interaction.sentimentScore}%. The dispatcher maintained a professional and empathetic tone
-                        throughout the call.
+                        The conversation shows a {interaction.sentiment} sentiment with a confidence score of {interaction.sentimentScore}%.
+                        The dispatcher maintained a professional and empathetic tone throughout the call.
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Grading Tab */}
+                {/* Grading */}
                 {activeTab === "grading" && (
                   <div className="space-y-8">
-                    <div className="rounded-lg bg-muted/50 p-6">
+                    <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-6">
                       <div className="mb-3 text-base text-muted-foreground">Overall Score</div>
                       <div className="flex items-baseline gap-3">
                         <span className={cn("text-5xl font-bold", getScoreColor(overallScore))}>{overallScore}</span>
@@ -486,7 +847,10 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                     </div>
 
                     <div className="space-y-6">
-                      <h4 className="text-base font-semibold text-foreground">Grading Criteria</h4>
+                      <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                        Grading Criteria
+                      </h4>
                       {criteria.map((criterion) => (
                         <div key={criterion.id} className="space-y-4">
                           <div className="flex items-start gap-4">
@@ -497,10 +861,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                               className="mt-1.5"
                             />
                             <div className="flex-1">
-                              <Label
-                                htmlFor={criterion.id}
-                                className="flex items-center justify-between text-base font-medium leading-relaxed cursor-pointer"
-                              >
+                              <Label htmlFor={criterion.id} className="flex items-center justify-between text-base font-medium leading-relaxed cursor-pointer">
                                 <span>{criterion.label}</span>
                                 <span className="text-base text-muted-foreground ml-3">{criterion.weight} pts</span>
                               </Label>
