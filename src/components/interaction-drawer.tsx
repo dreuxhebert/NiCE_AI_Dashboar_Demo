@@ -27,14 +27,16 @@ import {
   AlertCircle,
   XCircle,
   MinusCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 // --- Props ---
 interface InteractionDrawerProps {
-  interaction: any | null 
+  interaction: any | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  logoUrl?: string 
+  logoUrl?: string
 }
 
 // --- Grading ---
@@ -92,7 +94,8 @@ interface QAQuestion {
   category: string
 }
 
-const qaEvaluationData: QAQuestion[] = [   // hardcoded data for display for you to remove
+const qaEvaluationData: QAQuestion[] = [
+  // hardcoded data for display for you to remove
   {
     id: "location",
     question: "Was the location of the incident obtained?",
@@ -130,8 +133,7 @@ const qaEvaluationData: QAQuestion[] = [   // hardcoded data for display for you
     question: "Were safety concerns assessed?",
     result: "Yes",
     confidence: 85,
-    evidence:
-      "Dispatcher: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
+    evidence: "Dispatcher: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
     category: "All Call Interrogation",
   },
   {
@@ -168,6 +170,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   const [overallScore, setOverallScore] = useState(0)
   const [qaQuestions, setQaQuestions] = useState<QAQuestion[]>(qaEvaluationData)
   const [hasQaChanges, setHasQaChanges] = useState(false)
+  const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(new Set())
   const { toast } = useToast()
 
   // --- Effects ---
@@ -183,6 +186,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
       setCriteria(initialCriteria)
       setQaQuestions(qaEvaluationData)
       setHasQaChanges(false)
+      setExpandedEvidence(new Set())
     }
   }, [open])
 
@@ -211,6 +215,15 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
     setHasQaChanges(true)
   }
 
+  const toggleEvidence = (id: string) => {
+    setExpandedEvidence((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }
+
   const handleSaveQaChanges = () => {
     // Hook for DB save/patch if needed
     toast({ title: "QA Evaluation saved", description: "Manual overrides have been saved successfully" })
@@ -220,6 +233,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   const handleResetQaChanges = () => {
     setQaQuestions(qaEvaluationData)
     setHasQaChanges(false)
+    setExpandedEvidence(new Set())
     toast({ title: "QA Evaluation reset", description: "All changes have been reverted to AI evaluation" })
   }
 
@@ -229,7 +243,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
       case "Positive":
         return "text-green-400"
       case "Mod. Positive":
-        return "text-green-300" 
+        return "text-green-300"
       case "Negative":
         return "text-red-400"
       case "Mod. Negative":
@@ -251,9 +265,9 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
       const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
       if (match) {
         return (
-          <div key={index} className="mb-6">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-sm font-semibold text-primary">{match[1]}</span>
+          <div key={index} className="mb-5">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="text-xs font-semibold text-primary">{match[1]}</span>
             </div>
             <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
           </div>
@@ -280,98 +294,97 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
         className="p-0 gap-0 overflow-hidden max-w-none"
         style={{ width: "min(96vw, 1400px)", maxWidth: "min(96vw, 1400px)", height: "90vh" }}
       >
-        {/* Header (enhanced visual) */}
-        <div className="relative flex items-center justify-between border-b border-border px-8 py-6 shrink-0 bg-gradient-to-r from-background via-muted/30 to-background overflow-hidden">
-  <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
+        {/* Header (compact, plain logo) */}
+        <div className="relative flex items-center justify-between border-b border-border px-6 py-4 shrink-0 bg-gradient-to-r from-background via-muted/30 to-background overflow-hidden">
+          <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
 
-  <div className="flex items-center gap-5 relative z-10">
-    <div className="flex h-16 w-16 items-center justify-center">
-      <img
-        src="/NiCE_SMILE.svg"
-        alt="Company Logo"
-        className="h-11 w-11 object-contain"
-      />
-    </div>
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl">
+              <img
+                src={logoUrl || "/NiCE_SMILE.svg"}
+                alt="Company Logo"
+                className="h-8 w-8 object-contain"
+              />
+            </div>
 
-    <div className="space-y-1">
-      <h2 className="text-xl font-bold text-foreground tracking-tight">
-        {interaction.fileName}
-      </h2>
-      <p className="text-sm text-muted-foreground font-medium">
-        Call Analysis & Quality Assurance
-      </p>
-    </div>
-  </div>
+            <div className="space-y-0.5">
+              <h2 className="text-lg font-bold text-foreground tracking-tight">
+                {interaction.fileName}
+              </h2>
+              <p className="text-xs text-muted-foreground font-medium">
+                Call Analysis & Quality Assurance
+              </p>
+            </div>
+          </div>
 
-  <Button
-    variant="ghost"
-    size="icon"
-    className="relative z-10 h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
-    onClick={() => onOpenChange(false)}
-  >
-    <X className="h-5 w-5" />
-  </Button>
-</div>
-
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative z-10 h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
 
         {/* Main Content */}
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Left Side - Transcript / Info */}
           <div className={cn("border-r border-border flex flex-col overflow-hidden transition-all duration-300", leftPanelWidth)}>
-            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-8 py-6 shrink-0">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Duration Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Duration</p>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Duration</p>
                       <p className="text-sm font-bold text-foreground">{interaction.duration}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Model Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Brain className="h-5 w-5 text-primary" />
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Brain className="h-4.5 w-4.5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium mb-0.5">AI Model</p>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">AI Model</p>
                       <p className="text-sm font-bold text-foreground">{interaction.model}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Language Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Languages className="h-5 w-5 text-primary" />
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Languages className="h-4.5 w-4.5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Language</p>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Language</p>
                       <p className="text-sm font-bold text-foreground">{interaction.language}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* ID Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-4 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                       </svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground font-medium mb-0.5">Call ID</p>
-                      <p className="text-xs font-mono font-bold text-foreground truncate">{String(interaction.id).slice(0, 12)}...</p>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Call ID</p>
+                      <p className="text-[11px] font-mono font-bold text-foreground truncate">{String(interaction.id).slice(0, 12)}...</p>
                     </div>
                   </div>
                 </div>
@@ -379,145 +392,145 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="px-8 py-8">
-                <div className="mb-8 flex items-center gap-3">
-                  <div className="h-8 w-1 rounded-full bg-gradient-to-b from-primary to-primary/50" />
-                  <h3 className="text-lg font-bold text-foreground">Call Transcript</h3>
+              <div className="px-6 py-6">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="h-7 w-1 rounded-full bg-gradient-to-b from-primary to-primary/50" />
+                  <h3 className="text-base font-bold text-foreground">Call Transcript</h3>
                 </div>
-                <div className="space-y-6">{parseTranscript(interaction.transcript)}</div>
+                <div className="space-y-5">{parseTranscript(interaction.transcript)}</div>
               </div>
             </div>
           </div>
 
           {/* Right Side - Tabs */}
           <div className={cn("flex flex-col overflow-hidden transition-all duration-300", rightPanelWidth)}>
-            {/* Tab Header */}
-            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-8 py-6 shrink-0">
+            {/* Tab Header (compact) */}
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Brain className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Brain className="h-4.5 w-4.5 text-primary" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground">AI Analysis</h3>
+                  <h3 className="text-lg font-bold text-foreground">AI Analysis</h3>
                 </div>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted transition-all">
-                  <Settings className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted transition-all">
+                  <Settings className="h-4.5 w-4.5" />
                 </Button>
               </div>
             </div>
 
-            {/* Tab Icons */}
-            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-6 py-5 shrink-0">
+            {/* Tab Icons (smaller) */}
+            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "summary" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("summary")}
               >
-                <ClipboardList className="h-6 w-6" />
+                <ClipboardList className="h-5 w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "qa-evaluation" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("qa-evaluation")}
               >
-                <CheckCircle className="h-6 w-6" />
+                <CheckCircle className="h-5 w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "details" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("details")}
               >
-                <Info className="h-6 w-6" />
+                <Info className="h-5 w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "scores" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("scores")}
               >
-                <List className="h-6 w-6" />
+                <List className="h-5 w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "sentiment" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("sentiment")}
               >
-                <Smile className="h-6 w-6" />
+                <Smile className="h-5 w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-14 w-14 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
                   activeTab === "grading" &&
                     "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
                 )}
                 onClick={() => setActiveTab("grading")}
               >
-                <Brain className="h-6 w-6" />
+                <Brain className="h-5 w-5" />
               </Button>
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="px-8 py-8">
+              <div className={cn("px-8 py-8", activeTab === "qa-evaluation" && "px-6 py-5")}>
                 {/* Summary */}
                 {activeTab === "summary" && (
-                  <div className="space-y-8">
-                    <div className="rounded-2xl bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 p-6">
-                      <h4 className="mb-4 text-lg font-bold text-foreground flex items-center gap-2">
+                  <div className="space-y-6">
+                    <div className="rounded-2xl bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 p-5">
+                      <h4 className="mb-3 text-base font-bold text-foreground flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         Call Summary
                       </h4>
-                      <p className="text-base leading-relaxed text-muted-foreground">{interaction.summary}</p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{interaction.summary}</p>
                     </div>
 
                     <Separator className="bg-border/50" />
 
                     <div>
-                      <h4 className="mb-6 text-lg font-bold text-foreground flex items-center gap-2">
+                      <h4 className="mb-4 text-base font-bold text-foreground flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-primary" />
                         Key Points
                       </h4>
-                      <ul className="space-y-4 text-base text-muted-foreground">
+                      <ul className="space-y-3 text-sm text-muted-foreground">
                         {[
                           "Emergency type identified and confirmed",
                           "Caller location obtained successfully",
                           "Professional tone maintained throughout",
                           "Appropriate resources dispatched",
                         ].map((kp) => (
-                          <li key={kp} className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
-                            <div className="mt-1 h-6 w-6 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <CheckCircle className="h-4 w-4 text-primary" />
+                          <li key={kp} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
+                            <div className="mt-0.5 h-5 w-5 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <CheckCircle className="h-3.5 w-3.5 text-primary" />
                             </div>
                             <span className="leading-relaxed">{kp}</span>
                           </li>
@@ -527,154 +540,168 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                   </div>
                 )}
 
-                {/* QA Evaluation */}
+                {/* QA Evaluation (compact) */}
                 {activeTab === "qa-evaluation" && (
-                  <div className="space-y-6">
-                    <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 p-6 shadow-lg shadow-primary/5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                          <CheckCircle className="h-7 w-7 text-primary" />
+                  <div className="space-y-3">
+                    <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 p-2.5 shadow-md shadow-primary/5">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                          <CheckCircle className="h-4 w-4 text-primary" />
                         </div>
-                        <h4 className="text-xl font-bold text-foreground">APCO/NENA QA Evaluation</h4>
+                        <h4 className="text-base font-bold text-foreground">APCO/NENA QA Evaluation</h4>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                        Automated evaluation based on ANS 1.107.1-2015 "All Call Interrogation" standards
+                      <p className="text-sm text-muted-foreground mb-1.5 leading-relaxed">
+                        Automated evaluation based on ANS 1.107.1-2015 standards
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-900/50">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        <span className="font-medium">Review transcript on the left to verify or manually override AI evaluations</span>
+                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-medium">Click buttons to override AI evaluations</span>
                       </div>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-1.5">
                       {qaQuestions.map((qa) => (
-                        <div key={qa.id} className="rounded-2xl border-2 border-border/50 bg-gradient-to-br from-card to-card/50 p-6 space-y-5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <p className="text-base font-semibold text-foreground leading-relaxed mb-5">{qa.question}</p>
+                        <div
+                          key={qa.id}
+                          className="rounded-lg border border-border/50 bg-gradient-to-br from-card to-card/50 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 transition-all duration-200"
+                        >
+                          <div className="flex items-center justify-between gap-3 p-2.5">
+                            {/* bumped from text-xs → text-sm */}
+                            <p className="text-sm font-medium text-foreground leading-relaxed flex-1">{qa.question}</p>
 
-                              <div className="flex items-center gap-3 mb-5">
-                                <span className="text-sm text-muted-foreground font-semibold">Result:</span>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant={qa.result === "Yes" ? "default" : "outline"}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {/* buttons bumped to text-sm, h-8, wider widths */}
+                              <Button
+                                size="sm"
+                                variant={qa.result === "Yes" ? "default" : "outline"}
+                                className={cn(
+                                  "h-8 w-20 rounded-md text-sm font-semibold transition-all",
+                                  qa.result === "Yes" &&
+                                    "bg-green-600 hover:bg-green-700 border-green-600 shadow-sm shadow-green-600/20",
+                                )}
+                                onClick={() => handleQaResultChange(qa.id, "Yes")}
+                              >
+                                Yes
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={qa.result === "No" ? "default" : "outline"}
+                                className={cn(
+                                  "h-8 w-20 rounded-md text-sm font-semibold transition-all",
+                                  qa.result === "No" &&
+                                    "bg-red-600 hover:bg-red-700 border-red-600 shadow-sm shadow-red-600/20",
+                                )}
+                                onClick={() => handleQaResultChange(qa.id, "No")}
+                              >
+                                No
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={qa.result === "Refused" ? "default" : "outline"}
+                                className={cn(
+                                  "h-8 w-24 rounded-md text-sm font-semibold transition-all",
+                                  qa.result === "Refused" &&
+                                    "bg-gray-600 hover:bg-gray-700 border-gray-600 shadow-sm shadow-gray-600/20",
+                                )}
+                                onClick={() => handleQaResultChange(qa.id, "Refused")}
+                              >
+                                Refused
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 rounded-md hover:bg-muted transition-all"
+                                onClick={() => toggleEvidence(qa.id)}
+                              >
+                                {expandedEvidence.has(qa.id) ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {expandedEvidence.has(qa.id) && (
+                            <div className="border-t border-border/50 p-2.5 space-y-2 bg-muted/20">
+                              <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-background/60">
+                                <span className="text-xs text-muted-foreground font-medium">AI Confidence:</span>
+                                <span className={cn("text-xs font-bold", getConfidenceColor(qa.confidence))}>
+                                  {qa.confidence}%
+                                </span>
+                                <div className="flex-1 h-1 overflow-hidden rounded-full bg-muted ml-2">
+                                  <div
                                     className={cn(
-                                      "h-9 px-4 rounded-xl font-semibold transition-all",
-                                      qa.result === "Yes" && "bg-green-600 hover:bg-green-700 border-green-600 shadow-lg shadow-green-600/20",
+                                      "h-full transition-all duration-500",
+                                      qa.confidence >= 90
+                                        ? "bg-green-500"
+                                        : qa.confidence >= 75
+                                          ? "bg-amber-500"
+                                          : "bg-red-500",
                                     )}
-                                    onClick={() => handleQaResultChange(qa.id, "Yes")}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1.5" />
-                                    Yes
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={qa.result === "No" ? "default" : "outline"}
-                                    className={cn(
-                                      "h-9 px-4 rounded-xl font-semibold transition-all",
-                                      qa.result === "No" && "bg-red-600 hover:bg-red-700 border-red-600 shadow-lg shadow-red-600/20",
-                                    )}
-                                    onClick={() => handleQaResultChange(qa.id, "No")}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1.5" />
-                                    No
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={qa.result === "Refused" ? "default" : "outline"}
-                                    className={cn(
-                                      "h-9 px-4 rounded-xl font-semibold transition-all",
-                                      qa.result === "Refused" && "bg-gray-600 hover:bg-gray-700 border-gray-600 shadow-lg shadow-gray-600/20",
-                                    )}
-                                    onClick={() => handleQaResultChange(qa.id, "Refused")}
-                                  >
-                                    <MinusCircle className="h-4 w-4 mr-1.5" />
-                                    Refused
-                                  </Button>
+                                    style={{ width: `${qa.confidence}%` }}
+                                  />
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-muted/50">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-muted-foreground font-medium">AI Confidence:</span>
-                                  <span className={cn("text-sm font-bold", getConfidenceColor(qa.confidence))}>{qa.confidence}%</span>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                  <AlertCircle className="h-3.5 w-3.5" />
+                                  <span>Evidence from Transcript:</span>
+                                </div>
+                                <div className="rounded-md bg-background/80 p-2 border-l-2 border-primary/50">
+                                  <p className="text-xs leading-relaxed text-foreground italic">{qa.evidence}</p>
                                 </div>
                               </div>
                             </div>
-                          </div>
-
-                          <Separator className="bg-border/50" />
-
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                              <AlertCircle className="h-4 w-4" />
-                              <span>Evidence from Transcript:</span>
-                            </div>
-                            <div className="rounded-xl bg-muted/50 p-5 border-l-4 border-primary/50 shadow-inner">
-                              <p className="text-sm leading-relaxed text-foreground italic">{qa.evidence}</p>
-                            </div>
-                          </div>
-
-                          <div className="h-2.5 overflow-hidden rounded-full bg-muted shadow-inner">
-                            <div
-                              className={cn(
-                                "h-full transition-all duration-500 shadow-lg",
-                                qa.confidence >= 90
-                                  ? "bg-gradient-to-r from-green-500 to-green-400"
-                                  : qa.confidence >= 75
-                                  ? "bg-gradient-to-r from-amber-500 to-amber-400"
-                                  : "bg-gradient-to-r from-red-500 to-red-400",
-                              )}
-                              style={{ width: `${qa.confidence}%` }}
-                            />
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
 
-                    <div className="rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border-2 border-border/50 p-6 mt-6 shadow-lg">
-                      <div className="flex items-center justify-between mb-5">
-                        <h5 className="text-lg font-bold text-foreground">Overall Compliance</h5>
-                        <Badge variant="default" className="text-base px-5 py-1.5 rounded-xl font-bold shadow-lg">
+                    <div className="rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50 p-2.5 mt-2 shadow-md">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h5 className="text-sm font-bold text-foreground">Overall Compliance</h5>
+                        <Badge variant="default" className="text-xs px-3 py-0.5 rounded-lg font-bold shadow-md">
                           {qaQuestions.filter((q) => q.result === "Yes").length} / {qaQuestions.length}
                         </Badge>
                       </div>
-                      <div className="h-4 overflow-hidden rounded-full bg-muted shadow-inner mb-4">
+                      <div className="h-2 overflow-hidden rounded-full bg-muted shadow-inner mb-1.5">
                         <div
-                          className="h-full bg-gradient-to-r from-primary via-primary/80 to-green-500 shadow-lg transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-primary via-primary/80 to-green-500 shadow-sm transition-all duration-500"
                           style={{
                             width: `${(qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100}%`,
                           }}
                         />
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
                         This call meets{" "}
                         <span className="font-bold text-foreground">
                           {((qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100).toFixed(0)}%
                         </span>{" "}
-                        of APCO/NENA All Call Interrogation standards.
+                        of APCO/NENA standards.
                       </p>
                     </div>
 
                     {hasQaChanges && (
-                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent backdrop-blur-sm border-t-2 border-border/50 -mx-8 px-8 py-5 shadow-2xl">
+                      <div className="flex gap-2 pt-2 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent backdrop-blur-sm border-t border-border/50 -mx-6 px-6 py-2.5 shadow-xl">
                         <Button
                           variant="outline"
-                          size="default"
+                          size="sm"
                           onClick={handleResetQaChanges}
-                          className="flex-1 h-12 rounded-xl font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all bg-transparent"
+                          className="flex-1 h-9 rounded-lg text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all bg-transparent"
                         >
-                          <RotateCcw className="mr-2 h-5 w-5" />
-                          Reset to AI
+                          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                          Reset
                         </Button>
                         <Button
-                          size="default"
+                          size="sm"
                           onClick={handleSaveQaChanges}
-                          className="flex-1 h-12 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+                          className="flex-1 h-9 rounded-lg text-xs font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all"
                         >
-                          <Save className="mr-2 h-5 w-5" />
-                          Save Changes
+                          <Save className="mr-1.5 h-3.5 w-3.5" />
+                          Save
                         </Button>
                       </div>
                     )}
@@ -816,7 +843,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <div className="mb-3 flex justify_between text-base">
+                          <div className="mb-3 flex justify-between text-base">
                             <span className="text-muted-foreground">Confidence</span>
                             <span className="text-foreground font-medium">{interaction.sentimentScore}%</span>
                           </div>
