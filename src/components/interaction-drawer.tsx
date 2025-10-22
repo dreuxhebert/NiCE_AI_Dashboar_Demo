@@ -101,7 +101,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Was the location of the incident obtained?",
     result: "Yes",
     confidence: 95,
-    evidence: "Dispatcher: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B'",
+    evidence: "Operator: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B'",
     category: "All Call Interrogation",
   },
   {
@@ -109,7 +109,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Was the phone number verified?",
     result: "Yes",
     confidence: 88,
-    evidence: "Dispatcher: 'What's the best callback number?' Caller: '555-0123'",
+    evidence: "Operator: 'What's the best callback number?' Caller: '555-0123'",
     category: "All Call Interrogation",
   },
   {
@@ -117,7 +117,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Was the nature of the emergency determined?",
     result: "Yes",
     confidence: 98,
-    evidence: "Dispatcher: 'What's your emergency?' Caller: 'My friend is having chest pain'",
+    evidence: "Operator: 'What's your emergency?' Caller: 'My friend is having chest pain'",
     category: "All Call Interrogation",
   },
   {
@@ -125,7 +125,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Was the caller's name gathered?",
     result: "Yes",
     confidence: 92,
-    evidence: "Dispatcher: 'Can I have your name please?' Caller: 'Rachel Johnson'",
+    evidence: "Operator: 'Can I have your name please?' Caller: 'Rachel Johnson'",
     category: "All Call Interrogation",
   },
   {
@@ -133,7 +133,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Were safety concerns assessed?",
     result: "Yes",
     confidence: 85,
-    evidence: "Dispatcher: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
+    evidence: "Operator: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
     category: "All Call Interrogation",
   },
   {
@@ -141,7 +141,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Was callback information confirmed?",
     result: "Yes",
     confidence: 90,
-    evidence: "Dispatcher: 'I have your number as 555-0123, is that correct?' Caller: 'Yes, that's right'",
+    evidence: "Operator: 'I have your number as 555-0123, is that correct?' Caller: 'Yes, that's right'",
     category: "All Call Interrogation",
   },
   {
@@ -149,7 +149,7 @@ const qaEvaluationData: QAQuestion[] = [
     question: "Were responders appropriately notified?",
     result: "Yes",
     confidence: 100,
-    evidence: "Dispatcher: 'I'm sending paramedics to your location now'",
+    evidence: "Operator: 'I'm sending paramedics to your location now'",
     category: "All Call Interrogation",
   },
 ]
@@ -260,22 +260,24 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   }
 
   const parseTranscript = (transcript: string) => {
-    const lines = transcript.split("\n")
-    return lines.map((line, index) => {
-      const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-      if (match) {
-        return (
-          <div key={index} className="mb-5">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="text-xs font-semibold text-primary">{match[1]}</span>
-            </div>
-            <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
+  const lines = transcript.split("\n")
+  return lines.map((line, index) => {
+    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+    if (match) {
+      return (
+        <div key={index} className="mb-5">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs font-semibold text-primary">
+              {match[1] === "Dispatcher" ? "Operator" : match[1]}
+            </span>
           </div>
-        )
-      }
-      return null
-    })
-  }
+          <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
+        </div>
+      )
+    }
+    return null
+  })
+}
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 90) return "text-green-400"
@@ -717,7 +719,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     </h4>
                     <div className="space-y-5">
                       <div className="flex justify-between items-center">
-                        <span className="text-base text-muted-foreground">Dispatcher</span>
+                        <span className="text-base text-muted-foreground">Operator</span>
                         <span className="text-base font-medium text-foreground">{interaction.dispatcher}</span>
                       </div>
                       <Separator />
@@ -856,7 +858,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     <div className="space-y-4 text-base">
                       <p className="leading-relaxed text-muted-foreground">
                         The conversation shows a {interaction.sentiment} sentiment with a confidence score of {interaction.sentimentScore}%.
-                        The dispatcher maintained a professional and empathetic tone throughout the call.
+                        The operator maintained a professional and empathetic tone throughout the call.
                       </p>
                     </div>
                   </div>

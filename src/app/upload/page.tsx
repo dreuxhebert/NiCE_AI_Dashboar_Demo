@@ -226,10 +226,10 @@ export default function UploadPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dispatcher">Dispatcher Name *</Label>
+                <Label htmlFor="dispatcher">Operator Name *</Label>
                 <Input
                   id="dispatcher"
-                  placeholder="Enter dispatcher name"
+                  placeholder="Enter operator name"
                   value={dispatcher}
                   onChange={(e) => setDispatcher(e.target.value)}
                   required

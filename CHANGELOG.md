@@ -1,5 +1,14 @@
 # Changelog
 
+# [2025.10.21] - 2025-10-21
+
+### Changed
+- **Interactions / Upload / interaction-Drawer/ Overview/ Analystics/ Directory**
+  - Updated UI text to display **Operator** instead of **Dispatcher** in all relevant places.
+- **Sidebar**
+  - Renamed “Dispatcher Coaching” to just **Coaching**.
+---
+
 ## [2025.10.19] - 2025-10-19
 
 ### Changed
