@@ -256,7 +256,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
       {/* Leaderboard */}
       <Card>
         <CardHeader>
-          <CardTitle>Dispatcher Leaderboard</CardTitle>
+          <CardTitle>Operator Leaderboard</CardTitle>
           <CardDescription>Top performers ranked by average score</CardDescription>
         </CardHeader>
         <CardContent>
@@ -265,7 +265,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[80px]">Rank</TableHead>
-                  <TableHead>Dispatcher</TableHead>
+                  <TableHead>Operator</TableHead>
                   <TableHead className="text-right">Total Calls</TableHead>
                   <TableHead className="text-right">Avg Score</TableHead>
                   <TableHead className="text-center">Trend</TableHead>

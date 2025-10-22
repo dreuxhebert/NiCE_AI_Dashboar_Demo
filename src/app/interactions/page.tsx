@@ -79,7 +79,7 @@ export default function InteractionsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by file name or dispatcher or call type..."
+                placeholder="Search by File Name or Operator or call type..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -119,7 +119,7 @@ export default function InteractionsPage() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>File Name</TableHead>
-                  <TableHead>Dispatcher</TableHead>
+                  <TableHead>Operator</TableHead>
                   <TableHead>Language</TableHead>
                   <TableHead>Model</TableHead>
                   <TableHead>Call Type</TableHead>

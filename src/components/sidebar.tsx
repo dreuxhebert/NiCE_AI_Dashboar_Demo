@@ -13,7 +13,7 @@ const menuItems = [
   { title: "Upload", href: "/upload", icon: Upload },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Directory", href: "/directory", icon: Users },
-  { title: "Dispatcher Coaching", href: "/coaching", icon: ClipboardCheck },
+  { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 

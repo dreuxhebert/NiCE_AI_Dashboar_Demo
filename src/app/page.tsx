@@ -24,7 +24,7 @@ export default function OverviewPage() {
           trend={{ value: "12% from yesterday", isPositive: true }}
         />
         <KpiCard
-          title="Average Dispatcher Score"
+          title="Average Operator Score"
           value="87.5"
           icon={TrendingUp}
           trend={{ value: "2.3 points", isPositive: true }}
