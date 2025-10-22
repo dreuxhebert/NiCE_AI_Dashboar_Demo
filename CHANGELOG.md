@@ -1,7 +1,5 @@
 # Changelog
 
-# Changelog
-
 ## [2025-10-22]
 
 ### Added
