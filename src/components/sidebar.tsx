@@ -3,18 +3,41 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings, Users } from "lucide-react"
+import { LayoutDashboard, MessageSquare, Upload, BarChart3, ClipboardCheck, Settings, Users, FileCheck } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 
 const menuItems = [
-  { title: "Overview", href: "/", icon: LayoutDashboard },
-  { title: "Interactions", href: "/interactions", icon: MessageSquare },
-  { title: "Upload", href: "/upload", icon: Upload },
-  { title: "Analytics", href: "/analytics", icon: BarChart3 },
-  { title: "Directory", href: "/directory", icon: Users },
-  { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
-  { title: "Settings", href: "/settings", icon: Settings },
+  {
+    title: "Overview",
+    href: "/",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Evaluations",
+    href: "/evaluations",
+    icon: FileCheck,
+  },
+  {
+    title: "Coaching",
+    href: "/coaching",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
+  },
+  {
+     title: "Interactions",
+    href: "/interactions",
+    icon: MessageSquare,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
 ]
 
 // Watch the <html> class for "dark" and expose a boolean
