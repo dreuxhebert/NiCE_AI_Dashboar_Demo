@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
+import { AudioPlayerWithWaveform } from "@/components/audio-player-with-waveform"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
@@ -24,11 +25,7 @@ import {
   RotateCcw,
   Smile,
   CheckCircle,
-  AlertCircle,
-  XCircle,
-  MinusCircle,
-  ChevronDown,
-  ChevronUp,
+  Volume2,
 } from "lucide-react"
 
 // --- Props ---
@@ -84,75 +81,7 @@ const salesEffectivenessScores: ScoreItem[] = [
   { label: "Demonstrate Empathy", sentiment: "Positive", score: 17.82 },
 ]
 
-// --- QA Evaluation ---
-interface QAQuestion {
-  id: string
-  question: string
-  result: "Yes" | "No" | "Refused"
-  confidence: number
-  evidence: string
-  category: string
-}
 
-const qaEvaluationData: QAQuestion[] = [
-  // hardcoded data for display for you to remove
-  {
-    id: "location",
-    question: "Was the location of the incident obtained?",
-    result: "Yes",
-    confidence: 95,
-    evidence: "Operator: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "phone",
-    question: "Was the phone number verified?",
-    result: "Yes",
-    confidence: 88,
-    evidence: "Operator: 'What's the best callback number?' Caller: '555-0123'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "emergency",
-    question: "Was the nature of the emergency determined?",
-    result: "Yes",
-    confidence: 98,
-    evidence: "Operator: 'What's your emergency?' Caller: 'My friend is having chest pain'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "name",
-    question: "Was the caller's name gathered?",
-    result: "Yes",
-    confidence: 92,
-    evidence: "Operator: 'Can I have your name please?' Caller: 'Rachel Johnson'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "safety",
-    question: "Were safety concerns assessed?",
-    result: "Yes",
-    confidence: 85,
-    evidence: "Operator: 'Is the scene safe? Are there any weapons or threats?' Caller: 'Yes, it's safe'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "callback",
-    question: "Was callback information confirmed?",
-    result: "Yes",
-    confidence: 90,
-    evidence: "Operator: 'I have your number as 555-0123, is that correct?' Caller: 'Yes, that's right'",
-    category: "All Call Interrogation",
-  },
-  {
-    id: "responders",
-    question: "Were responders appropriately notified?",
-    result: "Yes",
-    confidence: 100,
-    evidence: "Operator: 'I'm sending paramedics to your location now'",
-    category: "All Call Interrogation",
-  },
-]
 
 // --- Tabs ---
 type TabType =
@@ -162,15 +91,13 @@ type TabType =
   | "grading"
   | "sentiment"
   | "transcript"
-  | "qa-evaluation"
+  | "audio-player"
 
 export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: InteractionDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
-  const [qaQuestions, setQaQuestions] = useState<QAQuestion[]>(qaEvaluationData)
-  const [hasQaChanges, setHasQaChanges] = useState(false)
-  const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(new Set())
+
   const { toast } = useToast()
 
   // --- Effects ---
@@ -184,9 +111,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
     if (!open) {
       setActiveTab("summary")
       setCriteria(initialCriteria)
-      setQaQuestions(qaEvaluationData)
-      setHasQaChanges(false)
-      setExpandedEvidence(new Set())
     }
   }, [open])
 
@@ -210,32 +134,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
     toast({ title: "Grading saved", description: `Score of ${overallScore}/100 has been saved` })
   }
 
-  const handleQaResultChange = (id: string, newResult: "Yes" | "No" | "Refused") => {
-    setQaQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, result: newResult } : q)))
-    setHasQaChanges(true)
-  }
 
-  const toggleEvidence = (id: string) => {
-    setExpandedEvidence((prev) => {
-      const n = new Set(prev)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-  }
-
-  const handleSaveQaChanges = () => {
-    // Hook for DB save/patch if needed
-    toast({ title: "QA Evaluation saved", description: "Manual overrides have been saved successfully" })
-    setHasQaChanges(false)
-  }
-
-  const handleResetQaChanges = () => {
-    setQaQuestions(qaEvaluationData)
-    setHasQaChanges(false)
-    setExpandedEvidence(new Set())
-    toast({ title: "QA Evaluation reset", description: "All changes have been reverted to AI evaluation" })
-  }
 
   // --- Utils ---
   const getSentimentColor = (sentiment: string) => {
@@ -279,15 +178,9 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   })
 }
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 90) return "text-green-400"
-    if (confidence >= 75) return "text-amber-400"
-    return "text-red-400"
-  }
-
-  const isQaEvaluationActive = activeTab === "qa-evaluation"
-  const leftPanelWidth = isQaEvaluationActive ? "w-[40%]" : "w-[60%]"
-  const rightPanelWidth = isQaEvaluationActive ? "w-[60%]" : "w-[40%]"
+  const isAudioPlayerActive = activeTab === "audio-player"
+  const leftPanelWidth = isAudioPlayerActive ? "w-[40%]" : "w-[60%]"
+  const rightPanelWidth = isAudioPlayerActive ? "w-[60%]" : "w-[40%]"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -422,89 +315,82 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
             </div>
 
             {/* Tab Icons (smaller) */}
-            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "summary" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("summary")}
-              >
-                <ClipboardList className="h-5 w-5" />
-              </Button>
+<div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
+  {/* Summary */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "summary" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("summary")}
+  >
+    <ClipboardList className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "qa-evaluation" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("qa-evaluation")}
-              >
-                <CheckCircle className="h-5 w-5" />
-              </Button>
+  {/* Audio Player */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "audio-player" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("audio-player")}
+  >
+    <Volume2 className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "details" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("details")}
-              >
-                <Info className="h-5 w-5" />
-              </Button>
+  {/* Scores */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "scores" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("scores")}
+  >
+    <List className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "scores" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("scores")}
-              >
-                <List className="h-5 w-5" />
-              </Button>
+  {/* Sentiment */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "sentiment" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("sentiment")}
+  >
+    <Smile className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "sentiment" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("sentiment")}
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
+  {/* Details (moved to last) */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "details" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("details")}
+  >
+    <Info className="h-5 w-5" />
+  </Button>
+</div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "grading" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("grading")}
-              >
-                <Brain className="h-5 w-5" />
-              </Button>
-            </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className={cn("px-8 py-8", activeTab === "qa-evaluation" && "px-6 py-5")}>
+              <div className={cn("px-8 py-8", activeTab === "audio-player" && "px-6 py-5")}>
                 {/* Summary */}
                 {activeTab === "summary" && (
                   <div className="space-y-6">
@@ -542,171 +428,20 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                   </div>
                 )}
 
-                {/* QA Evaluation (compact) */}
-                {activeTab === "qa-evaluation" && (
-                  <div className="space-y-3">
-                    <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 p-2.5 shadow-md shadow-primary/5">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                        </div>
-                        <h4 className="text-base font-bold text-foreground">APCO/NENA QA Evaluation</h4>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1.5 leading-relaxed">
-                        Automated evaluation based on ANS 1.107.1-2015 standards
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <span className="font-medium">Click buttons to override AI evaluations</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      {qaQuestions.map((qa) => (
-                        <div
-                          key={qa.id}
-                          className="rounded-lg border border-border/50 bg-gradient-to-br from-card to-card/50 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 transition-all duration-200"
-                        >
-                          <div className="flex items-center justify-between gap-3 p-2.5">
-                            {/* bumped from text-xs → text-sm */}
-                            <p className="text-sm font-medium text-foreground leading-relaxed flex-1">{qa.question}</p>
-
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {/* buttons bumped to text-sm, h-8, wider widths */}
-                              <Button
-                                size="sm"
-                                variant={qa.result === "Yes" ? "default" : "outline"}
-                                className={cn(
-                                  "h-8 w-20 rounded-md text-sm font-semibold transition-all",
-                                  qa.result === "Yes" &&
-                                    "bg-green-600 hover:bg-green-700 border-green-600 shadow-sm shadow-green-600/20",
-                                )}
-                                onClick={() => handleQaResultChange(qa.id, "Yes")}
-                              >
-                                Yes
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={qa.result === "No" ? "default" : "outline"}
-                                className={cn(
-                                  "h-8 w-20 rounded-md text-sm font-semibold transition-all",
-                                  qa.result === "No" &&
-                                    "bg-red-600 hover:bg-red-700 border-red-600 shadow-sm shadow-red-600/20",
-                                )}
-                                onClick={() => handleQaResultChange(qa.id, "No")}
-                              >
-                                No
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={qa.result === "Refused" ? "default" : "outline"}
-                                className={cn(
-                                  "h-8 w-24 rounded-md text-sm font-semibold transition-all",
-                                  qa.result === "Refused" &&
-                                    "bg-gray-600 hover:bg-gray-700 border-gray-600 shadow-sm shadow-gray-600/20",
-                                )}
-                                onClick={() => handleQaResultChange(qa.id, "Refused")}
-                              >
-                                Refused
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 rounded-md hover:bg-muted transition-all"
-                                onClick={() => toggleEvidence(qa.id)}
-                              >
-                                {expandedEvidence.has(qa.id) ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {expandedEvidence.has(qa.id) && (
-                            <div className="border-t border-border/50 p-2.5 space-y-2 bg-muted/20">
-                              <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-background/60">
-                                <span className="text-xs text-muted-foreground font-medium">AI Confidence:</span>
-                                <span className={cn("text-xs font-bold", getConfidenceColor(qa.confidence))}>
-                                  {qa.confidence}%
-                                </span>
-                                <div className="flex-1 h-1 overflow-hidden rounded-full bg-muted ml-2">
-                                  <div
-                                    className={cn(
-                                      "h-full transition-all duration-500",
-                                      qa.confidence >= 90
-                                        ? "bg-green-500"
-                                        : qa.confidence >= 75
-                                          ? "bg-amber-500"
-                                          : "bg-red-500",
-                                    )}
-                                    style={{ width: `${qa.confidence}%` }}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                                  <AlertCircle className="h-3.5 w-3.5" />
-                                  <span>Evidence from Transcript:</span>
-                                </div>
-                                <div className="rounded-md bg-background/80 p-2 border-l-2 border-primary/50">
-                                  <p className="text-xs leading-relaxed text-foreground italic">{qa.evidence}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50 p-2.5 mt-2 shadow-md">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <h5 className="text-sm font-bold text-foreground">Overall Compliance</h5>
-                        <Badge variant="default" className="text-xs px-3 py-0.5 rounded-lg font-bold shadow-md">
-                          {qaQuestions.filter((q) => q.result === "Yes").length} / {qaQuestions.length}
-                        </Badge>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-muted shadow-inner mb-1.5">
-                        <div
-                          className="h-full bg-gradient-to-r from-primary via-primary/80 to-green-500 shadow-sm transition-all duration-500"
-                          style={{
-                            width: `${(qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        This call meets{" "}
-                        <span className="font-bold text-foreground">
-                          {((qaQuestions.filter((q) => q.result === "Yes").length / qaQuestions.length) * 100).toFixed(0)}%
-                        </span>{" "}
-                        of APCO/NENA standards.
+                {/* Audio Player */}
+                {activeTab === "audio-player" && (
+                  <div className="space-y-4">
+                    <AudioPlayerWithWaveform
+                      audioUrl={`/audio/${interaction.fileName}.mp3`}
+                      fileName={interaction.fileName}
+                      className="space-y-4"
+                    />
+                    <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        <strong>Audio Waveform:</strong> Visual representation of the call recording showing amplitude over time. 
+                        Click anywhere on the waveform to seek to that position in the audio.
                       </p>
                     </div>
-
-                    {hasQaChanges && (
-                      <div className="flex gap-2 pt-2 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent backdrop-blur-sm border-t border-border/50 -mx-6 px-6 py-2.5 shadow-xl">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleResetQaChanges}
-                          className="flex-1 h-9 rounded-lg text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all bg-transparent"
-                        >
-                          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                          Reset
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleSaveQaChanges}
-                          className="flex-1 h-9 rounded-lg text-xs font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all"
-                        >
-                          <Save className="mr-1.5 h-3.5 w-3.5" />
-                          Save
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -860,62 +595,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                         The conversation shows a {interaction.sentiment} sentiment with a confidence score of {interaction.sentimentScore}%.
                         The operator maintained a professional and empathetic tone throughout the call.
                       </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grading */}
-                {activeTab === "grading" && (
-                  <div className="space-y-8">
-                    <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-6">
-                      <div className="mb-3 text-base text-muted-foreground">Overall Score</div>
-                      <div className="flex items-baseline gap-3">
-                        <span className={cn("text-5xl font-bold", getScoreColor(overallScore))}>{overallScore}</span>
-                        <span className="text-2xl text-muted-foreground">/100</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
-                        <List className="h-5 w-5 text-primary" />
-                        Grading Criteria
-                      </h4>
-                      {criteria.map((criterion) => (
-                        <div key={criterion.id} className="space-y-4">
-                          <div className="flex items-start gap-4">
-                            <Checkbox
-                              id={criterion.id}
-                              checked={criterion.checked}
-                              onCheckedChange={(checked) => handleCheckChange(criterion.id, checked as boolean)}
-                              className="mt-1.5"
-                            />
-                            <div className="flex-1">
-                              <Label htmlFor={criterion.id} className="flex items-center justify-between text-base font-medium leading-relaxed cursor-pointer">
-                                <span>{criterion.label}</span>
-                                <span className="text-base text-muted-foreground ml-3">{criterion.weight} pts</span>
-                              </Label>
-                            </div>
-                          </div>
-                          <Textarea
-                            placeholder="Add notes..."
-                            value={criterion.notes}
-                            onChange={(e) => handleNotesChange(criterion.id, e.target.value)}
-                            rows={3}
-                            className="ml-10 text-base"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                      <Button variant="outline" size="default" onClick={handleReset} className="flex-1 bg-transparent">
-                        <RotateCcw className="mr-2 h-5 w-5" />
-                        Reset
-                      </Button>
-                      <Button size="default" onClick={handleSave} className="flex-1">
-                        <Save className="mr-2 h-5 w-5" />
-                        Save
-                      </Button>
                     </div>
                   </div>
                 )}

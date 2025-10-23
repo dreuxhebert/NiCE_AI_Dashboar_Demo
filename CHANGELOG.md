@@ -1,5 +1,52 @@
 # Changelog
 
+## [2025-10-22]
+
+### Added
+- **Collapsible sidebar** with global state:
+  - Layout split into server `app/layout.tsx` (metadata-safe) and client `app/layout-shell.tsx` (UI state).
+  - `TopNav` gets a sidebar toggle button and accepts `collapsed` + `onToggleSidebar` props.
+  - `Sidebar` accepts a `collapsed` prop and animates width (`w-64 → w-16`).
+- **Pinned Upload link** rendered at the **bottom** of the sidebar, separated by a divider.
+- **Tooltip labels** for sidebar items when collapsed.
+- **Recent Evaluations**: table can be **collapsed/expanded** (single control). When collapsed, **Audio** and **APCO/NENA QA** expand to fill space.
+
+### Changed
+- **Sidebar branding**:
+  - Hide full logo when collapsed (optional tiny mark supported).
+  - Kept larger link typography when expanded; tightened when collapsed.
+- **Top navigation** now shifts based on sidebar width (`left-64` / `left-16`).
+- **Evaluations layout**:
+  - Left column: top = Recent Evaluations table; bottom = Audio (left) + APCO/NENA QA (center).
+  - Right column: **Filter** moved to a full-height, top-aligned column.
+- **QA action buttons** color logic:
+  - **Yes** = primary (blue), **No** = red, **Refused** = amber, **N/A** = violet.
+
+### Fixed
+- **Sticky table header**: header background is solid (`bg-card`) and truly sticky (`sticky top-0 z-10`)—no transparency while scrolling.
+- **“Black bar” at page bottom** caused by semi-transparent layers over the page background:
+  - Replaced mixed `/30` `/50` alpha backgrounds with solid `bg-card` / `bg-background` in scrollable containers and sticky headers.
+- **Accessibility**:
+  - Added `aria-label`s to critical icon buttons (play/pause, volume, sidebar toggle).
+
+### Removed
+- **Duplicate “Generate AI Coaching”** button at the bottom of the Filter panel.
+
+### Optional niceties (implemented or ready to drop in)
+- **Stable waveform** bars via `useMemo` to avoid re-randomizing on re-render.
+- **Zebra striping** for Recent Evaluations rows for readability.
+- **Responsive bounds** on side panels (min/max widths) to prevent layout collapse on small screens.
+
+### Developer notes
+- Keep `app/layout.tsx` as a **Server Component** (no `"use client"`); export `metadata` there.
+- Interactive shell lives in `app/layout-shell.tsx` (client).
+- Component props:
+  - `Sidebar`: `collapsed: boolean`
+  - `TopNav`: `collapsed?: boolean`, `onToggleSidebar: () => void`
+- Main content margin-left transitions between `ml-64` and `ml-16` to match sidebar width.
+
+---
+
 # [2025.10.21] - 2025-10-21
 
 ### Changed
