@@ -1,180 +1,187 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useState, useMemo, useEffect } from "react"
-import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { dispatcherLeaderboard, callsByTypeData, callsTrendData } from "@/lib/sample-data"
-import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState, useMemo, useEffect } from "react";
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { dispatcherLeaderboard, callsByTypeData } from "@/lib/sample-data";
+import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+type CallData = {
+  date: string;
+  calls: number;
+};
 
 export default function AnalyticsPage() {
+  const [callsData, setCallsData] = useState<any[]>([]);
+  const [callsByDateData, setCallsByDateData] = useState<CallData[]>([]);
 
-  
-  type CallData = {
-    date: string;
-    calls: number;
-  };
-
-// Base URL for the API (Vercel uses the env var; local dev can use fallback)
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
-
-  const [callsData, setCallsData] = useState<any[]>([])
-  const [callsByDateData, setCallsByDateData] = useState<CallData[]>([])
-
+  /* === FIX: use proxy, no API_BASE === */
   const fetchCallsByTypeData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/calls/byType`)        
-      if(res.ok !== true) {
-        throw new Error(`Error fetching calls by type: ${res.status} ${res.statusText}`);
-      }
-      const data = await res.json()
-      setCallsData(data)
-    } catch (error) {
-      console.error("Error fetching calls by type:", error)
-    }
-  }
-
-  const fetchCallsByDateData = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/calls/byDate`);                   
+      const res = await fetch("/api/proxy/calls/byType", { cache: "no-store" });
       if (!res.ok) {
-        throw new Error(`Error fetching calls by date: ${res.status} ${res.statusText}`);
+        const t = await res.text();
+        throw new Error(`GET /api/proxy/calls/byType → ${res.status} ${res.statusText}\n${t}`);
+      }
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const t = await res.text();
+        throw new Error(`Expected JSON but got "${ct}". Body:\n${t}`);
       }
       const data = await res.json();
+      setCallsData(data);
+    } catch (error) {
+      console.error("Error fetching calls by type:", error);
+    }
+  };
 
-      // Map to expected format
-      
-      const formatted = data.map((item: { type: string; count: number }) => ({
-        date: item.type,
-        calls: item.count,
-      }));
+  /* === FIX: use proxy, no API_BASE === */
+  const fetchCallsByDateData = async () => {
+    try {
+      const res = await fetch("/api/proxy/calls/byDate", { cache: "no-store" });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`GET /api/proxy/calls/byDate → ${res.status} ${res.statusText}\n${t}`);
+      }
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const t = await res.text();
+        throw new Error(`Expected JSON but got "${ct}". Body:\n${t}`);
+      }
+
+      const data = await res.json();
+      // Map to chart format expected by the line chart
+      const formatted: CallData[] = (Array.isArray(data) ? data : []).map(
+        (item: { type: string; count: number }) => ({
+          date: item.type,
+          calls: item.count,
+        })
+      );
       setCallsByDateData(formatted);
     } catch (error) {
       console.error("Error fetching calls by date:", error);
     }
   };
 
-
   useEffect(() => {
-    fetchCallsByTypeData()
-    fetchCallsByDateData()
-  }, [])
-
+    fetchCallsByTypeData();
+    fetchCallsByDateData();
+  }, []);
 
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-5 w-5 text-amber-400" />
-    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />
-    if (rank === 3) return <Award className="h-5 w-5 text-orange-600" />
-    return null
-  }
+    if (rank === 1) return <Trophy className="h-5 w-5 text-amber-400" />;
+    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
+    if (rank === 3) return <Award className="h-5 w-5 text-orange-600" />;
+    return null;
+  };
 
   const getTrendIcon = (trend: "up" | "down" | "stable") => {
-    if (trend === "up") return <TrendingUp className="h-4 w-4 text-green-400" />
-    if (trend === "down") return <TrendingDown className="h-4 w-4 text-red-400" />
-    return <Minus className="h-4 w-4 text-gray-400" />
-  }
+    if (trend === "up") return <TrendingUp className="h-4 w-4 text-green-400" />;
+    if (trend === "down") return <TrendingDown className="h-4 w-4 text-red-400" />;
+    return <Minus className="h-4 w-4 text-gray-400" />;
+  };
 
   const getScoreBadgeColor = (score: number) => {
-    // Use the same light/dark-aware utility classes used by Sentiment/Status badges
     if (score >= 90)
-      return "bg-green-500/10 text-green-700 dark:bg-green-600/30 dark:text-green-200 hover:dark:bg-green-600/40"
+      return "bg-green-500/10 text-green-700 dark:bg-green-600/30 dark:text-green-200 hover:dark:bg-green-600/40";
     if (score >= 85)
-      return "bg-amber-500/10 text-amber-700 dark:bg-amber-600/30 dark:text-amber-200 hover:dark:bg-amber-600/40"
-    return "bg-red-500/10 text-red-700 dark:bg-red-600/30 dark:text-red-200 hover:dark:bg-red-600/40"
-  }
+      return "bg-amber-500/10 text-amber-700 dark:bg-amber-600/30 dark:text-amber-200 hover:dark:bg-amber-600/40";
+    return "bg-red-500/10 text-red-700 dark:bg-red-600/30 dark:text-red-200 hover:dark:bg-red-600/40";
+  };
 
   const chartColors = useMemo(() => {
-    // Use CSS variables so colors update with dark/light theme
-    return [
-      "var(--chart-1)",
-      "var(--chart-2)",
-      "var(--chart-3)",
-      "var(--chart-4)",
-      "var(--chart-5)",
-    ]
-  }, [])
+    return ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+  }, []);
 
-  const tooltipStyle = useMemo(() => ({
-    backgroundColor: "var(--card)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    color: "var(--foreground)",
-    padding: 8,
-  }), [])
+  const tooltipStyle = useMemo(
+    () => ({
+      backgroundColor: "var(--card)",
+      border: "1px solid var(--border)",
+      borderRadius: "var(--radius)",
+      color: "var(--foreground)",
+      padding: 8,
+    }),
+    []
+  );
 
   const ChartTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null
+    if (!active || !payload || !payload.length) return null;
 
-    const item = payload[0]
-    // determine the type key (bar uses payload.type, pie uses name)
-    const key = item.payload?.type ?? item.name ?? label
-    // prefer any color provided by the chart payload (many recharts shapes include stroke/fill)
-    const payloadColor = item.color || item.fill || item.stroke
-    const dataIndex = callsData.findIndex((d) => d.type === key)
-    const paletteColor = chartColors[dataIndex >= 0 ? dataIndex % chartColors.length : 0] || "var(--primary)"
-    const color = payloadColor || paletteColor
+    const item = payload[0];
+    const key = item.payload?.type ?? item.name ?? label;
+    const payloadColor = item.color || item.fill || item.stroke;
+    const dataIndex = callsData.findIndex((d) => d.type === key);
+    const paletteColor = chartColors[dataIndex >= 0 ? dataIndex % chartColors.length : 0] || "var(--primary)";
+    const color = payloadColor || paletteColor;
 
     return (
       <div style={tooltipStyle}>
         <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{key}</div>
         <div style={{ fontWeight: 700, color }}>{item.value}</div>
       </div>
-    )
-  }
+    );
+  };
 
   const renderPieLabel = (props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, index } = props
-    const RADIAN = Math.PI / 180
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+    const { cx, cy, midAngle, innerRadius, outerRadius, index } = props;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="var(--muted-foreground)" fontSize={12} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central">
+      <text
+        x={x}
+        y={y}
+        fill="var(--muted-foreground)"
+        fontSize={12}
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+      >
         {callsByTypeData[index]?.type}
       </text>
-    )
-  }
+    );
+  };
 
   // Time range controls for calls trend chart
-  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "1y" | "custom">("7d")
-  const [customStart, setCustomStart] = useState<string>("")
-  const [customEnd, setCustomEnd] = useState<string>("")
+  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "1y" | "custom">("7d");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
 
   const filteredCallsTrendData = useMemo(() => {
-    const len = callsByDateData.length
-    if (timeRange === "7d") return callsByDateData.slice(Math.max(len - 7, 0))
-    if (timeRange === "30d") return callsByDateData.slice(Math.max(len - 30, 0))
-    if (timeRange === "1y") return callsByDateData.slice(Math.max(len - 365, 0))
-    // custom: filter by parsed date range when possible
+    const len = callsByDateData.length;
+    if (timeRange === "7d") return callsByDateData.slice(Math.max(len - 7, 0));
+    if (timeRange === "30d") return callsByDateData.slice(Math.max(len - 30, 0));
+    if (timeRange === "1y") return callsByDateData.slice(Math.max(len - 365, 0));
     if (timeRange === "custom") {
-      if (!customStart || !customEnd) return callsByDateData
-      const start = new Date(customStart)
-      const end = new Date(customEnd)
-      end.setHours(23, 59, 59, 999)
+      if (!customStart || !customEnd) return callsByDateData;
+      const start = new Date(customStart);
+      const end = new Date(customEnd);
+      end.setHours(23, 59, 59, 999);
       return callsByDateData.filter((d) => {
-        const parsed = new Date(d.date)
-        if (isNaN(parsed.getTime())) return false
-        return parsed >= start && parsed <= end
-      })
+        const parsed = new Date(d.date);
+        if (isNaN(parsed.getTime())) return false;
+        return parsed >= start && parsed <= end;
+      });
     }
-    return callsByDateData
-  }, [timeRange, customStart, customEnd, callsByDateData])
+    return callsByDateData;
+  }, [timeRange, customStart, customEnd, callsByDateData]);
 
   const rangeLabel = useMemo(() => {
-    if (timeRange === "7d") return "Last 7 Days"
-    if (timeRange === "30d") return "Last 30 Days"
-    if (timeRange === "1y") return "Last Year"
+    if (timeRange === "7d") return "Last 7 Days";
+    if (timeRange === "30d") return "Last 30 Days";
+    if (timeRange === "1y") return "Last Year";
     if (timeRange === "custom") {
-      if (customStart && customEnd) return `${customStart} to ${customEnd}`
-      if (customStart) return `From ${customStart}`
-      if (customEnd) return `Until ${customEnd}`
-      return "Custom Range"
+      if (customStart && customEnd) return `${customStart} to ${customEnd}`;
+      if (customStart) return `From ${customStart}`;
+      if (customEnd) return `Until ${customEnd}`;
+      return "Custom Range";
     }
-    return ""
-  }, [timeRange, customStart, customEnd])
+    return "";
+  }, [timeRange, customStart, customEnd]);
 
   return (
     <div className="space-y-6">
@@ -194,10 +201,22 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
           <CardContent>
             <div className="flex items-center justify-end gap-2 mb-4">
               <div className="flex items-center gap-2">
-                <Button size="sm" variant={timeRange === "7d" ? "secondary" : "ghost"} onClick={() => setTimeRange("7d")}>7d</Button>
-                <Button size="sm" variant={timeRange === "30d" ? "secondary" : "ghost"} onClick={() => setTimeRange("30d")}>30d</Button>
-                <Button size="sm" variant={timeRange === "1y" ? "secondary" : "ghost"} onClick={() => setTimeRange("1y")}>1y</Button>
-                <Button size="sm" variant={timeRange === "custom" ? "secondary" : "ghost"} onClick={() => setTimeRange("custom")}>Custom</Button>
+                <Button size="sm" variant={timeRange === "7d" ? "secondary" : "ghost"} onClick={() => setTimeRange("7d")}>
+                  7d
+                </Button>
+                <Button size="sm" variant={timeRange === "30d" ? "secondary" : "ghost"} onClick={() => setTimeRange("30d")}>
+                  30d
+                </Button>
+                <Button size="sm" variant={timeRange === "1y" ? "secondary" : "ghost"} onClick={() => setTimeRange("1y")}>
+                  1y
+                </Button>
+                <Button
+                  size="sm"
+                  variant={timeRange === "custom" ? "secondary" : "ghost"}
+                  onClick={() => setTimeRange("custom")}
+                >
+                  Custom
+                </Button>
               </div>
               {timeRange === "custom" && (
                 <div className="flex items-center gap-2">
@@ -329,5 +348,5 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
         </Card>
       </div>
     </div>
-  )
+  );
 }
