@@ -75,14 +75,11 @@ const agentBehaviorScores: ScoreItem[] = [
 ]
 
 const salesEffectivenessScores: ScoreItem[] = [
-  { label: "Acknowledge Request", sentiment: "Mod. Positive", score: -0.13 },
-  { label: "Ask For The Sale", sentiment: "Mod. Negative", score: -0.03 },
-  { label: "Confirmed Sale", sentiment: "Neutral", score: -0.37 },
-  { label: "Demonstrate Empathy", sentiment: "Positive", score: 17.82 },
+  { label: "Acknowledge Request for Service", sentiment: "Mod. Positive", score: -0.13 },
+  { label: "Request Critical Information", sentiment: "Mod. Negative", score: -0.03 },
+  { label: "Confirm Dispatch/Assistance", sentiment: "Neutral", score: -0.37 },
+  { label: "Demonstrate Empathy and Support", sentiment: "Positive", score: 17.82 },
 ]
-
-
-
 // --- Tabs ---
 type TabType =
   | "summary"
@@ -519,7 +516,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     <div>
                       <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
                         <List className="h-5 w-5 text-primary" />
-                        Agent Behavior Score
+                         Call Effectiveness Evaluation
                       </h4>
                       <div className="mb-6 rounded-lg bg-muted/50 p-6">
                         <div className="flex items-baseline gap-3">
@@ -547,7 +544,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     <div>
                       <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
                         <List className="h-5 w-5 text-primary" />
-                        Sales Effectiveness
+                       Call Performance Review
                       </h4>
                       <div className="space-y-4">
                         {salesEffectivenessScores.map((item, index) => (
