@@ -422,85 +422,78 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
             </div>
 
             {/* Tab Icons (smaller) */}
-            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "summary" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("summary")}
-              >
-                <ClipboardList className="h-5 w-5" />
-              </Button>
+<div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
+  {/* Summary */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "summary" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("summary")}
+  >
+    <ClipboardList className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "qa-evaluation" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("qa-evaluation")}
-              >
-                <CheckCircle className="h-5 w-5" />
-              </Button>
+  {/* QA Evaluation */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "qa-evaluation" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("qa-evaluation")}
+  >
+    <CheckCircle className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "details" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("details")}
-              >
-                <Info className="h-5 w-5" />
-              </Button>
+  {/* Scores */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "scores" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("scores")}
+  >
+    <List className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "scores" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("scores")}
-              >
-                <List className="h-5 w-5" />
-              </Button>
+  {/* Sentiment */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "sentiment" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("sentiment")}
+  >
+    <Smile className="h-5 w-5" />
+  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "sentiment" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("sentiment")}
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
+  {/* Details (moved to last) */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "details" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("details")}
+  >
+    <Info className="h-5 w-5" />
+  </Button>
+</div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "grading" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("grading")}
-              >
-                <Brain className="h-5 w-5" />
-              </Button>
-            </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
@@ -860,62 +853,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                         The conversation shows a {interaction.sentiment} sentiment with a confidence score of {interaction.sentimentScore}%.
                         The operator maintained a professional and empathetic tone throughout the call.
                       </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grading */}
-                {activeTab === "grading" && (
-                  <div className="space-y-8">
-                    <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-6">
-                      <div className="mb-3 text-base text-muted-foreground">Overall Score</div>
-                      <div className="flex items-baseline gap-3">
-                        <span className={cn("text-5xl font-bold", getScoreColor(overallScore))}>{overallScore}</span>
-                        <span className="text-2xl text-muted-foreground">/100</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
-                        <List className="h-5 w-5 text-primary" />
-                        Grading Criteria
-                      </h4>
-                      {criteria.map((criterion) => (
-                        <div key={criterion.id} className="space-y-4">
-                          <div className="flex items-start gap-4">
-                            <Checkbox
-                              id={criterion.id}
-                              checked={criterion.checked}
-                              onCheckedChange={(checked) => handleCheckChange(criterion.id, checked as boolean)}
-                              className="mt-1.5"
-                            />
-                            <div className="flex-1">
-                              <Label htmlFor={criterion.id} className="flex items-center justify-between text-base font-medium leading-relaxed cursor-pointer">
-                                <span>{criterion.label}</span>
-                                <span className="text-base text-muted-foreground ml-3">{criterion.weight} pts</span>
-                              </Label>
-                            </div>
-                          </div>
-                          <Textarea
-                            placeholder="Add notes..."
-                            value={criterion.notes}
-                            onChange={(e) => handleNotesChange(criterion.id, e.target.value)}
-                            rows={3}
-                            className="ml-10 text-base"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                      <Button variant="outline" size="default" onClick={handleReset} className="flex-1 bg-transparent">
-                        <RotateCcw className="mr-2 h-5 w-5" />
-                        Reset
-                      </Button>
-                      <Button size="default" onClick={handleSave} className="flex-1">
-                        <Save className="mr-2 h-5 w-5" />
-                        Save
-                      </Button>
                     </div>
                   </div>
                 )}
