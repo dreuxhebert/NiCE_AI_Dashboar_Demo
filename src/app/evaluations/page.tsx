@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -19,6 +20,9 @@ import {
   Play,
   Pause,
   Volume2,
+  PencilLine,
+  Save,
+  RotateCcw,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -29,11 +33,16 @@ export default function EvaluationsPage() {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
   const [isPlaying, setIsPlaying] = useState(false)
-  const [showTable, setShowTable] = useState(true) // NEW: collapse control
+  const [showTable, setShowTable] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
-  const [qaResults, setQaResults] = useState({
+  // ------- QA state (view vs draft) -------
+  type QaValue = "yes" | "no" | "refused" | "na"
+  type QaResults = Record<string, QaValue>
+
+  const initialQa: QaResults = {
     location: "yes",
     phoneNumber: "yes",
     emergencyNature: "yes",
@@ -41,7 +50,16 @@ export default function EvaluationsPage() {
     safetyConcerns: "yes",
     callbackInfo: "no",
     respondersNotified: "yes",
-  })
+  }
+
+  const [qaResults, setQaResults] = useState<QaResults>(initialQa) // committed
+  const [qaDraft, setQaDraft] = useState<QaResults>(initialQa) // editable copy
+
+  useEffect(() => {
+    setQaResults(initialQa)
+    setQaDraft(initialQa)
+    setIsEditing(false)
+  }, [selectedEvaluation?.id])
 
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
@@ -49,14 +67,15 @@ export default function EvaluationsPage() {
     setExpandedQuestions(s)
   }
 
-  const updateQaResult = (key: string, value: "yes" | "no" | "refused" | "na") => {
-    setQaResults((prev) => ({ ...prev, [key]: value }))
+  const updateQaDraft = (key: string, value: QaValue) => {
+    if (!isEditing) return
+    setQaDraft((prev) => ({ ...prev, [key]: value }))
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-400"
-    if (score >= 60) return "text-amber-400"
-    return "text-red-400"
+    if (score >= 80) return "text-green-500"
+    if (score >= 60) return "text-amber-500"
+    return "text-red-500"
   }
 
   const getScoreBadgeVariant = (score: number) => {
@@ -77,6 +96,17 @@ export default function EvaluationsPage() {
     router.push("/coaching")
   }
 
+  const handleSaveChanges = () => {
+    setQaResults(qaDraft)
+    setIsEditing(false)
+    toast({ title: "Changes saved" })
+  }
+
+  const handleResetChanges = () => {
+    setQaDraft(qaResults)
+    toast({ title: "Draft reset", description: "Reverted to last saved answers." })
+  }
+
   const filteredEvaluations = evaluations.filter(
     (evaluation) =>
       evaluation.callTakerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,14 +123,19 @@ export default function EvaluationsPage() {
     { key: "respondersNotified", question: "Were responders appropriately notified?", confidence: 98, evidence: "Operator: 'Help is on the way.' Ambulance dispatched at 00:30." },
   ] as const
 
-  // Distinct active colors for QA buttons
-  const qaBtn = (active: boolean, kind: "yes" | "no" | "refused" | "na") => {
-    if (!active) return "h-7 px-2.5 text-xs"
+  // Buttons: look normal when locked, shrink & wrap on small screens
+  const qaBtn = (active: boolean, kind: QaValue) => {
+    const base = "h-7 px-2 text-[11px] sm:text-xs sm:px-2.5 border"
+    if (!active) return base
     switch (kind) {
-      case "yes": return "h-7 px-2.5 text-xs bg-primary text-primary-foreground border-0 hover:opacity-90"
-      case "no": return "h-7 px-2.5 text-xs bg-red-600 text-white border-0 hover:bg-red-700"
-      case "refused": return "h-7 px-2.5 text-xs bg-amber-500 text-white border-0 hover:bg-amber-600"
-      case "na": return "h-7 px-2.5 text-xs bg-violet-600 text-white border-0 hover:bg-violet-700"
+      case "yes":
+        return cn(base, "bg-primary text-primary-foreground border-transparent hover:opacity-90")
+      case "no":
+        return cn(base, "bg-red-600 text-white border-transparent hover:bg-red-700")
+      case "refused":
+        return cn(base, "bg-amber-500 text-white border-transparent hover:bg-amber-600")
+      case "na":
+        return cn(base, "bg-violet-600 text-white border-transparent hover:bg-violet-700")
     }
   }
 
@@ -108,27 +143,21 @@ export default function EvaluationsPage() {
   const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-background">
-      {/* LEFT COLUMN: table (collapsible) + bottom row */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top: Recent Evaluations (collapsible) */}
-        <div
-          className={cn(
-            "shrink-0 border-b border-border/50 bg-background transition-[height] duration-200",
-            showTable ? "h-[48vh]" : "h-12"
-          )}
-        >
-          {/* Header row for the table section */}
-          <div className="px-6 h-12 flex items-center justify-between">
+    <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30">
+      {/* LEFT & CENTER */}
+      <div className="flex-1 flex flex-col overflow-hidden p-3 gap-3">
+        {/* Recent Evaluations */}
+        <Card className="shrink-0 border border-border/50 bg-card rounded-lg">
+          <div className="px-3 sm:px-6 h-12 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-border/50">
                 <CheckCircle className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-foreground">Recent Evaluations</h2>
+              <h2 className="text-sm sm:text-lg font-bold text-foreground">Recent Evaluations</h2>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="relative w-64 sm:w-80">
+              <div className="relative w-[190px] sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by operator or call ID..."
@@ -148,13 +177,11 @@ export default function EvaluationsPage() {
             </div>
           </div>
 
-          {/* Table container */}
           {showTable && (
-            <div className="h-[calc(48vh-3rem)] px-6 pb-4 overflow-hidden">
+            <div className="px-3 sm:px-6 py-4 overflow-hidden h-[32vh] sm:h-[38vh] md:h-[46vh]">
               <div className="border border-border/50 rounded-lg bg-card overflow-hidden h-full">
                 <div className="h-full overflow-y-auto">
                   <table className="w-full">
-                    {/* SOLID sticky header (non-transparent) */}
                     <thead className="sticky top-0 z-10 bg-card">
                       <tr className="border-b border-border/50">
                         <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
@@ -199,38 +226,29 @@ export default function EvaluationsPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Bottom: two panes (Audio, QA) grow when table collapsed */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Audio (left) */}
-          <div className="w-[30%] min-w-[260px] max-w-[360px] flex flex-col border-r border-border/50 overflow-hidden">
-            <div className="shrink-0 border-b border-border/50 bg-card p-4">
+        {/* Bottom: grid that collapses on small screens */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden">
+          {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
+          <Card className="flex flex-col border border-border/50 bg-card md:h-[min(64vh,100%)]">
+            {/* Audio */}
+            <div className="p-3 sm:p-4 border-b border-border/50">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
                 <span className="text-xs text-muted-foreground">4:32</span>
               </div>
 
-              <div className="relative h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
+              <div className="relative h-14 sm:h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
                 <div className="absolute inset-0 flex items-center justify-center gap-[2px] px-2">
                   {bars.map((height, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gradient-to-t from-primary/80 to-primary/40 rounded-full"
-                      style={{ height: `${height}%` }}
-                    />
+                    <div key={i} className="flex-1 bg-gradient-to-t from-primary/80 to-primary/40 rounded-full" style={{ height: `${height}%` }} />
                   ))}
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0 bg-transparent"
-                  aria-label={isPlaying ? "Pause audio" : "Play audio"}
-                  onClick={() => setIsPlaying(!isPlaying)}
-                >
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0 bg-transparent" aria-label={isPlaying ? "Pause audio" : "Play audio"} onClick={() => setIsPlaying(!isPlaying)}>
                   {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
                 <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -242,78 +260,64 @@ export default function EvaluationsPage() {
               </div>
             </div>
 
-            <Tabs defaultValue="transcript" className="flex-1 flex flex-col">
+            {/* Tabs */}
+            <div className="flex-1 flex flex-col">
               <div className="shrink-0 border-b border-border/50 bg-card px-3">
-                <TabsList className="h-10 bg-transparent">
-                  <TabsTrigger value="transcript" className="text-xs data-[state=active]:bg-muted">Transcript</TabsTrigger>
-                  <TabsTrigger value="summary" className="text-xs data-[state=active]:bg-muted">Summary</TabsTrigger>
-                  <TabsTrigger value="details" className="text-xs data-[state=active]:bg-muted">Details</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="transcript" className="flex-1 flex flex-col">
+                  <TabsList className="h-10 bg-transparent flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible">
+                    <TabsTrigger value="transcript" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Transcript</TabsTrigger>
+                    <TabsTrigger value="summary" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Summary</TabsTrigger>
+                    <TabsTrigger value="details" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Details</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
 
-              <TabsContent value="transcript" className="flex-1 overflow-y-auto p-4 mt-0 bg-card">
-                <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
-                <div className="space-y-3">
-                  {selectedEvaluation.transcript.split("\n").map((line, index) => {
-                    const isOperator = line.startsWith("Dispatcher:")
-                    const isCaller = line.startsWith("Caller:")
-                    const text = line.replace(/^(Dispatcher:|Caller:)\s*/, "")
-                    return (
-                      <div key={index}>
-                        <p className="text-xs font-semibold text-primary mb-1">
-                          {isOperator ? "Operator" : isCaller ? "Caller" : ""}
-                        </p>
-                        <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-2">{text}</p>
-                      </div>
-                    )
-                  })}
-                </div>
-              </TabsContent>
+              <Tabs defaultValue="transcript" className="flex-1 flex flex-col overflow-hidden">
+                <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                  <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
+                  <div className="space-y-3">
+                    {selectedEvaluation.transcript.split("\n").map((line, index) => {
+                      const isOperator = line.startsWith("Dispatcher:")
+                      const isCaller = line.startsWith("Caller:")
+                      const text = line.replace(/^(Dispatcher:|Caller:)\s*/, "")
+                      return (
+                        <div key={index}>
+                          <p className="text-xs font-semibold text-primary mb-1">{isOperator ? "Operator" : isCaller ? "Caller" : ""}</p>
+                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-2">{text}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </TabsContent>
 
-              <TabsContent value="summary" className="flex-1 overflow-y-auto p-4 mt-0 bg-card">
-                <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
-                <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">
-                  {selectedEvaluation.summary}
-                </p>
-              </TabsContent>
+                <TabsContent value="summary" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                  <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
+                  <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">{selectedEvaluation.summary}</p>
+                </TabsContent>
 
-              <TabsContent value="details" className="flex-1 overflow-y-auto p-4 mt-0 bg-card">
-                <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
-                <div className="space-y-2 bg-muted rounded p-3">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Call ID</span>
-                    <span className="text-xs font-medium text-foreground">{selectedEvaluation.callId}</span>
+                <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                  <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
+                  <div className="space-y-2 bg-muted rounded p-3 border border-border/50">
+                    <div className="flex justify-between"><span className="text-xs text-muted-foreground">Call ID</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.callId}</span></div>
+                    <Separator className="bg-border/50" />
+                    <div className="flex justify-between"><span className="text-xs text-muted-foreground">Duration</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.duration}</span></div>
+                    <Separator className="bg-border/50" />
+                    <div className="flex justify-between"><span className="text-xs text-muted-foreground">Date</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.date}</span></div>
+                    <Separator className="bg-border/50" />
+                    <div className="flex justify-between"><span className="text-xs text-muted-foreground">Operator</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.callTakerName}</span></div>
+                    <Separator className="bg-border/50" />
+                    <div className="flex justify-between"><span className="text-xs text-muted-foreground">Type</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.type}</span></div>
                   </div>
-                  <Separator className="bg-border/50" />
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Duration</span>
-                    <span className="text-xs font-medium text-foreground">{selectedEvaluation.duration}</span>
-                  </div>
-                  <Separator className="bg-border/50" />
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Date</span>
-                    <span className="text-xs font-medium text-foreground">{selectedEvaluation.date}</span>
-                  </div>
-                  <Separator className="bg-border/50" />
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Operator</span>
-                    <span className="text-xs font-medium text-foreground">{selectedEvaluation.callTakerName}</span>
-                  </div>
-                  <Separator className="bg-border/50" />
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Type</span>
-                    <span className="text-xs font-medium text-foreground">{selectedEvaluation.type}</span>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </Card>
 
-          {/* QA (center) */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-background">
-            <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3">
+          {/* RIGHT: QA */}
+          <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card">
+            <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50">
                   <CheckCircle className="h-4 w-4 text-primary" />
                 </div>
                 <div>
@@ -321,22 +325,38 @@ export default function EvaluationsPage() {
                   <p className="text-[11px] text-muted-foreground">Automated evaluation based on ANS 1.107.1-2015 standards</p>
                 </div>
               </div>
+
+              <Button
+                size="sm"
+                variant={isEditing ? "secondary" : "outline"}
+                className="h-8"
+                onClick={() => {
+                  if (!isEditing) setQaDraft(qaResults)
+                  setIsEditing((v) => !v)
+                }}
+              >
+                <PencilLine className="h-3.5 w-3.5 mr-2" />
+                {isEditing ? "Done" : "Edit"}
+              </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 bg-card">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
               <div className="space-y-2">
                 {qaQuestions.map((q, index) => {
-                  const val = qaResults[q.key as keyof typeof qaResults] as "yes" | "no" | "refused" | "na" | string
+                  const committed = qaResults[q.key]
+                  const val = (isEditing ? qaDraft[q.key] : committed) as QaValue
                   return (
                     <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                       <div className="flex items-center justify-between p-3 gap-3">
                         <span className="text-sm text-foreground flex-1">{q.question}</span>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                           <Button
                             size="sm"
                             variant={val === "yes" ? "default" : "outline"}
                             className={qaBtn(val === "yes", "yes")}
-                            onClick={() => updateQaResult(q.key, "yes")}
+                            onClick={() => updateQaDraft(q.key, "yes")}
+                            aria-disabled={!isEditing}
+                            tabIndex={isEditing ? 0 : -1}
                           >
                             Yes
                           </Button>
@@ -344,7 +364,9 @@ export default function EvaluationsPage() {
                             size="sm"
                             variant={val === "no" ? "destructive" : "outline"}
                             className={qaBtn(val === "no", "no")}
-                            onClick={() => updateQaResult(q.key, "no")}
+                            onClick={() => updateQaDraft(q.key, "no")}
+                            aria-disabled={!isEditing}
+                            tabIndex={isEditing ? 0 : -1}
                           >
                             No
                           </Button>
@@ -352,7 +374,9 @@ export default function EvaluationsPage() {
                             size="sm"
                             variant="outline"
                             className={qaBtn(val === "refused", "refused")}
-                            onClick={() => updateQaResult(q.key, "refused")}
+                            onClick={() => updateQaDraft(q.key, "refused")}
+                            aria-disabled={!isEditing}
+                            tabIndex={isEditing ? 0 : -1}
                           >
                             Refused
                           </Button>
@@ -360,7 +384,9 @@ export default function EvaluationsPage() {
                             size="sm"
                             variant="outline"
                             className={qaBtn(val === "na", "na")}
-                            onClick={() => updateQaResult(q.key, "na")}
+                            onClick={() => updateQaDraft(q.key, "na")}
+                            aria-disabled={!isEditing}
+                            tabIndex={isEditing ? 0 : -1}
                           >
                             N/A
                           </Button>
@@ -382,7 +408,7 @@ export default function EvaluationsPage() {
                             </div>
                             <div className="mt-2">
                               <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                              <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed">{q.evidence}</p>
+                              <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{q.evidence}</p>
                             </div>
                           </div>
                         </div>
@@ -391,13 +417,27 @@ export default function EvaluationsPage() {
                   )
                 })}
               </div>
+
+              {/* Action bar: sticky on mobile, normal on md+ */}
+              {isEditing && (
+                <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={handleResetChanges}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                    Reset Changes
+                  </Button>
+                  <Button size="sm" onClick={handleSaveChanges}>
+                    <Save className="h-3.5 w-3.5 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Filter*/}
-      <div className="w-[25%] min-w-[280px] max-w-[360px] flex flex-col border-l border-border/50 overflow-hidden bg-background">
+      {/* RIGHT COLUMN */}
+      <div className="w-full md:w-[28%] md:min-w-[280px] md:max-w-[360px] flex flex-col border-l border-border/50 overflow-hidden bg-transparent">
         <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3">
           <div className="space-y-2">
             <Button
@@ -419,23 +459,23 @@ export default function EvaluationsPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-card">
-          {/* QA Protocol Evaluation Score */}
-          <Card className="p-4 bg-card border-primary/20">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-card">
+          <Card className="p-4 bg-card border border-border/50">
             <h3 className="text-sm font-semibold text-foreground mb-2">QA Protocol Evaluation</h3>
             <div className="text-center">
               <div className={cn("text-4xl font-bold mb-1", getScoreColor(selectedEvaluation.score))}>
                 {selectedEvaluation.score}%
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {selectedEvaluation.metStandards.length} of{" "}
+                {selectedEvaluation.metStandards.length} of {" "}
                 {selectedEvaluation.metStandards.length + selectedEvaluation.criticalViolations.length} Standards
               </p>
             </div>
           </Card>
 
-          {/* Call Information */}
-          <Card className="p-4 bg-card border-border/50">
+          <Separator className="bg-border/50" />
+
+          <Card className="p-4 bg-card border border-border/50">
             <h3 className="text-sm font-semibold text-foreground mb-3">Call Information</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between items-center">
@@ -455,13 +495,13 @@ export default function EvaluationsPage() {
             </div>
           </Card>
 
-          {/* Compliance Summary */}
-          <Card className="p-4 bg-card border-border/50">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Compliance Summary</h3>
+          <Separator className="bg-border/50" />
 
+          <Card className="p-4 bg-card border border-border/50">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Compliance Summary</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center">
+                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
                   <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                 </div>
                 <div>
@@ -471,7 +511,7 @@ export default function EvaluationsPage() {
               </div>
               <Separator orientation="vertical" className="h-8 bg-border/50" />
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center">
+                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
                   <XCircle className="h-3.5 w-3.5 text-red-500" />
                 </div>
                 <div>
@@ -503,7 +543,6 @@ export default function EvaluationsPage() {
               </div>
             )}
           </Card>
-          {/* Removed duplicate coaching button at bottom */}
         </div>
       </div>
     </div>
