@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { InteractionDrawer } from "@/components/interaction-drawer"
 import { Search, Filter } from "lucide-react"
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+//const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
 
 export default function InteractionsPage() {
   const [interactions, setInteractions] = useState<any[]>([])
@@ -25,27 +25,41 @@ export default function InteractionsPage() {
   }
 
   const fetchInteractions = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/calls`);
-      const data = await res.json()
-      const mappedData = data.map((item: any) => ({
-        id: item.id || item._id,
-        dispatcher: item.dispatcher_id,
-        language: item.language,
-        model: item.model,
-        callType: item.callType,
-        duration: item.duration_seconds,
-        status: item.status,
-        sentiment: item.sentiment,
-        fileName: item.call_id,
-        transcript: item.transcript,
-        summary: item.summary,
-      }))
-      setInteractions(mappedData)
-    } catch (error) {
-      console.error("Error fetching interactions:", error)
+  try {
+    const res = await fetch('/api/proxy/calls/', { cache: 'no-store' }); // <-- note the proxy
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`GET /api/proxy/calls/ → ${res.status} ${res.statusText}\n${text}`);
     }
+
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Expected JSON but got "${ct}". Body:\n${text}`);
+    }
+
+    const data = await res.json();
+
+    const mappedData = (Array.isArray(data) ? data : []).map((item: any) => ({
+      id: item.id || item._id,
+      dispatcher: item.dispatcher_id,
+      language: item.language,
+      model: item.model,
+      callType: item.callType,
+      duration: item.duration_seconds,
+      status: item.status,
+      sentiment: item.sentiment,
+      fileName: item.call_id,
+      transcript: item.transcript,
+      summary: item.summary,
+    }));
+
+    setInteractions(mappedData);
+  } catch (error) {
+    console.error('Error fetching interactions:', error);
   }
+};
 
   useEffect(() => {
     fetchInteractions()
