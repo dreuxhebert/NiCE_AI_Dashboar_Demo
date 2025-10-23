@@ -26,7 +26,7 @@ export default function InteractionsPage() {
 
   const fetchInteractions = async () => {
     try {
-      const res = await fetch(`${API_BASE}/calls/`);
+      const res = await fetch(`${API_BASE}/calls`);
       const data = await res.json()
       const mappedData = data.map((item: any) => ({
         id: item.id || item._id,
