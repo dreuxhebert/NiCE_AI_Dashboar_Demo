@@ -4,9 +4,6 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
@@ -21,8 +18,6 @@ import {
   Brain,
   X,
   Settings,
-  Save,
-  RotateCcw,
   Smile,
   CheckCircle,
   Volume2,

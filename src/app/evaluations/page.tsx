@@ -22,10 +22,12 @@ import {
   PencilLine,
   Save,
   RotateCcw,
+  Plus,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { AddQuestionDrawer } from "@/components/add-question-drawer"
 
 export default function EvaluationsPage() {
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation>(evaluations[0])
@@ -34,8 +36,12 @@ export default function EvaluationsPage() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [showTable, setShowTable] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const [qaQuestionsSet, setQaQuestionsSet] = useState<QAQuestion[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+
+  //const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
 
   // ------- QA state (view vs draft) -------
   type QaValue = "yes" | "no" | "refused" | "na"
@@ -51,6 +57,16 @@ export default function EvaluationsPage() {
     respondersNotified: "yes",
   }
 
+  interface QAQuestion {
+    _id: string;
+    originalQuestion: string;
+    editedQuestion: string;
+    questionDescription: string;
+    type: string;
+    evidence: string;
+    confidence: number;
+  }
+
   const [qaResults, setQaResults] = useState<QaResults>(initialQa) // committed
   const [qaDraft, setQaDraft] = useState<QaResults>(initialQa) // editable copy
 
@@ -58,12 +74,17 @@ export default function EvaluationsPage() {
     setQaResults(initialQa)
     setQaDraft(initialQa)
     setIsEditing(false)
+    getQaQuestions()
   }, [selectedEvaluation?.id])
 
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
     s.has(index) ? s.delete(index) : s.add(index)
     setExpandedQuestions(s)
+  }
+
+  const handleAddQuestion = () => {
+    setDrawerOpen(true)
   }
 
   const updateQaDraft = (key: string, value: QaValue) => {
@@ -113,14 +134,33 @@ export default function EvaluationsPage() {
   )
 
   const qaQuestions = [
-    { key: "location", question: "Was the location of the incident obtained?", confidence: 95, evidence: "Operator: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B.'" },
-    { key: "phoneNumber", question: "Was the phone number verified?", confidence: 88, evidence: "Operator confirmed callback number at 00:45 in the call." },
-    { key: "emergencyNature", question: "Was the nature of the emergency determined?", confidence: 92, evidence: "Caller: 'I'm having chest pain, it's really bad.' Nature clearly identified as medical emergency." },
-    { key: "callerName", question: "Was the caller's name gathered?", confidence: 45, evidence: "No explicit request for caller's name found in transcript." },
-    { key: "safetyConcerns", question: "Were safety concerns assessed?", confidence: 78, evidence: "Operator: 'Are you having trouble breathing?' Safety assessment performed." },
-    { key: "callbackInfo", question: "Was callback information confirmed?", confidence: 52, evidence: "Callback number not explicitly confirmed in transcript." },
-    { key: "respondersNotified", question: "Were responders appropriately notified?", confidence: 98, evidence: "Operator: 'Help is on the way.' Ambulance dispatched at 00:30." },
+    { confidence: 95, evidence: "Operator: 'Can you tell me your exact address?' Caller: '123 Main Street, apartment 4B.'" },
+    { confidence: 88, evidence: "Operator confirmed callback number at 00:45 in the call." },
+    { confidence: 92, evidence: "Caller: 'I'm having chest pain, it's really bad.' Nature clearly identified as medical emergency." },
+    { confidence: 45, evidence: "No explicit request for caller's name found in transcript." },
+    { confidence: 78, evidence: "Operator: 'Are you having trouble breathing?' Safety assessment performed." },
+    { confidence: 52, evidence: "Callback number not explicitly confirmed in transcript." },
+    { confidence: 98, evidence: "Operator: 'Help is on the way.' Ambulance dispatched at 00:30." },
   ] as const
+
+  const getQaQuestions = async () => {
+    const res = await fetch(`/api/proxy/questionSet`);
+    if (!res.ok) throw new Error("Failed to fetch question set");
+    const data: QAQuestion[] = await res.json();
+
+    // Merge with evidence
+    const merged = data.map((q, idx) => ({
+      ...q,
+      evidence: qaQuestions[idx]?.evidence ?? "",
+      confidence: qaQuestions[idx]?.confidence ?? 0,
+    }));
+
+    setQaQuestionsSet(merged);
+    console.log(merged);
+
+    return merged;
+  };
+
 
   // Buttons: look normal when locked, shrink & wrap on small screens
   const qaBtn = (active: boolean, kind: QaValue) => {
@@ -141,7 +181,7 @@ export default function EvaluationsPage() {
   // Stable waveform bars (optional nicety)
   const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
 
-  return (
+ return (
     <>
       {/* Outer scroll to avoid clipping when scaled down */}
       <div className="w-full overflow-auto">
@@ -329,36 +369,48 @@ export default function EvaluationsPage() {
                         <p className="text-[11px] text-muted-foreground">Automated evaluation based on ANS 1.107.1-2015 standards</p>
                       </div>
                     </div>
-
-                    <Button
-                      size="sm"
-                      variant={isEditing ? "secondary" : "outline"}
-                      className="h-8"
-                      onClick={() => {
-                        if (!isEditing) setQaDraft(qaResults)
-                        setIsEditing((v) => !v)
-                      }}
-                    >
-                      <PencilLine className="h-3.5 w-3.5 mr-2" />
-                      {isEditing ? "Done" : "Edit"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={isEditing ? "secondary" : "outline"}
+                        className="h-8"
+                        onClick={() => {
+                          if (!isEditing) setQaDraft(qaResults)
+                          setIsEditing((v) => !v)
+                        }}
+                      >
+                        <PencilLine className="h-3.5 w-3.5 mr-2" />
+                        {isEditing ? "Done" : "Edit"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={"outline"}
+                        className="h-8"
+                        onClick={() => {
+                          handleAddQuestion()
+                        }}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-2" />
+                        {"Add Question"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
                     <div className="space-y-2">
-                      {qaQuestions.map((q, index) => {
-                        const committed = qaResults[q.key]
-                        const val = (isEditing ? qaDraft[q.key] : committed) as QaValue
+                      {qaQuestionsSet.map((q, index) => {
+                        const committed = qaResults[q._id]
+                        const val = (isEditing ? qaDraft[q._id] : committed) as QaValue
                         return (
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                             <div className="flex items-center justify-between p-3 gap-3">
-                              <span className="text-sm text-foreground flex-1">{q.question}</span>
+                              <span className="text-sm text-foreground flex-1">{q.editedQuestion}</span>
                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                 <Button
                                   size="sm"
                                   variant={val === "yes" ? "default" : "outline"}
                                   className={qaBtn(val === "yes", "yes")}
-                                  onClick={() => updateQaDraft(q.key, "yes")}
+                                  onClick={() => updateQaDraft(q._id, "yes")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -368,7 +420,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "no" ? "destructive" : "outline"}
                                   className={qaBtn(val === "no", "no")}
-                                  onClick={() => updateQaDraft(q.key, "no")}
+                                  onClick={() => updateQaDraft(q._id, "no")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -378,7 +430,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "refused" ? "default" : "outline"}
                                   className={qaBtn(val === "refused", "refused")}
-                                  onClick={() => updateQaDraft(q.key, "refused")}
+                                  onClick={() => updateQaDraft(q._id, "refused")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -388,7 +440,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "na" ? "default" : "outline"}
                                   className={qaBtn(val === "na", "na")}
-                                  onClick={() => updateQaDraft(q.key, "na")}
+                                  onClick={() => updateQaDraft(q._id, "na")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -551,6 +603,7 @@ export default function EvaluationsPage() {
             </div>
           </div>
         </div>
+        <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </div>
 
       {/* Responsive scaling styles */}

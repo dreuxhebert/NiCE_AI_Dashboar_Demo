@@ -129,7 +129,7 @@ export default function UploadPage() {
 
     // Now POST this JSON to your backend create endpoint:
     const output = await axios.post(
-      "https://inform-ai-backend.onrender.com/calls/createCall",       
+      `${API_BASE}/calls/createCall`,
       call,
       { headers: { "Content-Type": "application/json" } }
     );
