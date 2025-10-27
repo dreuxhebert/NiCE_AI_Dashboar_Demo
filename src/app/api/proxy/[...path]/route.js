@@ -28,12 +28,18 @@ export async function GET(req, { params }) {
 
 export async function POST(req, { params }) {
   const url = upstreamUrl(req, params.path);
-  const body = await req.arrayBuffer();
+
+  // ✅ Read the request body as text instead of arrayBuffer
+  const textBody = await req.text();
+
   const r = await fetch(url, {
     method: "POST",
-    headers: { "content-type": req.headers.get("content-type") ?? "application/json" },
-    body,
+    headers: {
+      "content-type": req.headers.get("content-type") ?? "application/json",
+    },
+    body: textBody, // ✅ forward JSON text, not binary
     cache: "no-store",
   });
+
   return passThrough(r);
 }
