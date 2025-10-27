@@ -11,8 +11,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import axios from "axios"
-import { on } from "events"
 
 const CALL_TYPES = ["All", "Medical", "Police", "Fire", "Other"]
 
@@ -40,10 +38,18 @@ export function AddQuestionDrawer({ open, onClose }: AddQuestionDialogProps) {
             "questionDescription": "",
             "type": selectedTypes
         }
-        const response = await axios.post('/api/proxy/questionSet', model);
+        console.log("Sending model:", model);
+
+        const response = await fetch('/api/proxy/questionSet', {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(model),
+        });
         setQuestion("")
         setSelectedTypes([])
-        console.log("Question added:", response.data);
+        console.log("Question added:", response);
         onClose()
     } catch (error) {
         console.error("Error adding question:", error);
