@@ -17,9 +17,10 @@ const CALL_TYPES = ["All", "Medical", "Police", "Fire", "Other"]
 interface AddQuestionDialogProps {
   open: boolean
   onClose: () => void
+  onAdded: () => void
 }
 
-export function AddQuestionDrawer({ open, onClose }: AddQuestionDialogProps) {
+export function AddQuestionDrawer({ open, onClose, onAdded }: AddQuestionDialogProps) {
   const [question, setQuestion] = useState("")
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -47,10 +48,13 @@ export function AddQuestionDrawer({ open, onClose }: AddQuestionDialogProps) {
           },
           body: JSON.stringify(model),
         });
+        if (response.ok) {
+          onAdded();
+          onClose();
+        }
         setQuestion("")
         setSelectedTypes([])
         console.log("Question added:", response);
-        onClose()
     } catch (error) {
         console.error("Error adding question:", error);
     }
