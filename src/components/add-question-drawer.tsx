@@ -40,7 +40,7 @@ export function AddQuestionDrawer({ open, onClose }: AddQuestionDialogProps) {
             "questionDescription": "",
             "type": selectedTypes
         }
-        const response = await axios.post('/api/proxy/addQuestion', {
+        const response = await axios.post('/api/proxy/questionSet', {
           model,
         });
         setQuestion("")
