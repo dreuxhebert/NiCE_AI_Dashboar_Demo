@@ -45,7 +45,7 @@ export default function DirectoryPage() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[80px]">Rank</TableHead>
-                  <TableHead>Dispatcher</TableHead>
+                  <TableHead>Operator</TableHead>
                   <TableHead className="text-right">Total Calls</TableHead>
                   <TableHead className="text-right">Avg Score</TableHead>
                 </TableRow>

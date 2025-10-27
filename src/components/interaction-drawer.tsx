@@ -4,23 +4,34 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
+import { AudioPlayerWithWaveform } from "@/components/audio-player-with-waveform"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { ClipboardList, Info, Languages, List, Brain, X, Settings, Save, RotateCcw, Smile } from "lucide-react"
+import {
+  ClipboardList,
+  Info,
+  Languages,
+  List,
+  Brain,
+  X,
+  Settings,
+  Smile,
+  CheckCircle,
+  Volume2,
+} from "lucide-react"
 
-
+// --- Props ---
 interface InteractionDrawerProps {
   interaction: any | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  logoUrl?: string
 }
 
+// --- Grading ---
 interface GradingCriterion {
   id: string
   label: string
@@ -38,6 +49,7 @@ const initialCriteria: GradingCriterion[] = [
   { id: "response", label: "Appropriate Response Time", checked: false, notes: "", weight: 15 },
 ]
 
+// --- Scores ---
 interface ScoreItem {
   label: string
   sentiment: "Positive" | "Negative" | "Neutral" | "Mod. Positive" | "Mod. Negative"
@@ -58,20 +70,29 @@ const agentBehaviorScores: ScoreItem[] = [
 ]
 
 const salesEffectivenessScores: ScoreItem[] = [
-  { label: "Acknowledge Request", sentiment: "Mod. Positive", score: -0.13 },
-  { label: "Ask For The Sale", sentiment: "Mod. Negative", score: -0.03 },
-  { label: "Confirmed Sale", sentiment: "Neutral", score: -0.37 },
-  { label: "Demonstrate Empathy", sentiment: "Positive", score: 17.82 },
+  { label: "Acknowledge Request for Service", sentiment: "Mod. Positive", score: -0.13 },
+  { label: "Request Critical Information", sentiment: "Mod. Negative", score: -0.03 },
+  { label: "Confirm Dispatch/Assistance", sentiment: "Neutral", score: -0.37 },
+  { label: "Demonstrate Empathy and Support", sentiment: "Positive", score: 17.82 },
 ]
+// --- Tabs ---
+type TabType =
+  | "summary"
+  | "details"
+  | "scores"
+  | "grading"
+  | "sentiment"
+  | "transcript"
+  | "audio-player"
 
-type TabType = "summary" | "details" | "scores" | "grading" | "sentiment" | "transcript"
-
-export function InteractionDrawer({ interaction, open, onOpenChange }: InteractionDrawerProps) {
+export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: InteractionDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
+
   const { toast } = useToast()
 
+  // --- Effects ---
   useEffect(() => {
     const checkedCriteria = criteria.filter((c) => c.checked)
     const totalWeight = checkedCriteria.reduce((sum, c) => sum + c.weight, 0)
@@ -87,6 +108,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
 
   if (!interaction) return null
 
+  // --- Handlers ---
   const handleCheckChange = (id: string, checked: boolean) => {
     setCriteria((prev) => prev.map((criterion) => (criterion.id === id ? { ...criterion, checked } : criterion)))
   }
@@ -97,29 +119,26 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
 
   const handleReset = () => {
     setCriteria(initialCriteria)
-    toast({
-      title: "Grading reset",
-      description: "All criteria have been reset to default",
-    })
+    toast({ title: "Grading reset", description: "All criteria have been reset to default" })
   }
 
   const handleSave = () => {
-    toast({
-      title: "Grading saved",
-      description: `Score of ${overallScore}/100 has been saved`,
-    })
+    toast({ title: "Grading saved", description: `Score of ${overallScore}/100 has been saved` })
   }
 
+
+
+  // --- Utils ---
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case "Positive":
         return "text-green-400"
       case "Mod. Positive":
-        return "text-green-400"
+        return "text-green-300"
       case "Negative":
         return "text-red-400"
       case "Mod. Negative":
-        return "text-red-400"
+        return "text-red-300"
       default:
         return "text-muted-foreground"
     }
@@ -132,205 +151,302 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
   }
 
   const parseTranscript = (transcript: string) => {
-    const lines = transcript.split("\n")
-    return lines.map((line, index) => {
-      const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-      if (match) {
-        return (
-          <div key={index} className="mb-6">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-sm font-semibold text-primary">{match[1]}</span>
-            </div>
-            <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
+  const lines = transcript.split("\n")
+  return lines.map((line, index) => {
+    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+    if (match) {
+      return (
+        <div key={index} className="mb-5">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs font-semibold text-primary">
+              {match[1] === "Dispatcher" ? "Operator" : match[1]}
+            </span>
           </div>
-        )
-      }
-      return null
-    })
-  }
+          <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
+        </div>
+      )
+    }
+    return null
+  })
+}
+
+  const isAudioPlayerActive = activeTab === "audio-player"
+  const leftPanelWidth = isAudioPlayerActive ? "w-[40%]" : "w-[60%]"
+  const rightPanelWidth = isAudioPlayerActive ? "w-[60%]" : "w-[40%]"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-  showCloseButton={false}
-  className="p-0 gap-0 overflow-hidden max-w-none"
-  style={{
-    width: "min(96vw, 1400px)",   // responsive width cap
-    maxWidth: "min(96vw, 1400px)",// ensure no shrink issues
-    height: "90vh"             // a little taller but still safe
-  }}
->
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-5 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">Ai</span>
+        showCloseButton={false}
+        className="p-0 gap-0 overflow-hidden max-w-none"
+        style={{ width: "min(96vw, 1400px)", maxWidth: "min(96vw, 1400px)", height: "90vh" }}
+      >
+        {/* Header (compact, plain logo) */}
+        <div className="relative flex items-center justify-between border-b border-border px-6 py-4 shrink-0 bg-gradient-to-r from-background via-muted/30 to-background overflow-hidden">
+          <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
+
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl">
+              <img
+                src={logoUrl || "/NiCE_SMILE.svg"}
+                alt="Company Logo"
+                className="h-8 w-8 object-contain"
+              />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">{interaction.fileName}</h2>
-              <p className="text-sm text-muted-foreground">Call Analysis</p>
+
+            <div className="space-y-0.5">
+              <h2 className="text-lg font-bold text-foreground tracking-tight">
+                {interaction.fileName}
+              </h2>
+              <p className="text-xs text-muted-foreground font-medium">
+                Call Analysis & Quality Assurance
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative z-10 h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+            onClick={() => onOpenChange(false)}
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden min-h-0 min-w-0">
-          {/* Left Side - Transcript */}
-          <div className="w-[60%] min-w-0 border-r border-border flex flex-col overflow-hidden">
-            <div className="border-b border-border bg-muted/30 px-6 py-5 shrink-0">
-              <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-base">
-                <div>
-                  <span className="text-muted-foreground">Duration: </span>
-                  <span className="text-foreground font-medium">{interaction.duration}</span>
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Left Side - Transcript / Info */}
+          <div className={cn("border-r border-border flex flex-col overflow-hidden transition-all duration-300", leftPanelWidth)}>
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Duration Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Duration</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.duration}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Silence: </span>
-                  <span className="text-foreground font-medium">0%</span>
+
+                {/* Model Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Brain className="h-4.5 w-4.5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">AI Model</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.model}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Identifier: </span>
-                  <span className="text-foreground font-mono text-xs">{interaction.id}</span>
+
+                {/* Language Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Languages className="h-4.5 w-4.5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Language</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.language}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">File: </span>
-                  <span className="text-foreground font-medium">{interaction.fileName}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Model: </span>
-                  <span className="text-foreground font-medium">{interaction.model}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Initial Language: </span>
-                  <span className="text-foreground font-medium">{interaction.language}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Detected Language: </span>
-                  <span className="text-foreground font-medium">{interaction.language}</span>
+
+                {/* ID Card */}
+                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Call ID</p>
+                      <p className="text-[11px] font-mono font-bold text-foreground truncate">{String(interaction.id).slice(0, 12)}...</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-8">
-                <h3 className="mb-8 text-base font-semibold text-foreground">Participant One</h3>
-                {parseTranscript(interaction.transcript)}
+              <div className="px-6 py-6">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="h-7 w-1 rounded-full bg-gradient-to-b from-primary to-primary/50" />
+                  <h3 className="text-base font-bold text-foreground">Call Transcript</h3>
+                </div>
+                <div className="space-y-5">{parseTranscript(interaction.transcript)}</div>
               </div>
             </div>
           </div>
 
-          {/* Right Side - Tabbed Content */}
-          <div className="flex w-[40%] min-w-0 flex-col overflow-hidden">
-            {/* Tab Header */}
-            <div className="border-b border-border bg-muted/30 px-6 py-5 shrink-0">
+          {/* Right Side - Tabs */}
+          <div className={cn("flex flex-col overflow-hidden transition-all duration-300", rightPanelWidth)}>
+            {/* Tab Header (compact) */}
+            <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-foreground">AI Scores</h3>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Brain className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">AI Analysis</h3>
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted transition-all">
+                  <Settings className="h-4.5 w-4.5" />
                 </Button>
               </div>
             </div>
 
-            
-            {/* Tab Icons */}
-<div className="flex items-center justify-around border-b border-border bg-muted/20 px-6 py-4 shrink-0">
+            {/* Tab Icons (smaller) */}
+<div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
+  {/* Summary */}
   <Button
     variant="ghost"
     size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "summary" && "bg-muted")}
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "summary" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
     onClick={() => setActiveTab("summary")}
   >
-    <ClipboardList className="h-6 w-6" />
+    <ClipboardList className="h-5 w-5" />
   </Button>
+
+  {/* Audio Player */}
   <Button
     variant="ghost"
     size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "details" && "bg-muted")}
-    onClick={() => setActiveTab("details")}
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "audio-player" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("audio-player")}
   >
-    <Info className="h-6 w-6" />
+    <Volume2 className="h-5 w-5" />
   </Button>
+
+  {/* Scores */}
   <Button
     variant="ghost"
     size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "transcript" && "bg-muted")}
-    onClick={() => setActiveTab("transcript")}
-  >
-    <Languages className="h-6 w-6" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "scores" && "bg-muted")}
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "scores" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
     onClick={() => setActiveTab("scores")}
   >
-    <List className="h-6 w-6" />
+    <List className="h-5 w-5" />
   </Button>
+
+  {/* Sentiment */}
   <Button
     variant="ghost"
     size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "sentiment" && "bg-muted")}
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "sentiment" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
     onClick={() => setActiveTab("sentiment")}
   >
-    <Smile className="h-6 w-6" />
+    <Smile className="h-5 w-5" />
   </Button>
+
+  {/* Details (moved to last) */}
   <Button
     variant="ghost"
     size="icon"
-    className={cn("h-12 w-12 cursor-pointer", activeTab === "grading" && "bg-muted")}
-    onClick={() => setActiveTab("grading")}
+    className={cn(
+      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+      activeTab === "details" &&
+        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+    )}
+    onClick={() => setActiveTab("details")}
   >
-    <Brain className="h-6 w-6" />
+    <Info className="h-5 w-5" />
   </Button>
 </div>
 
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-8">
-                {/* Summary Tab */}
+              <div className={cn("px-8 py-8", activeTab === "audio-player" && "px-6 py-5")}>
+                {/* Summary */}
                 {activeTab === "summary" && (
-                  <div className="space-y-8">
-                    <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Call Summary</h4>
-                      <p className="text-base leading-relaxed text-muted-foreground">{interaction.summary}</p>
+                  <div className="space-y-6">
+                    <div className="rounded-2xl bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 p-5">
+                      <h4 className="mb-3 text-base font-bold text-foreground flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        Call Summary
+                      </h4>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{interaction.summary}</p>
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-border/50" />
 
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Key Points</h4>
-                      <ul className="space-y-4 text-base text-muted-foreground">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Emergency type identified and confirmed</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Caller location obtained successfully</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Professional tone maintained throughout</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          <span className="leading-relaxed">Appropriate resources dispatched</span>
-                        </li>
+                      <h4 className="mb-4 text-base font-bold text-foreground flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        Key Points
+                      </h4>
+                      <ul className="space-y-3 text-sm text-muted-foreground">
+                        {[
+                          "Emergency type identified and confirmed",
+                          "Caller location obtained successfully",
+                          "Professional tone maintained throughout",
+                          "Appropriate resources dispatched",
+                        ].map((kp) => (
+                          <li key={kp} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors">
+                            <div className="mt-0.5 h-5 w-5 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <span className="leading-relaxed">{kp}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
                 )}
 
-                {/* Details Tab */}
+                {/* Audio Player */}
+                {activeTab === "audio-player" && (
+                  <div className="space-y-4">
+                    <AudioPlayerWithWaveform
+                      audioUrl={`/audio/${interaction.fileName}.mp3`}
+                      fileName={interaction.fileName}
+                      className="space-y-4"
+                    />
+                    <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        <strong>Audio Waveform:</strong> Visual representation of the call recording showing amplitude over time. 
+                        Click anywhere on the waveform to seek to that position in the audio.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Details */}
                 {activeTab === "details" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Call Metadata</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Info className="h-5 w-5 text-primary" />
+                      Call Metadata
+                    </h4>
                     <div className="space-y-5">
                       <div className="flex justify-between items-center">
-                        <span className="text-base text-muted-foreground">Dispatcher</span>
+                        <span className="text-base text-muted-foreground">Operator</span>
                         <span className="text-base font-medium text-foreground">{interaction.dispatcher}</span>
                       </div>
                       <Separator />
@@ -374,10 +490,13 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Transcript Tab */}
+                {/* Transcript */}
                 {activeTab === "transcript" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Full Transcript</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Languages className="h-5 w-5 text-primary" />
+                      Full Transcript
+                    </h4>
                     <div className="rounded-lg bg-muted/50 p-6">
                       <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
                         {interaction.transcript}
@@ -386,11 +505,14 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Scores Tab */}
+                {/* Scores */}
                 {activeTab === "scores" && (
                   <div className="space-y-8">
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Agent Behavior Score</h4>
+                      <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                         Call Effectiveness Evaluation
+                      </h4>
                       <div className="mb-6 rounded-lg bg-muted/50 p-6">
                         <div className="flex items-baseline gap-3">
                           <span className="text-4xl font-bold text-foreground">54</span>
@@ -402,12 +524,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                           <div key={index} className="flex items-center justify-between py-2">
                             <span className="text-base text-muted-foreground">{item.label}</span>
                             <div className="flex items-center gap-6">
-                              <span
-                                className={cn(
-                                  "text-base font-medium min-w-[140px] text-right",
-                                  getSentimentColor(item.sentiment),
-                                )}
-                              >
+                              <span className={cn("text-base font-medium min-w-[140px] text-right", getSentimentColor(item.sentiment))}>
                                 {item.sentiment}
                               </span>
                               <span className="w-16 text-right font-mono text-base text-foreground">{item.score}</span>
@@ -420,18 +537,16 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                     <Separator />
 
                     <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground">Sales Effectiveness</h4>
+                      <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                       Call Performance Review
+                      </h4>
                       <div className="space-y-4">
                         {salesEffectivenessScores.map((item, index) => (
                           <div key={index} className="flex items-center justify-between py-2">
                             <span className="text-base text-muted-foreground">{item.label}</span>
                             <div className="flex items-center gap-6">
-                              <span
-                                className={cn(
-                                  "text-base font-medium min-w-[140px] text-right",
-                                  getSentimentColor(item.sentiment),
-                                )}
-                              >
+                              <span className={cn("text-base font-medium min-w-[140px] text-right", getSentimentColor(item.sentiment))}>
                                 {item.sentiment}
                               </span>
                               <span className="w-16 text-right font-mono text-base text-foreground">{item.score}</span>
@@ -443,10 +558,13 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                   </div>
                 )}
 
-                {/* Sentiment Tab */}
+                {/* Sentiment */}
                 {activeTab === "sentiment" && (
                   <div className="space-y-5">
-                    <h4 className="text-base font-semibold text-foreground">Sentiment Analysis</h4>
+                    <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Smile className="h-5 w-5 text-primary" />
+                      Sentiment Analysis
+                    </h4>
                     <div className="rounded-lg bg-muted/50 p-8">
                       <div className="mb-8 flex items-center justify-between">
                         <span className="text-base text-muted-foreground">Overall Sentiment</span>
@@ -466,66 +584,9 @@ export function InteractionDrawer({ interaction, open, onOpenChange }: Interacti
                     </div>
                     <div className="space-y-4 text-base">
                       <p className="leading-relaxed text-muted-foreground">
-                        The conversation shows a {interaction.sentiment} sentiment with a confidence score of{" "}
-                        {interaction.sentimentScore}%. The dispatcher maintained a professional and empathetic tone
-                        throughout the call.
+                        The conversation shows a {interaction.sentiment} sentiment with a confidence score of {interaction.sentimentScore}%.
+                        The operator maintained a professional and empathetic tone throughout the call.
                       </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grading Tab */}
-                {activeTab === "grading" && (
-                  <div className="space-y-8">
-                    <div className="rounded-lg bg-muted/50 p-6">
-                      <div className="mb-3 text-base text-muted-foreground">Overall Score</div>
-                      <div className="flex items-baseline gap-3">
-                        <span className={cn("text-5xl font-bold", getScoreColor(overallScore))}>{overallScore}</span>
-                        <span className="text-2xl text-muted-foreground">/100</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <h4 className="text-base font-semibold text-foreground">Grading Criteria</h4>
-                      {criteria.map((criterion) => (
-                        <div key={criterion.id} className="space-y-4">
-                          <div className="flex items-start gap-4">
-                            <Checkbox
-                              id={criterion.id}
-                              checked={criterion.checked}
-                              onCheckedChange={(checked) => handleCheckChange(criterion.id, checked as boolean)}
-                              className="mt-1.5"
-                            />
-                            <div className="flex-1">
-                              <Label
-                                htmlFor={criterion.id}
-                                className="flex items-center justify-between text-base font-medium leading-relaxed cursor-pointer"
-                              >
-                                <span>{criterion.label}</span>
-                                <span className="text-base text-muted-foreground ml-3">{criterion.weight} pts</span>
-                              </Label>
-                            </div>
-                          </div>
-                          <Textarea
-                            placeholder="Add notes..."
-                            value={criterion.notes}
-                            onChange={(e) => handleNotesChange(criterion.id, e.target.value)}
-                            rows={3}
-                            className="ml-10 text-base"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                      <Button variant="outline" size="default" onClick={handleReset} className="flex-1 bg-transparent">
-                        <RotateCcw className="mr-2 h-5 w-5" />
-                        Reset
-                      </Button>
-                      <Button size="default" onClick={handleSave} className="flex-1">
-                        <Save className="mr-2 h-5 w-5" />
-                        Save
-                      </Button>
                     </div>
                   </div>
                 )}

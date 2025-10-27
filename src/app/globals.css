@@ -52,43 +52,48 @@
   --foreground: oklch(0.145 0 0);
 }
 
-/* DARK THEME OVERRIDES (applied when .dark is on <html> or an ancestor) */
+/* =================== DARK THEME (consolidated & fixed) =================== */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+  /* Base canvas */
+  --background: oklch(0.14 0.03 260);   /* very dark navy */
+  --foreground: oklch(0.95 0.01 260);   /* soft cool off-white */
 
-  --card: oklch(0.17 0 0);
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.17 0 0);
-  --popover-foreground: oklch(0.97 0 0);
+  /* Surfaces */
+  --card: oklch(0.18 0.02 260);         /* slightly lighter navy */
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.96 0 0);
 
-  --primary: oklch(0.78 0 0);              /* lighter text on dark */
-  --primary-foreground: oklch(0.145 0 0);
+  /* Secondary surface */
+  --secondary: oklch(0.26 0.02 260);    /* stale blue-gray (tad lighter) */
+  --secondary-foreground: oklch(0.92 0 0);
 
-  --secondary: oklch(0.22 0 0);
-  --secondary-foreground: oklch(0.97 0 0);
+  /* Muted (chips/strips) */
+  --muted: oklch(0.30 0.02 260);        /* steel blue, slightly lifted */
+  --muted-foreground: oklch(0.80 0 0);
 
-  --muted: oklch(0.22 0 0);
-  --muted-foreground: oklch(0.75 0 0);
+  /* Accent */
+  --accent: oklch(0.34 0.03 260);       /* dull blue-gray, lighter than muted */
+  --accent-foreground: oklch(0.92 0 0);
 
-  --accent: oklch(0.24 0 0);
-  --accent-foreground: oklch(0.97 0 0);
+  /* Feedback */
+  --destructive: oklch(0.60 0.18 22);   /* strong red */
+  --destructive-foreground: oklch(0.95 0.01 0);
 
-  --destructive: oklch(0.58 0.24 27.3);
-  --destructive-foreground: oklch(0.98 0.01 240);
+  /* Chrome */
+  --border: oklch(0.28 0.02 260);       /* stale steel-blue border */
+  --input: oklch(0.28 0.02 260);
+  --ring: oklch(0.55 0.08 260);         /* subtle blue highlight */
 
-  --border: oklch(0.24 0 0);
-  --input: oklch(0.24 0 0);
-  --ring: oklch(0.6 0 0);
-
-  --sidebar: oklch(0.17 0 0);
-  --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.78 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.22 0 0);
-  --sidebar-accent-foreground: oklch(0.97 0 0);
-  --sidebar-border: oklch(0.24 0 0);
-  --sidebar-ring: oklch(0.6 0 0);
+  /* Sidebar */
+  --sidebar: oklch(0.16 0.02 260);      /* darker navy */
+  --sidebar-foreground: oklch(0.95 0.01 260);
+  --sidebar-primary: oklch(0.90 0.06 260);
+  --sidebar-primary-foreground: oklch(0.16 0.02 260);
+  --sidebar-accent: oklch(0.28 0.02 260);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.28 0.02 260);
+  --sidebar-ring: oklch(0.55 0.08 260);
 }
 
 /* Map your CSS variables to Tailwind theme tokens */
@@ -142,42 +147,8 @@
   body { @apply bg-background text-foreground; }
 }
 
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
 /* === ElevateAI brand overrides ========================================= */
+/* Keep brand tokens last so they win in both light & dark */
 :root {
   --primary: #3087DF;
   --primary-foreground: #ffffff;
@@ -194,5 +165,89 @@
 
   --sidebar-primary: #3087DF;
   --sidebar-primary-foreground: #ffffff;
+}
+
+/* === Custom Slider Styles ============================================== */
+.slider {
+  background: #9ca3af; /* Gray track for better contrast */
+  outline: none;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.slider:hover {
+  background: #6b7280; /* Darker gray on hover */
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #374151; /* Dark gray circle for light mode */
+  cursor: pointer;
+  border: 2px solid #374151;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #374151; /* Dark gray circle for light mode */
+  cursor: pointer;
+  border: 2px solid #374151;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode specific adjustments */
+.dark .slider {
+  background: #6b7280; /* Gray track for dark mode */
+}
+
+.dark .slider:hover {
+  background: #9ca3af; /* Lighter gray on hover in dark mode */
+}
+
+.dark .slider::-webkit-slider-thumb {
+  background: #ffffff; /* White circle for dark mode */
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.dark .slider::-webkit-slider-thumb:hover {
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+  transform: scale(1.15);
+}
+
+.dark .slider::-moz-range-thumb {
+  background: #ffffff; /* White circle for dark mode */
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.dark .slider::-moz-range-thumb:hover {
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+  transform: scale(1.15);
 }
 /* ======================================================================= */

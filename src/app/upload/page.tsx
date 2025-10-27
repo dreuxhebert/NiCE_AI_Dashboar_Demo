@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Upload, FileAudio, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import axios from "axios"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
 
 export default function UploadPage() {
   const [isDragging, setIsDragging] = useState(false)
@@ -91,10 +92,10 @@ export default function UploadPage() {
     formData.append("language", language)
     console.log(selectedFile)
     const result = await axios.post(
-      "https://inform-ai-backend.onrender.com/elevate.api/uploadAudio",     
+      `${API_BASE}/elevate.api/uploadAudio`,
       formData,
       {
-          headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": "multipart/form-data" },
       }
     );
     
@@ -111,7 +112,6 @@ export default function UploadPage() {
     const dispatcher_c = clean(formData.get("dispatcher"));
     const callType_c = clean(formData.get("call_type"));
     const language_c = clean(formData.get("language"));
-    const timestamp = new Date().toISOString();
 
     const call = {
       dispatcher_id: dispatcher_c,         
@@ -129,7 +129,7 @@ export default function UploadPage() {
 
     // Now POST this JSON to your backend create endpoint:
     const output = await axios.post(
-      "https://inform-ai-backend.onrender.com/calls/createCall",       
+      `${API_BASE}/calls/createCall`,
       call,
       { headers: { "Content-Type": "application/json" } }
     );
@@ -226,10 +226,10 @@ export default function UploadPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dispatcher">Dispatcher Name *</Label>
+                <Label htmlFor="dispatcher">Operator Name *</Label>
                 <Input
                   id="dispatcher"
-                  placeholder="Enter dispatcher name"
+                  placeholder="Enter operator name"
                   value={dispatcher}
                   onChange={(e) => setDispatcher(e.target.value)}
                   required
