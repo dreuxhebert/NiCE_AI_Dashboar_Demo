@@ -18,6 +18,8 @@ import {
   Brain,
   X,
   Settings,
+  Save,
+  RotateCcw,
   Smile,
   CheckCircle,
   Volume2,
@@ -57,16 +59,14 @@ interface ScoreItem {
 }
 
 const agentBehaviorScores: ScoreItem[] = [
-  { label: "Acknowledge Loyalty", sentiment: "Mod. Negative", score: -3.41 },
-  { label: "Active Listening", sentiment: "Negative", score: -3.87 },
+  { label: "Listens and Comprehends", sentiment: "Negative", score: -3.87 },
   { label: "Be Empathetic", sentiment: "Positive", score: 23.77 },
   { label: "Build Rapport", sentiment: "Neutral", score: -0.05 },
-  { label: "Demonstrate Ownership", sentiment: "Mod. Positive", score: 9.27 },
+  { label: "Takes control of call using good judgment", sentiment: "Mod. Positive", score: 9.27 },
   { label: "Effective Questioning", sentiment: "Neutral", score: 5.7 },
   { label: "Inappropriate Action", sentiment: "Mod. Negative", score: 1.26 },
-  { label: "Promote Self Service", sentiment: "Neutral", score: 0.3 },
-  { label: "Sentiment", sentiment: "Neutral", score: 2.77 },
-  { label: "Set Expectations", sentiment: "Positive", score: 9.74 },
+  { label: "Proper tone of voice used", sentiment: "Neutral", score: 2.77 },
+  { label: "Professional language used", sentiment: "Positive", score: 9.74 },
 ]
 
 const salesEffectivenessScores: ScoreItem[] = [
@@ -150,25 +150,63 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
     return "text-red-400"
   }
 
-  const parseTranscript = (transcript: string) => {
-  const lines = transcript.split("\n")
-  return lines.map((line, index) => {
-    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-    if (match) {
+  // Parse the transcript and split long speaker lines into smaller "bubbles" of words
+  // chunkSize controls how many words per bubble
+  const parseTranscript = (transcript: string, chunkSize = 30) => {
+    if (!transcript) return null
+
+    const lines = transcript.split("\n")
+    return lines.map((line, index) => {
+      const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+      let speaker = null
+      let text = line
+      if (match) {
+        speaker = match[1]
+        text = match[2]
+      }
+
+      const words = String(text || "").trim().split(/\s+/).filter(Boolean)
+      const chunks: string[] = []
+      for (let i = 0; i < words.length; i += chunkSize) {
+        chunks.push(words.slice(i, i + chunkSize).join(" "))
+      }
+
+      const isDispatcher = speaker === "Dispatcher"
+      const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
+
       return (
-        <div key={index} className="mb-5">
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="text-xs font-semibold text-primary">
-              {match[1] === "Dispatcher" ? "Operator" : match[1]}
-            </span>
+        <div key={index} className="mb-4">
+          {speakerLabel && (
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
+            </div>
+          )}
+
+          <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}>
+            {chunks.length > 0 ? (
+              chunks.map((chunk, ci) => (
+                <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
+                  <div
+                    className={cn(
+                      "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                      // left = dispatcher/operator, right = caller
+                      isDispatcher
+                        ? "bg-muted/30 text-foreground border border-border"
+                        : "bg-primary/10 text-foreground border border-primary/20"
+                    )}
+                  >
+                    {chunk}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">{text}</div>
+            )}
           </div>
-          <p className="text-sm leading-relaxed text-foreground">{match[2]}</p>
         </div>
       )
-    }
-    return null
-  })
-}
+    })
+  }
 
   const isAudioPlayerActive = activeTab === "audio-player"
   const leftPanelWidth = isAudioPlayerActive ? "w-[40%]" : "w-[60%]"
@@ -498,9 +536,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                       Full Transcript
                     </h4>
                     <div className="rounded-lg bg-muted/50 p-6">
-                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
-                        {interaction.transcript}
-                      </pre>
+                      <div className="space-y-4 text-sm text-foreground">{parseTranscript(interaction.transcript)}</div>
                     </div>
                   </div>
                 )}
@@ -511,7 +547,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     <div>
                       <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
                         <List className="h-5 w-5 text-primary" />
-                         Call Effectiveness Evaluation
+                         Telephone Skills
                       </h4>
                       <div className="mb-6 rounded-lg bg-muted/50 p-6">
                         <div className="flex items-baseline gap-3">

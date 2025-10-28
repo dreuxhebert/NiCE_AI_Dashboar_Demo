@@ -3,6 +3,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+// Environment-based API configuration
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+// Helper to get the correct API URL based on environment
+const getApiUrl = (path: string) => {
+  if (USE_PROXY) {
+    // In production, route through Next.js API proxy
+    return `/api/proxy${path}`;
+  }
+  // In development, connect directly to backend
+  return `${API_BASE}${path}`;
+}
 import { useState, useMemo, useEffect } from "react";
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { dispatcherLeaderboard, callsByTypeData } from "@/lib/sample-data";
@@ -19,10 +33,10 @@ export default function AnalyticsPage() {
   const [callsData, setCallsData] = useState<any[]>([]);
   const [callsByDateData, setCallsByDateData] = useState<CallData[]>([]);
 
-  /* === FIX: use proxy, no API_BASE === */
   const fetchCallsByTypeData = async () => {
     try {
-      const res = await fetch("/api/proxy/calls/byType", { cache: "no-store" });
+      const apiUrl = getApiUrl('/calls/byType');
+      const res = await fetch(apiUrl, { cache: "no-store" });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(`GET /api/proxy/calls/byType → ${res.status} ${res.statusText}\n${t}`);
@@ -39,10 +53,10 @@ export default function AnalyticsPage() {
     }
   };
 
-  /* === FIX: use proxy, no API_BASE === */
   const fetchCallsByDateData = async () => {
     try {
-      const res = await fetch("/api/proxy/calls/byDate", { cache: "no-store" });
+      const apiUrl = getApiUrl('/calls/byDate');
+      const res = await fetch(apiUrl, { cache: "no-store" });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(`GET /api/proxy/calls/byDate → ${res.status} ${res.statusText}\n${t}`);

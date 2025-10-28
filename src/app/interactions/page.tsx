@@ -9,7 +9,20 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { InteractionDrawer } from "@/components/interaction-drawer"
 import { Search, Filter } from "lucide-react"
-//const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+
+// Environment-based API configuration
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+// Helper to get the correct API URL based on environment
+const getApiUrl = (path: string) => {
+  if (USE_PROXY) {
+    // In production, route through Next.js API proxy
+    return `/api/proxy${path}`;
+  }
+  // In development, connect directly to backend
+  return `${API_BASE}${path}`;
+};
 
 export default function InteractionsPage() {
   const [interactions, setInteractions] = useState<any[]>([])
@@ -26,7 +39,8 @@ export default function InteractionsPage() {
 
   const fetchInteractions = async () => {
   try {
-    const res = await fetch('/api/proxy/calls/', { cache: 'no-store' }); // <-- note the proxy
+    const apiUrl = getApiUrl('/calls/');
+    const res = await fetch(apiUrl, { cache: 'no-store' });
 
     if (!res.ok) {
       const text = await res.text();

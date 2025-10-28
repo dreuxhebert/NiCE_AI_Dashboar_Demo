@@ -41,7 +41,19 @@ export default function EvaluationsPage() {
   const { toast } = useToast()
   const router = useRouter()
 
-  //const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+  // Environment-based API configuration (same pattern as other pages)
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+  const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+  // Helper to get the correct API URL based on environment
+  const getApiUrl = (path: string) => {
+    if (USE_PROXY) {
+      // In production, route through Next.js API proxy
+      return `/api/proxy${path}`;
+    }
+    // In development, connect directly to backend
+    return `${API_BASE}${path}`;
+  }
 
   // ------- QA state (view vs draft) -------
   type QaValue = "yes" | "no" | "refused" | "na"
@@ -144,7 +156,7 @@ export default function EvaluationsPage() {
   ] as const
 
   const getQaQuestions = async () => {
-    const res = await fetch(`/api/proxy/questionSet`);
+    const res = await fetch(getApiUrl('/questionSet'));
     if (!res.ok) throw new Error("Failed to fetch question set");
     const data: QAQuestion[] = await res.json();
 
@@ -325,7 +337,7 @@ export default function EvaluationsPage() {
                             const isCaller = line.startsWith("Caller:")
                             const text = line.replace(/^(Dispatcher:|Caller:)\s*/, "")
                             return (
-                              <div key={index}>
+                              <div key={index} className="mb-2 last:mb-0">
                                 <p className="text-xs font-semibold text-primary mb-1">{isOperator ? "Operator" : isCaller ? "Caller" : ""}</p>
                                 <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-2">{text}</p>
                               </div>
