@@ -392,9 +392,68 @@ export default function EvaluationsPage() {
                         {/* Transcript Content */}
                         <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
-                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3 whitespace-pre-line max-h-64 overflow-y-auto">
-                            {selectedEvaluation?.transcript || "No transcript available"}
-                          </p>
+                          <div className="text-xs text-foreground leading-relaxed max-h-64 overflow-y-auto">
+                            {selectedEvaluation?.transcript ? (
+                              <div className="space-y-5">
+                                {(() => {
+                                  // Same parseTranscript logic as interaction-drawer
+                                  const lines = selectedEvaluation.transcript.split("\n")
+                                  return lines.map((line, index) => {
+                                    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+                                    let speaker = null
+                                    let text = line
+                                    if (match) {
+                                      speaker = match[1]
+                                      text = match[2]
+                                    }
+
+                                    const words = String(text || "").trim().split(/\s+/).filter(Boolean)
+                                    const chunks: string[] = []
+                                    // Split into chunks of ~30 words
+                                    for (let i = 0; i < words.length; i += 30) {
+                                      chunks.push(words.slice(i, i + 30).join(" "))
+                                    }
+
+                                    const isDispatcher = speaker === "Dispatcher"
+                                    const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
+
+                                    return (
+                                      <div key={index} className="mb-4">
+                                        {speakerLabel && (
+                                          <div className="mb-1.5 flex items-center gap-2">
+                                            <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
+                                          </div>
+                                        )}
+
+                                        <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}>
+                                          {chunks.length > 0 ? (
+                                            chunks.map((chunk, ci) => (
+                                              <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
+                                                <div
+                                                  className={cn(
+                                                    "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                                                    isDispatcher
+                                                      ? "bg-muted/30 text-foreground border border-border"
+                                                      : "bg-primary/10 text-foreground border border-primary/20"
+                                                  )}
+                                                >
+                                                  {chunk}
+                                                </div>
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <div className="text-sm text-muted-foreground">{text}</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )
+                                  })
+                                })()}
+                              </div>
+                            ) : (
+                              "No transcript available"
+                            )}
+                          </div>
                         </TabsContent>
 
                         {/* Summary Content */}

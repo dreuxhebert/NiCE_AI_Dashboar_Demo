@@ -18,7 +18,9 @@ import axios from "axios"
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
 const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
 
+// Use proxy for small JSON calls, but big multipart upload must bypass proxy to avoid 413 on Vercel.
 const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
+const getDirectApiUrl = (path: string) => `${API_BASE}${path}`
 // ---------------------------------------------------------
 
 export default function UploadPage() {
@@ -103,17 +105,22 @@ export default function UploadPage() {
 
     try {
       // 1) Upload the audio for processing
-      const uploadRes = await axios.post(getApiUrl("/elevate.api/uploadAudio"), formData, {
-        timeout: 120000, // adjust to your infra
+      // IMPORTANT: bypass proxy for large multipart to avoid Vercel 413
+      const uploadRes = await axios.post(getDirectApiUrl("/elevate.api/uploadAudio"), formData, {
+        timeout: 600000, // allow long processing (Elevate polling on backend)
         validateStatus: () => true, // let us handle non-2xx
       })
 
       if (uploadRes.status < 200 || uploadRes.status >= 300) {
         console.error("uploadAudio failed", uploadRes.status, uploadRes.data)
+        const is413 = uploadRes.status === 413
         toast({
           title: `Upload failed (${uploadRes.status})`,
-          description:
-            typeof uploadRes.data === "string" ? uploadRes.data : JSON.stringify(uploadRes.data),
+          description: is413
+            ? "File too large for proxy/server. Try a smaller file or contact support."
+            : typeof uploadRes.data === "string"
+              ? uploadRes.data
+              : JSON.stringify(uploadRes.data),
           variant: "destructive",
         })
         return
@@ -148,11 +155,17 @@ export default function UploadPage() {
         sentiment: "positive",
         transcript: transcription,
         summary: summary,
+
+        // Required by backend schema to avoid 422:
+        scores: [],
+        score: 0,
+        callEvaluationType: "auto",
+
         // notes isn’t used by your backend right now; include if your API supports it
         // notes: clean(notes),
       }
 
-      // 2) Persist the call record
+      // 2) Persist the call record (small JSON can still go through proxy)
       const createRes = await axios.post(getApiUrl("/calls/createCall"), call, {
         headers: { "Content-Type": "application/json" },
         timeout: 60000,
