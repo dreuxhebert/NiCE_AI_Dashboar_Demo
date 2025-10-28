@@ -13,7 +13,13 @@ import { useToast } from "@/hooks/use-toast"
 import { Upload, FileAudio, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import axios from "axios"
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+
+// ---- Env-based API config ----
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
+const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+
+const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
+// ---------------------------------------------------------
 
 export default function UploadPage() {
   const [isDragging, setIsDragging] = useState(false)
@@ -55,14 +61,10 @@ export default function UploadPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files && files.length > 0) {
-      setSelectedFile(files[0])
-    }
+    if (files && files.length > 0) setSelectedFile(files[0])
   }
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null)
-  }
+  const handleRemoveFile = () => setSelectedFile(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,66 +87,120 @@ export default function UploadPage() {
       return
     }
 
+    // Build multipart body — DO NOT set Content-Type manually (Axios will add boundary)
     const formData = new FormData()
-    formData.append("audio_file", selectedFile)
+    formData.append("audio_file", selectedFile, selectedFile.name)
     formData.append("dispatcher", dispatcher)
     formData.append("call_type", callType)
     formData.append("language", language)
-    console.log(selectedFile)
-    const result = await axios.post(
-      `${API_BASE}/elevate.api/uploadAudio`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
+
+    console.log("Upload → API_BASE:", API_BASE, "USE_PROXY:", USE_PROXY)
+    console.log("Uploading file:", {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type,
+    })
+
+    try {
+      // 1) Upload the audio for processing
+      const uploadRes = await axios.post(getApiUrl("/elevate.api/uploadAudio"), formData, {
+        timeout: 120000, // adjust to your infra
+        validateStatus: () => true, // let us handle non-2xx
+      })
+
+      if (uploadRes.status < 200 || uploadRes.status >= 300) {
+        console.error("uploadAudio failed", uploadRes.status, uploadRes.data)
+        toast({
+          title: `Upload failed (${uploadRes.status})`,
+          description:
+            typeof uploadRes.data === "string" ? uploadRes.data : JSON.stringify(uploadRes.data),
+          variant: "destructive",
+        })
+        return
       }
-    );
-    
-    const { interaction_id, transcription, summary } = result.data;
 
-    // Helper to turn empty strings into undefined (so they don’t get inserted as "")
-    const clean = (v: any) => {
-      if (v === null || v === undefined) return undefined;
-      const s = String(v).trim();
-      return s.length ? s : undefined;
-    };
+      const { interaction_id, transcription, summary } = uploadRes.data ?? {}
+      if (!interaction_id) {
+        toast({
+          title: "Upload failed",
+          description: "Missing interaction_id from server response.",
+          variant: "destructive",
+        })
+        return
+      }
 
-    // Pull original form fields (sent earlier with the upload)
-    const dispatcher_c = clean(formData.get("dispatcher"));
-    const callType_c = clean(formData.get("call_type"));
-    const language_c = clean(formData.get("language"));
+      // Helper to turn empty strings into undefined
+      const clean = (v: any) => {
+        if (v === null || v === undefined) return undefined
+        const s = String(v).trim()
+        return s.length ? s : undefined
+      }
 
-    const call = {
-      dispatcher_id: dispatcher_c,         
-      call_id: interaction_id,
-      duration_seconds: 320,
-      direction: "Inbound",
-      language: language_c,
-      model: "general", 
-      callType: callType_c,
-      status: "processed",
-      sentiment: "positive",     
-      transcript: transcription,         
-      summary: summary,         
-    };
+      const call = {
+        dispatcher_id: clean(dispatcher),
+        call_id: interaction_id,
+        duration_seconds: 320, // TODO: replace with actual duration if available
+        direction: "Inbound",
+        language: clean(language),
+        model: "general",
+        callType: clean(callType),
+        status: "processed",
+        sentiment: "positive",
+        transcript: transcription,
+        summary: summary,
+        // notes isn’t used by your backend right now; include if your API supports it
+        // notes: clean(notes),
+      }
 
-    // Now POST this JSON to your backend create endpoint:
-    const output = await axios.post(
-      `${API_BASE}/calls/createCall`,
-      call,
-      { headers: { "Content-Type": "application/json" } }
-    );
-    console.log("Create call response:", output.data);
-    toast({
+      // 2) Persist the call record
+      const createRes = await axios.post(getApiUrl("/calls/createCall"), call, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 60000,
+        validateStatus: () => true,
+      })
+
+      if (createRes.status < 200 || createRes.status >= 300) {
+        console.error("createCall failed", createRes.status, createRes.data)
+        toast({
+          title: `Call save failed (${createRes.status})`,
+          description:
+            typeof createRes.data === "string" ? createRes.data : JSON.stringify(createRes.data),
+          variant: "destructive",
+        })
+        return
+      }
+
+      console.log("Create call response:", createRes.data)
+      toast({
         title: "Audio uploaded successfully",
         description: "Your audio file has been uploaded.",
-        variant: "default",
-    })
-    // Reset form
-    setSelectedFile(null)
-    setDispatcher("")
-    setCallType("")
-    setLanguage("")
-    setNotes("")
+      })
+
+      // Reset form
+      setSelectedFile(null)
+      setDispatcher("")
+      setCallType("")
+      setLanguage("")
+      setNotes("")
+    } catch (err: any) {
+      console.error("Network/axios error:", {
+        message: err?.message,
+        code: err?.code,
+        status: err?.response?.status,
+        data: err?.response?.data,
+      })
+      const msg =
+        err?.response?.data
+          ? typeof err.response.data === "string"
+            ? err.response.data
+            : JSON.stringify(err.response.data)
+          : err?.message || "Unknown error"
+      toast({
+        title: "Upload failed",
+        description: msg,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -187,7 +243,9 @@ export default function UploadPage() {
                   </div>
                   <div className="text-center">
                     <p className="font-medium text-foreground">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
                   </div>
                   <Button
                     variant="outline"
@@ -210,7 +268,9 @@ export default function UploadPage() {
                     <p className="font-medium text-foreground">Drop your audio file here</p>
                     <p className="text-sm text-muted-foreground">or click to browse</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Supports MP3, WAV, and other audio formats</p>
+                  <p className="text-xs text-muted-foreground">
+                    Supports MP3, WAV, and other audio formats
+                  </p>
                 </div>
               )}
             </div>
