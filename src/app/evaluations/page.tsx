@@ -615,7 +615,7 @@ export default function EvaluationsPage() {
             </div>
           </div>
         </div>
-        <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onAdded={() => getQaQuestions()} />
+        <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onAdded={() => { getQaQuestions() }} />
       </div>
 
       {/* Responsive scaling styles */}
