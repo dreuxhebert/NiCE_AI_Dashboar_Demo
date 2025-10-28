@@ -30,13 +30,16 @@ import { cn } from "@/lib/utils"
 import { AddQuestionDrawer } from "@/components/add-question-drawer"
 
 export default function EvaluationsPage() {
-  const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation>(evaluations[0])
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
   const [isPlaying, setIsPlaying] = useState(false)
   const [showTable, setShowTable] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [qaQuestionsSet, setQaQuestionsSet] = useState<QAQuestion[]>([])
+  const [callList, setCallList] = useState<CallData[]>([])
+  const [selectedEvaluation, setSelectedEvaluation] = useState<CallData>(callList[0])
+  const [metStandards, setMetStandards] = useState<number>(0)
+  const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
@@ -79,15 +82,49 @@ export default function EvaluationsPage() {
     confidence: number;
   }
 
+  
+  interface CallData {
+    _id: string;
+    id: string;
+    dispatcher_id: string;
+    call_id: string;
+    duration_seconds: number;
+    direction: string;
+    language: string;
+    model: string;
+    callType: string;
+    status: string;
+    sentiment: string;
+    transcript: string;
+    summary: string;
+    created_at: Date;
+    callEvaluationType: string;
+    score: number;
+    scores: string[];
+  }
+
+
   const [qaResults, setQaResults] = useState<QaResults>(initialQa) // committed
   const [qaDraft, setQaDraft] = useState<QaResults>(initialQa) // editable copy
 
   useEffect(() => {
+    const fetchCalls = async () => {
+      try {
+        const data = await getCallData() // ← Fetch all calls
+        if (data?.length > 0) {
+          setSelectedEvaluation(data[0]) // ← Select the first call safely
+        }
+      } catch (error) {
+        console.error("Error fetching calls:", error)
+      }
+    }
+
+    fetchCalls()
+    getQaQuestions()
     setQaResults(initialQa)
     setQaDraft(initialQa)
     setIsEditing(false)
-    getQaQuestions()
-  }, [selectedEvaluation?.id])
+  }, [])
 
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
@@ -97,6 +134,13 @@ export default function EvaluationsPage() {
 
   const handleAddQuestion = () => {
     setDrawerOpen(true)
+  }
+
+  const handleSelectEvaluationChange = (evaluation: CallData) => {
+    setSelectedEvaluation(evaluation)
+    setMetStandards(evaluation.scores.filter(score => score === 'Yes').length);
+    setCriticalViolations(evaluation.scores.filter(score => score === 'No').length);
+
   }
 
   const updateQaDraft = (key: string, value: QaValue) => {
@@ -123,7 +167,7 @@ export default function EvaluationsPage() {
   const handleGenerateCoaching = () => {
     toast({
       title: "AI Coaching Task Created",
-      description: `Coaching task created for ${selectedEvaluation.callTakerName}`,
+      description: `Coaching task created for ${selectedEvaluation.dispatcher_id}`,
     })
     router.push("/coaching")
   }
@@ -139,10 +183,10 @@ export default function EvaluationsPage() {
     toast({ title: "Draft reset", description: "Reverted to last saved answers." })
   }
 
-  const filteredEvaluations = evaluations.filter(
+  const filteredEvaluations = callList.filter(
     (evaluation) =>
-      evaluation.callTakerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evaluation.callId.toLowerCase().includes(searchQuery.toLowerCase())
+      evaluation.dispatcher_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evaluation.call_id.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const qaQuestions = [
@@ -173,6 +217,17 @@ export default function EvaluationsPage() {
     return merged;
   };
 
+
+
+  const getCallData = async () => {
+    const res = await fetch(getApiUrl('/calls/'), { cache: 'no-store' });
+    if (!res.ok) throw new Error("Failed to fetch call data");
+    const data = await res.json();
+    setCallList(data);
+    setSelectedEvaluation(callList[0])
+    return data;
+
+  };
 
   // Buttons: look normal when locked, shrink & wrap on small screens
   const qaBtn = (active: boolean, kind: QaValue) => {
@@ -209,7 +264,7 @@ export default function EvaluationsPage() {
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-border/50">
                       <CheckCircle className="h-5 w-5 text-primary" />
                     </div>
-                    <h2 className="text-sm sm:text-lg font-bold text-foreground">Recent Evaluations</h2>
+                    <h2 className="text-sm sm:text-lg font-bold text-foreground">Evaluations</h2>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -250,7 +305,7 @@ export default function EvaluationsPage() {
                             {filteredEvaluations.map((evaluation, idx) => (
                               <tr
                                 key={evaluation.id}
-                                onClick={() => setSelectedEvaluation(evaluation)}
+                                onClick={() => handleSelectEvaluationChange(evaluation)}
                                 className={cn(
                                   "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/50",
                                   idx % 2 === 1 && "bg-muted/20",
@@ -258,15 +313,17 @@ export default function EvaluationsPage() {
                                 )}
                               >
                                 <td className="px-4 py-3">
-                                  <p className="text-sm font-medium text-foreground">{evaluation.date}</p>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {new Date(evaluation.created_at).toDateString()}
+                                  </p>
                                 </td>
                                 <td className="px-4 py-3">
-                                  <p className="text-sm font-medium text-foreground">{evaluation.callTakerName}</p>
-                                  <p className="text-xs text-muted-foreground">{evaluation.callId}</p>
+                                  <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
+                                  <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
                                 </td>
                                 <td className="px-4 py-3">
                                   <Badge variant="outline" className="text-xs">
-                                    {evaluation.type}
+                                    {evaluation.callEvaluationType}
                                   </Badge>
                                 </td>
                                 <td className="px-4 py-3 text-center">
@@ -321,51 +378,67 @@ export default function EvaluationsPage() {
                     <div className="shrink-0 border-b border-border/50 bg-card px-3">
                       <Tabs defaultValue="transcript" className="flex-1 flex flex-col">
                         <TabsList className="h-10 bg-transparent flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible">
-                          <TabsTrigger value="transcript" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Transcript</TabsTrigger>
-                          <TabsTrigger value="summary" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Summary</TabsTrigger>
-                          <TabsTrigger value="details" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">Details</TabsTrigger>
+                          <TabsTrigger value="transcript" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Transcript
+                          </TabsTrigger>
+                          <TabsTrigger value="summary" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Summary
+                          </TabsTrigger>
+                          <TabsTrigger value="details" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Details
+                          </TabsTrigger>
                         </TabsList>
+
+                        {/* Transcript Content */}
+                        <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                          <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
+                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3 whitespace-pre-line max-h-64 overflow-y-auto">
+                            {selectedEvaluation?.transcript || "No transcript available"}
+                          </p>
+                        </TabsContent>
+
+                        {/* Summary Content */}
+                        <TabsContent value="summary" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                          <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
+                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">
+                            {selectedEvaluation?.summary || "No summary available"}
+                          </p>
+                        </TabsContent>
+
+                        {/* Details Content */}
+                        <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                          <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
+                          <div className="space-y-2 bg-muted rounded p-3 border border-border/50">
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Call ID</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Duration</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Date</span>
+                              <span className="text-xs font-medium text-foreground">
+                                {new Date(selectedEvaluation?.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Operator</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.dispatcher_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Type</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.callEvaluationType}</span>
+                            </div>
+                          </div>
+                        </TabsContent>
                       </Tabs>
                     </div>
-
-                    <Tabs defaultValue="transcript" className="flex-1 flex flex-col overflow-hidden">
-                      <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
-                        <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
-                        <div className="space-y-3">
-                          {selectedEvaluation.transcript.split("\n").map((line, index) => {
-                            const isOperator = line.startsWith("Dispatcher:")
-                            const isCaller = line.startsWith("Caller:")
-                            const text = line.replace(/^(Dispatcher:|Caller:)\s*/, "")
-                            return (
-                              <div key={index} className="mb-2 last:mb-0">
-                                <p className="text-xs font-semibold text-primary mb-1">{isOperator ? "Operator" : isCaller ? "Caller" : ""}</p>
-                                <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-2">{text}</p>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="summary" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
-                        <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
-                        <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">{selectedEvaluation.summary}</p>
-                      </TabsContent>
-
-                      <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
-                        <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
-                        <div className="space-y-2 bg-muted rounded p-3 border border-border/50">
-                          <div className="flex justify-between"><span className="text-xs text-muted-foreground">Call ID</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.callId}</span></div>
-                          <Separator className="bg-border/50" />
-                          <div className="flex justify-between"><span className="text-xs text-muted-foreground">Duration</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.duration}</span></div>
-                          <Separator className="bg-border/50" />
-                          <div className="flex justify-between"><span className="text-xs text-muted-foreground">Date</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.date}</span></div>
-                          <Separator className="bg-border/50" />
-                          <div className="flex justify-between"><span className="text-xs text-muted-foreground">Operator</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.callTakerName}</span></div>
-                          <Separator className="bg-border/50" />
-                          <div className="flex justify-between"><span className="text-xs text-muted-foreground">Type</span><span className="text-xs font-medium text-foreground">{selectedEvaluation.type}</span></div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
                   </div>
                 </Card>
 
@@ -531,12 +604,12 @@ export default function EvaluationsPage() {
                 <Card className="p-4 bg-card border border-border/50">
                   <h3 className="text-sm font-semibold text-foreground mb-2">QA Protocol Evaluation</h3>
                   <div className="text-center">
-                    <div className={cn("text-4xl font-bold mb-1", getScoreColor(selectedEvaluation.score))}>
-                      {selectedEvaluation.score}%
+                    <div className={cn("text-4xl font-bold mb-1", getScoreColor(selectedEvaluation?.score))}>
+                      {selectedEvaluation?.score}%
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      {selectedEvaluation.metStandards.length} of{" "}
-                      {selectedEvaluation.metStandards.length + selectedEvaluation.criticalViolations.length} Standards
+                      {metStandards} of{" "}
+                      {metStandards + criticalViolations} Standards
                     </p>
                   </div>
                 </Card>
@@ -548,17 +621,19 @@ export default function EvaluationsPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Call Taker</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation.callTakerName}</span>
+                      <span className="font-semibold text-foreground">{selectedEvaluation?.dispatcher_id}</span>
                     </div>
                     <Separator className="bg-border/50" />
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Date</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation.date}</span>
+                      <span className="font-semibold text-foreground">
+                        {new Date(selectedEvaluation?.created_at).toLocaleDateString()}
+                      </span>
                     </div>
                     <Separator className="bg-border/50" />
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Duration</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation.duration}</span>
+                      <span className="font-semibold text-foreground">{selectedEvaluation?.duration_seconds}</span>
                     </div>
                   </div>
                 </Card>
@@ -573,7 +648,7 @@ export default function EvaluationsPage() {
                         <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-green-500">{selectedEvaluation.metStandards.length}</p>
+                        <p className="text-xl font-bold text-green-500">{metStandards}</p>
                         <p className="text-xs sm:text-sm text-muted-foreground">Standards Met</p>
                       </div>
                     </div>
@@ -583,13 +658,13 @@ export default function EvaluationsPage() {
                         <XCircle className="h-3.5 w-3.5 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-red-500">{selectedEvaluation.criticalViolations.length}</p>
+                        <p className="text-xl font-bold text-red-500">{criticalViolations}</p>
                         <p className="text-xs sm:text-sm text-muted-foreground">Not Met</p>
                       </div>
                     </div>
                   </div>
-
-                  <div className="space-y-2 mb-3">
+                    
+                  {/* <div className="space-y-2 mb-3">
                     <p className="text-sm font-semibold text-foreground">Standards Met</p>
                     {selectedEvaluation.metStandards.slice(0, 5).map((standard: string, index: number) => (
                       <div key={index} className="flex items-start gap-1.5 text-sm text-muted-foreground">
@@ -599,7 +674,7 @@ export default function EvaluationsPage() {
                     ))}
                   </div>
 
-                  {selectedEvaluation.criticalViolations.length > 0 && (
+                  {criticalViolations > 0 && (
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-foreground">Areas for Improvement</p>
                       {selectedEvaluation.criticalViolations.map((violation: string, index: number) => (
@@ -609,7 +684,7 @@ export default function EvaluationsPage() {
                         </div>
                       ))}
                     </div>
-                  )}
+                  )} */}
                 </Card>
               </div>
             </div>

@@ -451,6 +451,24 @@ export interface Evaluation {
   summary: string
 }
 
+// _id 68f7723cb6844a3c3f81a94c
+// id  68f7723cb6844a3c3f81a94b
+// dispatcher_id "Jim Finley"
+// call_id "d6fda85d-5cc4-4fd9-95f4-3b2d5b2ccaf1"
+// duration_seconds 320
+// direction "Inbound"
+// language "English"
+// model "general"
+// callType "Fire"
+// status "processed"
+// sentiment "positive"
+// transcript "Dispatcher: Hover County 911, what is the location of your emergency? …"
+// summary "A 911 call reports a house fire on Route 7 at Abington, below McCombis…"
+// created_at "2025-10-21T11:45:00.448+00:00"
+// callEvaluationType "Automated"
+// score 63
+// scores Array (7)
+
 export const evaluations: Evaluation[] = [
   {
     id: "eval-001",
