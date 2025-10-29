@@ -166,7 +166,8 @@ export default function EvaluationsPage() {
 
   const updateQaDraft = (key: string, index: number, value: QaValue) => {
     if (!isEditing) return
-    console.log(key)
+    qaAnswers[index] = value
+    qaAnswerDraft[index] = value
     setQaDraft((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -579,7 +580,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "yes" ? "default" : "outline"}
                                   className={qaBtn(val === "yes", "yes")}
-                                  onClick={() => {updateQaDraft(callId, index, "yes"); console.log(callId)}}
+                                  onClick={() => {updateQaDraft(callId, index, "yes")}}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
