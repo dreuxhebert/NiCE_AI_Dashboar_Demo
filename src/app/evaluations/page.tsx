@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
-import { evaluations, type Evaluation } from "@/lib/sample-data"
 import {
   FileDown,
   Sparkles,
@@ -41,6 +40,9 @@ export default function EvaluationsPage() {
   const [metStandards, setMetStandards] = useState<number>(0)
   const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [qaAnswers, setQaAnswers] = useState<String[]>([])
+  const [qaAnswerDraft, setQaAnswersDraft] = useState<String[]>([])
+  const [callId, setCallId] = useState("")
   const { toast } = useToast()
   const router = useRouter()
 
@@ -104,15 +106,31 @@ export default function EvaluationsPage() {
   }
 
 
-  const [qaResults, setQaResults] = useState<QaResults>(initialQa) // committed
-  const [qaDraft, setQaDraft] = useState<QaResults>(initialQa) // editable copy
+  const [qaResults, setQaResults] = useState<QaResults>(initialQa)
+  const [qaDraft, setQaDraft] = useState<QaResults>(initialQa)
 
   useEffect(() => {
     const fetchCalls = async () => {
       try {
-        const data = await getCallData() // ← Fetch all calls
+        const data = await getCallData()
         if (data?.length > 0) {
-          setSelectedEvaluation(data[0]) // ← Select the first call safely
+          
+          const first = data[0];
+          const next =
+            Array.isArray(first?.scores) && first.scores.length > 0
+              ? [...first.scores]
+              : ["Empty"];
+
+          const newId = first?._id ?? "";
+
+          setSelectedEvaluation(first);
+          setQaAnswers(next);
+          setQaAnswersDraft(next);
+          setCallId(newId);
+          const met = next.filter((score) => score === "yes").length;
+          const crit = next.filter((score) => score === "no").length;
+          setMetStandards(met);
+          setCriticalViolations(crit);
         }
       } catch (error) {
         console.error("Error fetching calls:", error)
@@ -121,7 +139,7 @@ export default function EvaluationsPage() {
 
     fetchCalls()
     getQaQuestions()
-    setQaResults(initialQa)
+    setQaResults(initialQa) //setQaAnswers
     setQaDraft(initialQa)
     setIsEditing(false)
   }, [])
@@ -137,14 +155,18 @@ export default function EvaluationsPage() {
   }
 
   const handleSelectEvaluationChange = (evaluation: CallData) => {
+    const newId = evaluation._id
     setSelectedEvaluation(evaluation)
-    setMetStandards(evaluation.scores.filter(score => score === 'Yes').length);
-    setCriticalViolations(evaluation.scores.filter(score => score === 'No').length);
-
+    setMetStandards(evaluation.scores.filter(score => score === 'yes').length);
+    setCriticalViolations(evaluation.scores.filter(score => score === 'no').length);
+    setQaAnswers(evaluation.scores)
+    setQaAnswersDraft(evaluation.scores)
+    setCallId(newId)
   }
 
-  const updateQaDraft = (key: string, value: QaValue) => {
+  const updateQaDraft = (key: string, index: number, value: QaValue) => {
     if (!isEditing) return
+    console.log(key)
     setQaDraft((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -172,14 +194,19 @@ export default function EvaluationsPage() {
     router.push("/coaching")
   }
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
+    const res = await fetch(
+      getApiUrl('/calls/'), { cache: 'no-store' }
+    );
     setQaResults(qaDraft)
+    setQaAnswers(qaAnswerDraft)
     setIsEditing(false)
     toast({ title: "Changes saved" })
   }
 
   const handleResetChanges = () => {
     setQaDraft(qaResults)
+    setQaAnswersDraft(qaAnswers)
     toast({ title: "Draft reset", description: "Reverted to last saved answers." })
   }
 
@@ -212,7 +239,6 @@ export default function EvaluationsPage() {
     }));
 
     setQaQuestionsSet(merged);
-    console.log(merged);
 
     return merged;
   };
@@ -224,9 +250,7 @@ export default function EvaluationsPage() {
     if (!res.ok) throw new Error("Failed to fetch call data");
     const data = await res.json();
     setCallList(data);
-    setSelectedEvaluation(callList[0])
-    return data;
-
+    return data
   };
 
   // Buttons: look normal when locked, shrink & wrap on small screens
@@ -519,7 +543,7 @@ export default function EvaluationsPage() {
                         variant={isEditing ? "secondary" : "outline"}
                         className="h-8"
                         onClick={() => {
-                          if (!isEditing) setQaDraft(qaResults)
+                          if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
                           setIsEditing((v) => !v)
                         }}
                       >
@@ -543,8 +567,9 @@ export default function EvaluationsPage() {
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
                     <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
-                        const committed = qaResults[q._id]
-                        const val = (isEditing ? qaDraft[q._id] : committed) as QaValue
+                        const committed = qaAnswers[index]
+                        const val1 = (isEditing ? qaDraft[q._id] : committed) as QaValue
+                        const val = (isEditing ? qaAnswerDraft[index] : committed) as QaValue
                         return (
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                             <div className="flex items-center justify-between p-3 gap-3">
@@ -554,7 +579,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "yes" ? "default" : "outline"}
                                   className={qaBtn(val === "yes", "yes")}
-                                  onClick={() => updateQaDraft(q._id, "yes")}
+                                  onClick={() => {updateQaDraft(callId, index, "yes"); console.log(callId)}}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -564,7 +589,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "no" ? "destructive" : "outline"}
                                   className={qaBtn(val === "no", "no")}
-                                  onClick={() => updateQaDraft(q._id, "no")}
+                                  onClick={() => updateQaDraft(callId, index, "no")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -574,7 +599,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "refused" ? "default" : "outline"}
                                   className={qaBtn(val === "refused", "refused")}
-                                  onClick={() => updateQaDraft(q._id, "refused")}
+                                  onClick={() => updateQaDraft(callId, index, "refused")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -584,7 +609,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "na" ? "default" : "outline"}
                                   className={qaBtn(val === "na", "na")}
-                                  onClick={() => updateQaDraft(q._id, "na")}
+                                  onClick={() => updateQaDraft(callId, index, "na")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
