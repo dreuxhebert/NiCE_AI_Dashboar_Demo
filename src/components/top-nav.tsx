@@ -54,7 +54,7 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2">
-          <Image src="/NiCE_SMILE.svg" alt="NiCE" width={120} height={40} priority className="h-8 w-auto" />
+          <Image src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"} alt="NiCE" width={120} height={40} priority className="h-8 w-auto" />
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
