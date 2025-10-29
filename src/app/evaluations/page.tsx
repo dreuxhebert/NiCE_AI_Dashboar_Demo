@@ -348,7 +348,7 @@ export default function EvaluationsPage() {
                                   <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
                                 </td>
                                 <td className="px-4 py-3">
-                                  <p className="ext-sm font-medium text-foreground">{evaluation.callType}</p>
+                                  <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
                                 </td>
                                 <td className="px-4 py-3">
                                   <Badge variant="outline" className="text-xs">
