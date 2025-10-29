@@ -322,6 +322,7 @@ export default function EvaluationsPage() {
                             <tr className="border-b border-border/50">
                               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
                               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Evaluator</th>
+                              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Call Type</th>
                               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Type</th>
                               <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
                             </tr>
@@ -345,6 +346,9 @@ export default function EvaluationsPage() {
                                 <td className="px-4 py-3">
                                   <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
                                   <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <p className="ext-sm font-medium text-foreground">{evaluation.callType}</p>
                                 </td>
                                 <td className="px-4 py-3">
                                   <Badge variant="outline" className="text-xs">
