@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -45,6 +45,7 @@ export default function EvaluationsPage() {
   const [callId, setCallId] = useState("")
   const { toast } = useToast()
   const router = useRouter()
+  const qaRef = useRef<HTMLDivElement | null>(null)
 
   // Environment-based API configuration (same pattern as other pages)
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
@@ -162,6 +163,8 @@ export default function EvaluationsPage() {
     setQaAnswers(evaluation.scores)
     setQaAnswersDraft(evaluation.scores)
     setCallId(newId)
+    // Smoothly scroll to the QA form section
+    qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   const updateQaDraft = (key: string, index: number, value: QaValue) => {
@@ -196,9 +199,7 @@ export default function EvaluationsPage() {
   }
 
   const handleSaveChanges = async () => {
-    const res = await fetch(
-      getApiUrl('/calls/'), { cache: 'no-store' }
-    );
+    await fetch(getApiUrl('/calls/'), { cache: 'no-store' })
     setQaResults(qaDraft)
     setQaAnswers(qaAnswerDraft)
     setIsEditing(false)
@@ -272,6 +273,64 @@ export default function EvaluationsPage() {
 
   // Stable waveform bars (optional nicety)
   const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
+
+  // ---- Helpers ----
+  const renderTranscript = (transcript?: string) => {
+    if (!transcript) return "No transcript available"
+    const lines = transcript.split("\n")
+    return (
+      <div className="space-y-5">
+        {lines.map((line, index) => {
+          const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+          let speaker: string | null = null
+          let text = line
+          if (match) {
+            speaker = match[1]
+            text = match[2]
+          }
+
+          const words = String(text || "").trim().split(/\s+/).filter(Boolean)
+          const chunks: string[] = []
+          for (let i = 0; i < words.length; i += 30) {
+            chunks.push(words.slice(i, i + 30).join(" "))
+          }
+
+          const isDispatcher = speaker === "Dispatcher"
+          const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
+
+          return (
+            <div key={index} className="mb-4">
+              {speakerLabel && (
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
+                </div>
+              )}
+              <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}> 
+                {chunks.length > 0 ? (
+                  chunks.map((chunk, ci) => (
+                    <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
+                      <div
+                        className={cn(
+                          "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                          isDispatcher
+                            ? "bg-muted/30 text-foreground border border-border"
+                            : "bg-primary/10 text-foreground border border-primary/20",
+                        )}
+                      >
+                        {chunk}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">{text}</div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
  return (
     <>
@@ -422,66 +481,7 @@ export default function EvaluationsPage() {
                         <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
                           <div className="text-xs text-foreground leading-relaxed max-h-64 overflow-y-auto">
-                            {selectedEvaluation?.transcript ? (
-                              <div className="space-y-5">
-                                {(() => {
-                                  // Same parseTranscript logic as interaction-drawer
-                                  const lines = selectedEvaluation.transcript.split("\n")
-                                  return lines.map((line, index) => {
-                                    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-                                    let speaker = null
-                                    let text = line
-                                    if (match) {
-                                      speaker = match[1]
-                                      text = match[2]
-                                    }
-
-                                    const words = String(text || "").trim().split(/\s+/).filter(Boolean)
-                                    const chunks: string[] = []
-                                    // Split into chunks of ~30 words
-                                    for (let i = 0; i < words.length; i += 30) {
-                                      chunks.push(words.slice(i, i + 30).join(" "))
-                                    }
-
-                                    const isDispatcher = speaker === "Dispatcher"
-                                    const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
-
-                                    return (
-                                      <div key={index} className="mb-4">
-                                        {speakerLabel && (
-                                          <div className="mb-1.5 flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
-                                          </div>
-                                        )}
-
-                                        <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}>
-                                          {chunks.length > 0 ? (
-                                            chunks.map((chunk, ci) => (
-                                              <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
-                                                <div
-                                                  className={cn(
-                                                    "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
-                                                    isDispatcher
-                                                      ? "bg-muted/30 text-foreground border border-border"
-                                                      : "bg-primary/10 text-foreground border border-primary/20"
-                                                  )}
-                                                >
-                                                  {chunk}
-                                                </div>
-                                              </div>
-                                            ))
-                                          ) : (
-                                            <div className="text-sm text-muted-foreground">{text}</div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  })
-                                })()}
-                              </div>
-                            ) : (
-                              "No transcript available"
-                            )}
+                            {renderTranscript(selectedEvaluation?.transcript)}
                           </div>
                         </TabsContent>
 
@@ -532,7 +532,7 @@ export default function EvaluationsPage() {
 
                 {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
                 <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card rounded-lg">
-                  <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
+                  <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50">
                         <CheckCircle className="h-4 w-4 text-primary" />
@@ -655,7 +655,6 @@ export default function EvaluationsPage() {
                     <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
                         const committed = qaAnswers[index]
-                        const val1 = (isEditing ? qaDraft[q._id] : committed) as QaValue
                         const val = (isEditing ? qaAnswerDraft[index] : committed) as QaValue
                         return (
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
