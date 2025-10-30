@@ -126,7 +126,8 @@ export default function UploadPage() {
         return
       }
 
-      const { interaction_id, transcription, summary } = uploadRes.data ?? {}
+      const { interaction_id, transcription, summary, qa_analysis_result } = uploadRes.data ?? {}
+      console.log(qa_analysis_result)
       if (!interaction_id) {
         toast({
           title: "Upload failed",
@@ -160,6 +161,7 @@ export default function UploadPage() {
         scores: [],
         score: 0,
         callEvaluationType: "auto",
+        qa_analysis: qa_analysis_result
 
         // notes isn’t used by your backend right now; include if your API supports it
         // notes: clean(notes),

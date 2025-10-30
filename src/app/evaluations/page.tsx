@@ -61,7 +61,7 @@ export default function EvaluationsPage() {
   }
 
   // ------- QA state (view vs draft) -------
-  type QaValue = "yes" | "no" | "refused" | "na"
+  type QaValue = "yes" | "no" | "refused" | "na" | "Yes" | "No" | "Refused" | "N/A"
   type QaResults = Record<string, QaValue>
 
   const initialQa: QaResults = {
@@ -101,6 +101,12 @@ export default function EvaluationsPage() {
     summary: string;
     created_at: Date;
     callEvaluationType: string;
+    qa_analysis: {
+      [question_id: string]: {
+        answer: string;
+        proof: string;
+      };
+    };
     score: number;
     scores: string[];
   }
@@ -157,8 +163,16 @@ export default function EvaluationsPage() {
   const handleSelectEvaluationChange = (evaluation: CallData) => {
     const newId = evaluation._id
     setSelectedEvaluation(evaluation)
-    setMetStandards(evaluation.scores.filter(score => score === 'yes').length);
-    setCriticalViolations(evaluation.scores.filter(score => score === 'no').length);
+    const yesCount = Object.values(evaluation.qa_analysis).filter(
+      (item) => item.answer?.toLowerCase() === "yes"
+    ).length;
+
+    const noCount = Object.values(evaluation.qa_analysis).filter(
+      (item) => item.answer?.toLowerCase() === "no"
+    ).length;
+
+    setMetStandards(yesCount);
+    setCriticalViolations(noCount);
     setQaAnswers(evaluation.scores)
     setQaAnswersDraft(evaluation.scores)
     setCallId(newId)
@@ -572,9 +586,13 @@ export default function EvaluationsPage() {
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
                     <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
-                        const committed = qaAnswers[index]
-                        const val1 = (isEditing ? qaDraft[q._id] : committed) as QaValue
-                        const val = (isEditing ? qaAnswerDraft[index] : committed) as QaValue
+                        //const committed = qaAnswers[index]
+                        //const val1 = (isEditing ? qaDraft[q._id] : committed) as QaValue
+                        const qaAnalysis = selectedEvaluation?.qa_analysis
+                        let answer = qaAnalysis?.[q._id]?.answer || ""
+                        let proof = qaAnalysis?.[q._id]?.proof || ""
+
+                        const val = (isEditing ? qaAnswerDraft[index] : answer) as QaValue
                         return (
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                             <div className="flex items-center justify-between p-3 gap-3">
@@ -582,9 +600,9 @@ export default function EvaluationsPage() {
                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                 <Button
                                   size="sm"
-                                  variant={val === "yes" ? "default" : "outline"}
-                                  className={qaBtn(val === "yes", "yes")}
-                                  onClick={() => {updateQaDraft(callId, index, "yes")}}
+                                  variant={val === "Yes" ? "default" : "outline"}
+                                  className={qaBtn(val === "Yes", "Yes")}
+                                  onClick={() => {updateQaDraft(callId, index, "Yes")}}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -592,9 +610,9 @@ export default function EvaluationsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={val === "no" ? "destructive" : "outline"}
-                                  className={qaBtn(val === "no", "no")}
-                                  onClick={() => updateQaDraft(callId, index, "no")}
+                                  variant={val === "No" ? "destructive" : "outline"}
+                                  className={qaBtn(val === "No", "No")}
+                                  onClick={() => updateQaDraft(callId, index, "No")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -602,9 +620,9 @@ export default function EvaluationsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={val === "refused" ? "default" : "outline"}
-                                  className={qaBtn(val === "refused", "refused")}
-                                  onClick={() => updateQaDraft(callId, index, "refused")}
+                                  variant={val === "Refused" ? "default" : "outline"}
+                                  className={qaBtn(val === "Refused", "Refused")}
+                                  onClick={() => updateQaDraft(callId, index, "Refused")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -612,9 +630,9 @@ export default function EvaluationsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={val === "na" ? "default" : "outline"}
-                                  className={qaBtn(val === "na", "na")}
-                                  onClick={() => updateQaDraft(callId, index, "na")}
+                                  variant={val === "N/A" ? "default" : "outline"}
+                                  className={qaBtn(val === "N/A", "N/A")}
+                                  onClick={() => updateQaDraft(callId, index, "N/A")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -638,7 +656,7 @@ export default function EvaluationsPage() {
                                   </div>
                                   <div className="mt-2">
                                     <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{q.evidence}</p>
+                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{proof}</p>
                                   </div>
                                 </div>
                               </div>
