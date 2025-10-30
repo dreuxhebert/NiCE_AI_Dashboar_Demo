@@ -336,7 +336,7 @@ export default function CoachingPage() {
                   <div className="col-span-2">Priority</div>
                 </div>
               </div>
-              <div className="max-h-[calc(100vh-22rem)] overflow-y-auto">
+              <div className="max-h-[calc(100vh-22rem)] overflow-y-auto pr-2">
                 {filteredTasks.map((task) => (
                   <div
                     key={task.id}
