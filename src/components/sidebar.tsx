@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 
 const menuItems = [
   { title: "Overview", href: "/", icon: LayoutDashboard },
@@ -47,6 +48,8 @@ function useIsDark(): boolean {
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname()
   const isDark = useIsDark()
+  const [mounted, setMounted] = useState(false)
+  const [tooltip, setTooltip] = useState<null | { text: string; top: number; left: number }>(null)
 
   const logoSrc = useMemo(
     () => (isDark ? "/Inform-QAi_white.svg" : "/Inform-QAi_blk.svg"),
@@ -57,6 +60,16 @@ export function Sidebar({ collapsed }: SidebarProps) {
     href === "/" ? pathname === href : pathname?.startsWith(href)
 
   const linkTextSize = collapsed ? "text-sm" : "text-lg"
+
+  useEffect(() => setMounted(true), [])
+
+  const handleEnter = (e: React.MouseEvent<HTMLElement>, text: string) => {
+    if (!collapsed) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setTooltip({ text, top: rect.top + rect.height / 2, left: rect.right + 8 })
+  }
+
+  const handleLeave = () => setTooltip(null)
 
   return (
     <aside
@@ -97,6 +110,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   aria-label={item.title}
+                  onMouseEnter={(e) => handleEnter(e, item.title)}
+                  onMouseLeave={handleLeave}
                   className={cn(
                     "group relative flex items-center gap-3 rounded-lg px-3 py-3 font-semibold transition-colors",
                     linkTextSize,
@@ -110,13 +125,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   <span className={cn("whitespace-nowrap", collapsed ? "sr-only" : "inline")}>
                     {item.title}
                   </span>
-
-                  {/* Tooltip when collapsed */}
-                  {collapsed && (
-                    <span className="pointer-events-none absolute left-14 z-50 hidden rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground shadow group-hover:block">
-                      {item.title}
-                    </span>
-                  )}
                 </Link>
               )
             })}
@@ -128,6 +136,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
           <Link
             href="/upload"
             aria-label="Upload"
+            onMouseEnter={(e) => handleEnter(e, "Upload")}
+            onMouseLeave={handleLeave}
             className={cn(
               "group relative flex items-center gap-3 rounded-lg px-3 py-3 font-semibold transition-colors",
               linkTextSize,
@@ -140,14 +150,20 @@ export function Sidebar({ collapsed }: SidebarProps) {
             <span className={cn("whitespace-nowrap", collapsed ? "sr-only" : "inline")}>
               Upload
             </span>
-            {collapsed && (
-              <span className="pointer-events-none absolute left-14 z-50 hidden rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground shadow group-hover:block">
-                Upload
-              </span>
-            )}
           </Link>
         </div>
       </div>
+      {/* Styled tooltip rendered in a portal to avoid layout shifts/scrollbars */}
+      {mounted && collapsed && tooltip && createPortal(
+        <div
+          className="pointer-events-none fixed z-[1000] -translate-y-1/2 rounded-md border border-border bg-popover px-2 py-1 text-sm text-popover-foreground shadow"
+          style={{ top: tooltip.top, left: tooltip.left }}
+          role="tooltip"
+        >
+          {tooltip.text}
+        </div>,
+        document.body
+      )}
     </aside>
   )
 }
