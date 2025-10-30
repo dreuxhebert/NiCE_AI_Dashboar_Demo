@@ -279,9 +279,9 @@ export default function EvaluationsPage() {
       <div className="w-full overflow-auto">
         {/* SCALE WRAPPER: keeps desktop look, shrinks on smaller breakpoints */}
         <div className="mobile-scale">
-          <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30">
+          <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30 rounded-lg p-3 sm:p-4 md:p-6">
             {/* LEFT & CENTER */}
-            <div className="flex-1 flex flex-col overflow-hidden p-3 gap-3">
+            <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 gap-4">
               {/* Recent Evaluations */}
               <Card className="shrink-0 border border-border/50 bg-card rounded-lg">
                 <div className="px-3 sm:px-6 h-12 flex items-center justify-between border-b border-border/50">
@@ -371,9 +371,9 @@ export default function EvaluationsPage() {
               </Card>
 
               {/* Bottom: grid that collapses on small screens */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-hidden">
                 {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
-                <Card className="flex flex-col border border-border/50 bg-card md:h-[min(64vh,100%)]">
+                <Card className="flex flex-col border border-border/50 bg-card rounded-lg md:h-[min(64vh,100%)]">
                   {/* Audio */}
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
@@ -488,7 +488,7 @@ export default function EvaluationsPage() {
                         {/* Summary Content */}
                         <TabsContent value="summary" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
-                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">
+                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded-lg p-3">
                             {selectedEvaluation?.summary || "No summary available"}
                           </p>
                         </TabsContent>
@@ -496,7 +496,7 @@ export default function EvaluationsPage() {
                         {/* Details Content */}
                         <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
-                          <div className="space-y-2 bg-muted rounded p-3 border border-border/50">
+                          <div className="space-y-2 bg-muted rounded-lg p-3 border border-border/50">
                             <div className="flex justify-between">
                               <span className="text-xs text-muted-foreground">Call ID</span>
                               <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
@@ -530,8 +530,8 @@ export default function EvaluationsPage() {
                   </div>
                 </Card>
 
-                {/* RIGHT: QA */}
-                <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card">
+                {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
+                <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card rounded-lg">
                   <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50">
@@ -566,10 +566,92 @@ export default function EvaluationsPage() {
                         <Plus className="h-3.5 w-3.5 mr-2" />
                         {"Add Question"}
                       </Button>
+                      {/* Actions moved from right column */}
+                      <Button
+                        size="sm"
+                        onClick={handleExportReport}
+                        className="h-8 hidden md:inline-flex bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                      >
+                        <FileDown className="mr-2 h-3.5 w-3.5" />
+                        Export
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleGenerateCoaching}
+                        className="h-8 hidden md:inline-flex bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                      >
+                        <Sparkles className="mr-2 h-3.5 w-3.5" />
+                        Coaching
+                      </Button>
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
+                    {/* Summary widgets previously in right column */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                      {/* QA Protocol Evaluation */}
+                      <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
+                        <div className="text-center">
+                          <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
+                            {selectedEvaluation?.score}%
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {metStandards} of {metStandards + criticalViolations} Standards
+                          </p>
+                        </div>
+                      </Card>
+
+                      {/* Compliance Summary */}
+                      <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
+                        <div className="flex items-center justify-around">
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
+                              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
+                              <p className="text-[11px] text-muted-foreground">Met</p>
+                            </div>
+                          </div>
+                          <Separator orientation="vertical" className="h-8 bg-border/50" />
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
+                              <XCircle className="h-3.5 w-3.5 text-red-500" />
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
+                              <p className="text-[11px] text-muted-foreground">Not Met</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Quick Actions for small screens */}
+                      <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
+                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handleExportReport}
+                            className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                          >
+                            <FileDown className="mr-2 h-3.5 w-3.5" />
+                            Export
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleGenerateCoaching}
+                            className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                          >
+                            <Sparkles className="mr-2 h-3.5 w-3.5" />
+                            Coaching
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+
                     <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
                         const committed = qaAnswers[index]
@@ -666,117 +748,7 @@ export default function EvaluationsPage() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="w-full md:w-[28%] md:min-w-[280px] md:max-w-[360px] flex flex-col border-l border-border/50 overflow-hidden bg-transparent">
-              <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3">
-                <div className="space-y-2">
-                  <Button
-                    size="sm"
-                    onClick={handleExportReport}
-                    className="w-full h-9 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
-                  >
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export Report
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleGenerateCoaching}
-                    className="w-full h-9 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate AI Coaching
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-card">
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-2">QA Protocol Evaluation</h3>
-                  <div className="text-center">
-                    <div className={cn("text-4xl font-bold mb-1", getScoreColor(selectedEvaluation?.score))}>
-                      {selectedEvaluation?.score}%
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {metStandards} of{" "}
-                      {metStandards + criticalViolations} Standards
-                    </p>
-                  </div>
-                </Card>
-
-                <Separator className="bg-border/50" />
-
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Call Information</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Call Taker</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation?.dispatcher_id}</span>
-                    </div>
-                    <Separator className="bg-border/50" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Date</span>
-                      <span className="font-semibold text-foreground">
-                        {new Date(selectedEvaluation?.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <Separator className="bg-border/50" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation?.duration_seconds}</span>
-                    </div>
-                  </div>
-                </Card>
-
-                <Separator className="bg-border/50" />
-
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Compliance Summary</h3>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-green-500">{metStandards}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Standards Met</p>
-                      </div>
-                    </div>
-                    <Separator orientation="vertical" className="h-8 bg-border/50" />
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
-                        <XCircle className="h-3.5 w-3.5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-red-500">{criticalViolations}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Not Met</p>
-                      </div>
-                    </div>
-                  </div>
-                    
-                  {/* <div className="space-y-2 mb-3">
-                    <p className="text-sm font-semibold text-foreground">Standards Met</p>
-                    {selectedEvaluation.metStandards.slice(0, 5).map((standard: string, index: number) => (
-                      <div key={index} className="flex items-start gap-1.5 text-sm text-muted-foreground">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
-                        <span className="leading-tight">{standard}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {criticalViolations > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-foreground">Areas for Improvement</p>
-                      {selectedEvaluation.criticalViolations.map((violation: string, index: number) => (
-                        <div key={index} className="flex items-start gap-1.5 text-sm text-muted-foreground">
-                          <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
-                          <span className="leading-tight">{violation}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )} */}
-                </Card>
-              </div>
-            </div>
+            {/* RIGHT COLUMN removed: content merged into QA card above */}
           </div>
         </div>
         <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onAdded={() => { getQaQuestions() }} />
