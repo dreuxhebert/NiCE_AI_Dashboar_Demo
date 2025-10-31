@@ -587,72 +587,119 @@ export default function EvaluationsPage() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
-                    {/* Summary widgets previously in right column */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                      {/* QA Protocol Evaluation */}
-                      <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
-                        <div className="text-center">
-                          <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
-                            {selectedEvaluation?.score}%
-                          </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            {metStandards} of {metStandards + criticalViolations} Standards
-                          </p>
-                        </div>
-                      </Card>
+                    <Tabs defaultValue="summary" className="flex flex-col h-full">
+                      <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
+                        <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-card">
+                          Summary
+                        </TabsTrigger>
+                        <TabsTrigger value="fullform" className="flex-1 data-[state=active]:bg-card">
+                          Full Form
+                        </TabsTrigger>
+                      </TabsList>
 
-                      {/* Compliance Summary */}
-                      <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
-                        <div className="flex items-center justify-around">
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
-                              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                      {/* Summary Tab */}
+                      <TabsContent value="summary" className="flex-1 overflow-y-auto mt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          {/* QA Protocol Evaluation */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
+                            <div className="text-center">
+                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
+                                {selectedEvaluation?.score}%
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {metStandards} of {metStandards + criticalViolations} Standards
+                              </p>
                             </div>
-                            <div>
-                              <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
-                              <p className="text-[11px] text-muted-foreground">Met</p>
+                          </Card>
+
+                          {/* Compliance Summary */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
+                            <div className="flex items-center justify-around">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                </div>
+                                <div>
+                                  <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
+                                  <p className="text-[11px] text-muted-foreground">Met</p>
+                                </div>
+                              </div>
+                              <Separator orientation="vertical" className="h-8 bg-border/50" />
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
+                                  <XCircle className="h-3.5 w-3.5 text-red-500" />
+                                </div>
+                                <div>
+                                  <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
+                                  <p className="text-[11px] text-muted-foreground">Not Met</p>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+
+                          {/* Quick Actions for small screens */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleExportReport}
+                                className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                              >
+                                <FileDown className="mr-2 h-3.5 w-3.5" />
+                                Export
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleGenerateCoaching}
+                                className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                              >
+                                <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                Coaching
+                              </Button>
+                            </div>
+                          </Card>
+                        </div>
+
+                        {/* Additional summary information */}
+                        <Card className="p-4 bg-card border border-border/50 rounded-lg">
+                          <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Information</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Operator</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.dispatcher_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Call ID</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Evaluation Type</span>
+                              <Badge variant="outline" className="text-xs">{selectedEvaluation?.callEvaluationType}</Badge>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Date</span>
+                              <span className="text-xs font-medium text-foreground">
+                                {selectedEvaluation?.created_at ? new Date(selectedEvaluation.created_at).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Duration</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}s</span>
                             </div>
                           </div>
-                          <Separator orientation="vertical" className="h-8 bg-border/50" />
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
-                              <XCircle className="h-3.5 w-3.5 text-red-500" />
-                            </div>
-                            <div>
-                              <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
-                              <p className="text-[11px] text-muted-foreground">Not Met</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
+                        </Card>
+                      </TabsContent>
 
-                      {/* Quick Actions for small screens */}
-                      <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
-                        <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleExportReport}
-                            className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
-                          >
-                            <FileDown className="mr-2 h-3.5 w-3.5" />
-                            Export
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleGenerateCoaching}
-                            className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                          >
-                            <Sparkles className="mr-2 h-3.5 w-3.5" />
-                            Coaching
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-
-                    <div className="space-y-2">
+                      {/* Full Form Tab */}
+                      <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
+                        <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
                         const committed = qaAnswers[index]
                         const val = (isEditing ? qaAnswerDraft[index] : committed) as QaValue
@@ -727,21 +774,23 @@ export default function EvaluationsPage() {
                           </div>
                         )
                       })}
-                    </div>
+                        </div>
 
-                    {/* Action bar: sticky on mobile, normal on md+ */}
-                    {isEditing && (
-                      <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={handleResetChanges}>
-                          <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                          Reset Changes
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges}>
-                          <Save className="h-3.5 w-3.5 mr-2" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    )}
+                        {/* Action bar: sticky on mobile, normal on md+ */}
+                        {isEditing && (
+                          <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={handleResetChanges}>
+                              <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                              Reset Changes
+                            </Button>
+                            <Button size="sm" onClick={handleSaveChanges}>
+                              <Save className="h-3.5 w-3.5 mr-2" />
+                              Save Changes
+                            </Button>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 </Card>
               </div>
