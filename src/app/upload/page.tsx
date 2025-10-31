@@ -126,7 +126,7 @@ export default function UploadPage() {
         return
       }
 
-      const { interaction_id, transcription, summary, qa_analysis_result } = uploadRes.data ?? {}
+      const { interaction_id, transcription, summary, qa_analysis_result, score } = uploadRes.data ?? {}
       console.log(qa_analysis_result)
       if (!interaction_id) {
         toast({
@@ -156,10 +156,9 @@ export default function UploadPage() {
         sentiment: "positive",
         transcript: transcription,
         summary: summary,
-
         // Required by backend schema to avoid 422:
         scores: [],
-        score: 0,
+        score: score,
         callEvaluationType: "auto",
         qa_analysis: qa_analysis_result
 
