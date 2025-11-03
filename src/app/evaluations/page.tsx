@@ -43,6 +43,7 @@ export default function EvaluationsPage() {
   const [qaAnswers, setQaAnswers] = useState<String[]>([])
   const [qaAnswerDraft, setQaAnswersDraft] = useState<String[]>([])
   const [callId, setCallId] = useState("")
+  const [activeTab, setActiveTab] = useState<string>("summary")
   const { toast } = useToast()
   const router = useRouter()
   const qaRef = useRef<HTMLDivElement | null>(null)
@@ -542,52 +543,56 @@ export default function EvaluationsPage() {
                         <p className="text-[11px] text-muted-foreground">Automated evaluation based on ANS 1.107.1-2015 standards</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant={isEditing ? "secondary" : "outline"}
-                        className="h-8"
-                        onClick={() => {
-                          if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
-                          setIsEditing((v) => !v)
-                        }}
-                      >
-                        <PencilLine className="h-3.5 w-3.5 mr-2" />
-                        {isEditing ? "Done" : "Edit"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={"outline"}
-                        className="h-8"
-                        onClick={() => {
-                          handleAddQuestion()
-                        }}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-2" />
-                        {"Add Question"}
-                      </Button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {activeTab === "fullform" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant={isEditing ? "secondary" : "outline"}
+                            className="h-8 text-xs px-2"
+                            onClick={() => {
+                              if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
+                              setIsEditing((v) => !v)
+                            }}
+                          >
+                            <PencilLine className="h-3.5 w-3.5 mr-1.5" />
+                            {isEditing ? "Done" : "Edit"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={"outline"}
+                            className="h-8 text-xs px-2"
+                            onClick={() => {
+                              handleAddQuestion()
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
+                            {"Add"}
+                          </Button>
+                        </>
+                      )}
                       {/* Actions moved from right column */}
                       <Button
                         size="sm"
                         onClick={handleExportReport}
-                        className="h-8 hidden md:inline-flex bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                        className="h-8 text-xs px-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
                       >
-                        <FileDown className="mr-2 h-3.5 w-3.5" />
+                        <FileDown className="mr-1.5 h-3.5 w-3.5" />
                         Export
                       </Button>
                       <Button
                         size="sm"
                         onClick={handleGenerateCoaching}
-                        className="h-8 hidden md:inline-flex bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                        className="h-8 text-xs px-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
                       >
-                        <Sparkles className="mr-2 h-3.5 w-3.5" />
-                        Coaching
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                        Coach
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
-                    <Tabs defaultValue="summary" className="flex flex-col h-full">
+                    <Tabs defaultValue="summary" className="flex flex-col h-full" onValueChange={setActiveTab}>
                       <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
                         <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-card">
                           Summary
@@ -600,19 +605,6 @@ export default function EvaluationsPage() {
                       {/* Summary Tab */}
                       <TabsContent value="summary" className="flex-1 overflow-y-auto mt-0">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                          {/* QA Protocol Evaluation */}
-                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
-                            <div className="text-center">
-                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
-                                {selectedEvaluation?.score}%
-                              </div>
-                              <p className="text-[11px] text-muted-foreground">
-                                {metStandards} of {metStandards + criticalViolations} Standards
-                              </p>
-                            </div>
-                          </Card>
-
                           {/* Compliance Summary */}
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
                             <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
@@ -636,6 +628,19 @@ export default function EvaluationsPage() {
                                   <p className="text-[11px] text-muted-foreground">Not Met</p>
                                 </div>
                               </div>
+                            </div>
+                          </Card>
+
+                          {/* QA Protocol Evaluation */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
+                            <div className="text-center">
+                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
+                                {selectedEvaluation?.score}%
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {metStandards} of {metStandards + criticalViolations} Standards
+                              </p>
                             </div>
                           </Card>
 
@@ -683,9 +688,9 @@ export default function EvaluationsPage() {
                             </div>
                             <Separator className="bg-border/50" />
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Date</span>
+                              <span className="text-xs text-muted-foreground">Date / Time</span>
                               <span className="text-xs font-medium text-foreground">
-                                {selectedEvaluation?.created_at ? new Date(selectedEvaluation.created_at).toLocaleDateString() : 'N/A'}
+                                {selectedEvaluation?.created_at ? new Date(selectedEvaluation.created_at).toLocaleString() : 'N/A'}
                               </span>
                             </div>
                             <Separator className="bg-border/50" />
