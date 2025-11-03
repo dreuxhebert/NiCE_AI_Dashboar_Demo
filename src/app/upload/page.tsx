@@ -126,7 +126,7 @@ export default function UploadPage() {
         return
       }
 
-      const { interaction_id, transcription, summary, qa_analysis_result, score } = uploadRes.data ?? {}
+      const { interaction_id, transcription, summary, qa_analysis_result, score, duration_seconds } = uploadRes.data ?? {}
       console.log(qa_analysis_result)
       if (!interaction_id) {
         toast({
@@ -147,7 +147,7 @@ export default function UploadPage() {
       const call = {
         dispatcher_id: clean(dispatcher),
         call_id: interaction_id,
-        duration_seconds: 320, // TODO: replace with actual duration if available
+        duration_seconds: duration_seconds,
         direction: "Inbound",
         language: clean(language),
         model: "general",
