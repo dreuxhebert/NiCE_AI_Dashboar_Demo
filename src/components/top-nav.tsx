@@ -39,7 +39,9 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
   }
 
   return (
-    <header className={`fixed top-0 right-0 z-30 h-16 border-b border-border bg-card ${collapsed ? "left-16" : "left-64"}`}>
+    <header className={`fixed top-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card ${collapsed ? "left-16" : "left-64"}`}>
+      {/* Continue the vertical separator line along the top bar's left edge for visual consistency */}
+      <div className="absolute inset-y-0 left-0 border-l border-sidebar-border" aria-hidden />
       <div className="relative flex h-full items-center justify-between px-6">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button

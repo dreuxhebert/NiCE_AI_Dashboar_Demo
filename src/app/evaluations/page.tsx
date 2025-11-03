@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -43,8 +43,10 @@ export default function EvaluationsPage() {
   const [qaAnswers, setQaAnswers] = useState<String[]>([])
   const [qaAnswerDraft, setQaAnswersDraft] = useState<String[]>([])
   const [callId, setCallId] = useState("")
+  const [activeTab, setActiveTab] = useState<string>("summary")
   const { toast } = useToast()
   const router = useRouter()
+  const qaRef = useRef<HTMLDivElement | null>(null)
 
   // Environment-based API configuration (same pattern as other pages)
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
@@ -176,6 +178,8 @@ export default function EvaluationsPage() {
     setQaAnswers(evaluation.scores)
     setQaAnswersDraft(evaluation.scores)
     setCallId(newId)
+    // Smoothly scroll to the QA form section
+    qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   const updateQaDraft = (key: string, index: number, value: QaValue) => {
@@ -210,9 +214,7 @@ export default function EvaluationsPage() {
   }
 
   const handleSaveChanges = async () => {
-    const res = await fetch(
-      getApiUrl('/calls/'), { cache: 'no-store' }
-    );
+    await fetch(getApiUrl('/calls/'), { cache: 'no-store' })
     setQaResults(qaDraft)
     setQaAnswers(qaAnswerDraft)
     setIsEditing(false)
@@ -287,15 +289,73 @@ export default function EvaluationsPage() {
   // Stable waveform bars (optional nicety)
   const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
 
+  // ---- Helpers ----
+  const renderTranscript = (transcript?: string) => {
+    if (!transcript) return "No transcript available"
+    const lines = transcript.split("\n")
+    return (
+      <div className="space-y-5">
+        {lines.map((line, index) => {
+          const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+          let speaker: string | null = null
+          let text = line
+          if (match) {
+            speaker = match[1]
+            text = match[2]
+          }
+
+          const words = String(text || "").trim().split(/\s+/).filter(Boolean)
+          const chunks: string[] = []
+          for (let i = 0; i < words.length; i += 30) {
+            chunks.push(words.slice(i, i + 30).join(" "))
+          }
+
+          const isDispatcher = speaker === "Dispatcher"
+          const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
+
+          return (
+            <div key={index} className="mb-4">
+              {speakerLabel && (
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
+                </div>
+              )}
+              <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}> 
+                {chunks.length > 0 ? (
+                  chunks.map((chunk, ci) => (
+                    <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
+                      <div
+                        className={cn(
+                          "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                          isDispatcher
+                            ? "bg-muted/30 text-foreground border border-border"
+                            : "bg-primary/10 text-foreground border border-primary/20",
+                        )}
+                      >
+                        {chunk}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">{text}</div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
  return (
     <>
       {/* Outer scroll to avoid clipping when scaled down */}
       <div className="w-full overflow-auto">
         {/* SCALE WRAPPER: keeps desktop look, shrinks on smaller breakpoints */}
         <div className="mobile-scale">
-          <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30">
+          <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30 rounded-lg p-3 sm:p-4 md:p-6">
             {/* LEFT & CENTER */}
-            <div className="flex-1 flex flex-col overflow-hidden p-3 gap-3">
+            <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 gap-4">
               {/* Recent Evaluations */}
               <Card className="shrink-0 border border-border/50 bg-card rounded-lg">
                 <div className="px-3 sm:px-6 h-12 flex items-center justify-between border-b border-border/50">
@@ -385,9 +445,9 @@ export default function EvaluationsPage() {
               </Card>
 
               {/* Bottom: grid that collapses on small screens */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-hidden">
                 {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
-                <Card className="flex flex-col border border-border/50 bg-card md:h-[min(64vh,100%)]">
+                <Card className="flex flex-col border border-border/50 bg-card rounded-lg md:h-[min(64vh,100%)]">
                   {/* Audio */}
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
@@ -436,73 +496,14 @@ export default function EvaluationsPage() {
                         <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
                           <div className="text-xs text-foreground leading-relaxed max-h-64 overflow-y-auto">
-                            {selectedEvaluation?.transcript ? (
-                              <div className="space-y-5">
-                                {(() => {
-                                  // Same parseTranscript logic as interaction-drawer
-                                  const lines = selectedEvaluation.transcript.split("\n")
-                                  return lines.map((line, index) => {
-                                    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-                                    let speaker = null
-                                    let text = line
-                                    if (match) {
-                                      speaker = match[1]
-                                      text = match[2]
-                                    }
-
-                                    const words = String(text || "").trim().split(/\s+/).filter(Boolean)
-                                    const chunks: string[] = []
-                                    // Split into chunks of ~30 words
-                                    for (let i = 0; i < words.length; i += 30) {
-                                      chunks.push(words.slice(i, i + 30).join(" "))
-                                    }
-
-                                    const isDispatcher = speaker === "Dispatcher"
-                                    const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
-
-                                    return (
-                                      <div key={index} className="mb-4">
-                                        {speakerLabel && (
-                                          <div className="mb-1.5 flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
-                                          </div>
-                                        )}
-
-                                        <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}>
-                                          {chunks.length > 0 ? (
-                                            chunks.map((chunk, ci) => (
-                                              <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
-                                                <div
-                                                  className={cn(
-                                                    "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
-                                                    isDispatcher
-                                                      ? "bg-muted/30 text-foreground border border-border"
-                                                      : "bg-primary/10 text-foreground border border-primary/20"
-                                                  )}
-                                                >
-                                                  {chunk}
-                                                </div>
-                                              </div>
-                                            ))
-                                          ) : (
-                                            <div className="text-sm text-muted-foreground">{text}</div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  })
-                                })()}
-                              </div>
-                            ) : (
-                              "No transcript available"
-                            )}
+                            {renderTranscript(selectedEvaluation?.transcript)}
                           </div>
                         </TabsContent>
 
                         {/* Summary Content */}
                         <TabsContent value="summary" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Summary</h3>
-                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded p-3">
+                          <p className="text-xs text-foreground leading-relaxed bg-muted rounded-lg p-3">
                             {selectedEvaluation?.summary || "No summary available"}
                           </p>
                         </TabsContent>
@@ -510,7 +511,7 @@ export default function EvaluationsPage() {
                         {/* Details Content */}
                         <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
-                          <div className="space-y-2 bg-muted rounded p-3 border border-border/50">
+                          <div className="space-y-2 bg-muted rounded-lg p-3 border border-border/50">
                             <div className="flex justify-between">
                               <span className="text-xs text-muted-foreground">Call ID</span>
                               <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
@@ -544,9 +545,9 @@ export default function EvaluationsPage() {
                   </div>
                 </Card>
 
-                {/* RIGHT: QA */}
-                <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card">
-                  <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
+                {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
+                <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card rounded-lg">
+                  <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50">
                         <CheckCircle className="h-4 w-4 text-primary" />
@@ -556,38 +557,169 @@ export default function EvaluationsPage() {
                         <p className="text-[11px] text-muted-foreground">Automated evaluation based on ANS 1.107.1-2015 standards</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {activeTab === "fullform" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant={isEditing ? "secondary" : "outline"}
+                            className="h-8 text-xs px-2"
+                            onClick={() => {
+                              if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
+                              setIsEditing((v) => !v)
+                            }}
+                          >
+                            <PencilLine className="h-3.5 w-3.5 mr-1.5" />
+                            {isEditing ? "Done" : "Edit"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={"outline"}
+                            className="h-8 text-xs px-2"
+                            onClick={() => {
+                              handleAddQuestion()
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
+                            {"Add"}
+                          </Button>
+                        </>
+                      )}
+                      {/* Actions moved from right column */}
                       <Button
                         size="sm"
-                        variant={isEditing ? "secondary" : "outline"}
-                        className="h-8"
-                        onClick={() => {
-                          if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
-                          setIsEditing((v) => !v)
-                        }}
+                        onClick={handleExportReport}
+                        className="h-8 text-xs px-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
                       >
-                        <PencilLine className="h-3.5 w-3.5 mr-2" />
-                        {isEditing ? "Done" : "Edit"}
+                        <FileDown className="mr-1.5 h-3.5 w-3.5" />
+                        Export
                       </Button>
                       <Button
                         size="sm"
-                        variant={"outline"}
-                        className="h-8"
-                        onClick={() => {
-                          handleAddQuestion()
-                        }}
+                        onClick={handleGenerateCoaching}
+                        className="h-8 text-xs px-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
                       >
-                        <Plus className="h-3.5 w-3.5 mr-2" />
-                        {"Add Question"}
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                        Coach
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
-                    <div className="space-y-2">
+                    <Tabs defaultValue="summary" className="flex flex-col h-full" onValueChange={setActiveTab}>
+                      <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
+                        <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-card">
+                          Summary
+                        </TabsTrigger>
+                        <TabsTrigger value="fullform" className="flex-1 data-[state=active]:bg-card">
+                          Full Form
+                        </TabsTrigger>
+                      </TabsList>
+
+                      {/* Summary Tab */}
+                      <TabsContent value="summary" className="flex-1 overflow-y-auto mt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          {/* Compliance Summary */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
+                            <div className="flex items-center justify-around">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                </div>
+                                <div>
+                                  <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
+                                  <p className="text-[11px] text-muted-foreground">Met</p>
+                                </div>
+                              </div>
+                              <Separator orientation="vertical" className="h-8 bg-border/50" />
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
+                                  <XCircle className="h-3.5 w-3.5 text-red-500" />
+                                </div>
+                                <div>
+                                  <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
+                                  <p className="text-[11px] text-muted-foreground">Not Met</p>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+
+                          {/* QA Protocol Evaluation */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
+                            <div className="text-center">
+                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
+                                {selectedEvaluation?.score}%
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {metStandards} of {metStandards + criticalViolations} Standards
+                              </p>
+                            </div>
+                          </Card>
+
+                          {/* Quick Actions for small screens */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleExportReport}
+                                className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                              >
+                                <FileDown className="mr-2 h-3.5 w-3.5" />
+                                Export
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleGenerateCoaching}
+                                className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                              >
+                                <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                Coaching
+                              </Button>
+                            </div>
+                          </Card>
+                        </div>
+
+                        {/* Additional summary information */}
+                        <Card className="p-4 bg-card border border-border/50 rounded-lg">
+                          <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Information</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Operator</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.dispatcher_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Call ID</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Evaluation Type</span>
+                              <Badge variant="outline" className="text-xs">{selectedEvaluation?.callEvaluationType}</Badge>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Date / Time</span>
+                              <span className="text-xs font-medium text-foreground">
+                                {selectedEvaluation?.created_at ? new Date(selectedEvaluation.created_at).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Duration</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}s</span>
+                            </div>
+                          </div>
+                        </Card>
+                      </TabsContent>
+
+                      {/* Full Form Tab */}
+                      <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
+                        <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
-                        //const committed = qaAnswers[index]
-                        //const val1 = (isEditing ? qaDraft[q._id] : committed) as QaValue
                         const qaAnalysis = selectedEvaluation?.qa_analysis
                         let answer = qaAnalysis?.[q._id]?.answer || ""
                         let proof = qaAnalysis?.[q._id]?.proof || ""
@@ -664,137 +796,29 @@ export default function EvaluationsPage() {
                           </div>
                         )
                       })}
-                    </div>
-
-                    {/* Action bar: sticky on mobile, normal on md+ */}
-                    {isEditing && (
-                      <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={handleResetChanges}>
-                          <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                          Reset Changes
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges}>
-                          <Save className="h-3.5 w-3.5 mr-2" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN */}
-            <div className="w-full md:w-[28%] md:min-w-[280px] md:max-w-[360px] flex flex-col border-l border-border/50 overflow-hidden bg-transparent">
-              <div className="shrink-0 border-b border-border/50 bg-card px-4 py-3">
-                <div className="space-y-2">
-                  <Button
-                    size="sm"
-                    onClick={handleExportReport}
-                    className="w-full h-9 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
-                  >
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export Report
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleGenerateCoaching}
-                    className="w-full h-9 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate AI Coaching
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-card">
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-2">QA Protocol Evaluation</h3>
-                  <div className="text-center">
-                    <div className={cn("text-4xl font-bold mb-1", getScoreColor(selectedEvaluation?.score))}>
-                      {selectedEvaluation?.score}%
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {metStandards} of{" "}
-                      {metStandards + criticalViolations} Standards
-                    </p>
-                  </div>
-                </Card>
-
-                <Separator className="bg-border/50" />
-
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Call Information</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Call Taker</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation?.dispatcher_id}</span>
-                    </div>
-                    <Separator className="bg-border/50" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Date</span>
-                      <span className="font-semibold text-foreground">
-                        {new Date(selectedEvaluation?.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <Separator className="bg-border/50" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span className="font-semibold text-foreground">{selectedEvaluation?.duration_seconds}</span>
-                    </div>
-                  </div>
-                </Card>
-
-                <Separator className="bg-border/50" />
-
-                <Card className="p-4 bg-card border border-border/50">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Compliance Summary</h3>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-green-500">{metStandards}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Standards Met</p>
-                      </div>
-                    </div>
-                    <Separator orientation="vertical" className="h-8 bg-border/50" />
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
-                        <XCircle className="h-3.5 w-3.5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-red-500">{criticalViolations}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Not Met</p>
-                      </div>
-                    </div>
-                  </div>
-                    
-                  {/* <div className="space-y-2 mb-3">
-                    <p className="text-sm font-semibold text-foreground">Standards Met</p>
-                    {selectedEvaluation.metStandards.slice(0, 5).map((standard: string, index: number) => (
-                      <div key={index} className="flex items-start gap-1.5 text-sm text-muted-foreground">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
-                        <span className="leading-tight">{standard}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {criticalViolations > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-foreground">Areas for Improvement</p>
-                      {selectedEvaluation.criticalViolations.map((violation: string, index: number) => (
-                        <div key={index} className="flex items-start gap-1.5 text-sm text-muted-foreground">
-                          <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
-                          <span className="leading-tight">{violation}</span>
                         </div>
-                      ))}
-                    </div>
-                  )} */}
+
+                        {/* Action bar: sticky on mobile, normal on md+ */}
+                        {isEditing && (
+                          <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={handleResetChanges}>
+                              <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                              Reset Changes
+                            </Button>
+                            <Button size="sm" onClick={handleSaveChanges}>
+                              <Save className="h-3.5 w-3.5 mr-2" />
+                              Save Changes
+                            </Button>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  </div>
                 </Card>
               </div>
             </div>
+
+            {/* RIGHT COLUMN removed: content merged into QA card above */}
           </div>
         </div>
         <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onAdded={() => { getQaQuestions() }} />
