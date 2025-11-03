@@ -22,13 +22,23 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
 
   useEffect(() => {
     setMounted(true)
+    
+    // Initialize theme from localStorage or system preference
+    const el = document.documentElement
+    const update = () => setIsDark(el.classList.contains("dark"))
+    
     try {
       const saved = localStorage.getItem("theme")
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
       const next = saved ? saved === "dark" : prefersDark
-      document.documentElement.classList.toggle("dark", next)
+      el.classList.toggle("dark", next)
       setIsDark(next)
     } catch {}
+    
+    // Watch for changes to dark class on html element
+    const obs = new MutationObserver(update)
+    obs.observe(el, { attributes: true, attributeFilter: ["class"] })
+    return () => obs.disconnect()
   }, [])
 
   const toggleTheme = () => {
@@ -39,7 +49,7 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
   }
 
   return (
-    <header className={`fixed top-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card ${collapsed ? "left-16" : "left-64"}`}>
+    <header className={`fixed top-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card transition-[left] duration-300 ease-in-out ${collapsed ? "left-16" : "left-64"}`}>
       {/* Continue the vertical separator line along the top bar's left edge for visual consistency */}
       <div className="absolute inset-y-0 left-0 border-l border-sidebar-border" aria-hidden />
       <div className="relative flex h-full items-center justify-between px-6">
@@ -56,7 +66,15 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2">
-          <Image src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"} alt="NiCE" width={120} height={40} priority className="h-8 w-auto" />
+          <Image 
+            key={isDark ? "dark" : "light"}
+            src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"} 
+            alt="NiCE" 
+            width={120} 
+            height={40} 
+            priority 
+            className="h-8 w-auto" 
+          />
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">

@@ -387,61 +387,66 @@ export default function EvaluationsPage() {
                   </div>
                 </div>
 
-                {showTable && (
-                  <div className="px-3 sm:px-6 py-4 overflow-hidden h-[32vh] sm:h-[38vh] md:h-[46vh]">
-                    <div className="border border-border/50 rounded-lg bg-card overflow-hidden h-full">
-                      <div className="h-full overflow-y-auto">
-                        <table className="w-full">
-                          <thead className="sticky top-0 z-10 bg-card">
-                            <tr className="border-b border-border/50">
-                              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
-                              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Evaluator</th>
-                              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Incident Type</th>
-                              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
-                              <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredEvaluations.map((evaluation, idx) => (
-                              <tr
-                                key={evaluation.id}
-                                onClick={() => handleSelectEvaluationChange(evaluation)}
-                                className={cn(
-                                  "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/50",
-                                  idx % 2 === 1 && "bg-muted/20",
-                                  selectedEvaluation.id === evaluation.id && "bg-primary/10"
-                                )}
-                              >
-                                <td className="px-4 py-3">
-                                  <p className="text-sm font-medium text-foreground">
-                                    {new Date(evaluation.created_at).toDateString()}
-                                  </p>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
-                                  <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <Badge variant="outline" className="text-xs">
-                                    {evaluation.callEvaluationType}
-                                  </Badge>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <Badge variant={getScoreBadgeVariant(evaluation.score)} className="text-xs font-semibold">
-                                    {evaluation.score}%
-                                  </Badge>
-                                </td>
+                <div className={cn(
+                  "grid transition-all duration-300 ease-in-out overflow-hidden",
+                  showTable ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                )}>
+                  <div className="overflow-hidden">
+                    <div className="px-3 sm:px-6 py-4 overflow-hidden h-[32vh] sm:h-[38vh] md:h-[46vh]">
+                      <div className="border border-border/50 rounded-lg bg-card overflow-hidden h-full">
+                        <div className="h-full overflow-y-auto">
+                          <table className="w-full">
+                            <thead className="sticky top-0 z-10 bg-card">
+                              <tr className="border-b border-border/50">
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Evaluator</th>
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Incident Type</th>
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
+                                <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {filteredEvaluations.map((evaluation, idx) => (
+                                <tr
+                                  key={evaluation.id}
+                                  onClick={() => handleSelectEvaluationChange(evaluation)}
+                                  className={cn(
+                                    "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/50",
+                                    idx % 2 === 1 && "bg-muted/20",
+                                    selectedEvaluation.id === evaluation.id && "bg-primary/10"
+                                  )}
+                                >
+                                  <td className="px-4 py-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {new Date(evaluation.created_at).toDateString()}
+                                    </p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
+                                    <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Badge variant="outline" className="text-xs">
+                                      {evaluation.callEvaluationType}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <Badge variant={getScoreBadgeVariant(evaluation.score)} className="text-xs font-semibold">
+                                      {evaluation.score}%
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
               </Card>
 
               {/* Bottom: grid that collapses on small screens */}
@@ -547,23 +552,23 @@ export default function EvaluationsPage() {
 
                 {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
                 <Card className="md:col-span-2 flex flex-col overflow-hidden border border-border/50 bg-card rounded-lg">
-                  <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50">
+                  <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50 shrink-0">
                         <CheckCircle className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
-                        <h2 className="text-sm font-bold text-foreground">APCO/NENA QA Evaluation</h2>
-                        <p className="text-[11px] text-muted-foreground">Automated evaluation based on ANS 1.107.1-2015 standards</p>
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-bold text-foreground">QA Evaluation</h2>
+                        <p className="text-[11px] text-muted-foreground truncate">Automated evaluation based on ANS 1.107.1-2015 standards</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="grid grid-cols-2 gap-2 shrink-0 lg:flex lg:flex-row lg:items-center">
                       {activeTab === "fullform" && (
                         <>
                           <Button
                             size="sm"
                             variant={isEditing ? "secondary" : "outline"}
-                            className="h-8 text-xs px-2"
+                            className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
                             onClick={() => {
                               if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
                               setIsEditing((v) => !v)
@@ -575,7 +580,7 @@ export default function EvaluationsPage() {
                           <Button
                             size="sm"
                             variant={"outline"}
-                            className="h-8 text-xs px-2"
+                            className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
                             onClick={() => {
                               handleAddQuestion()
                             }}
@@ -776,23 +781,28 @@ export default function EvaluationsPage() {
                               </div>
                             </div>
 
-                            {expandedQuestions.has(index) && (
-                              <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                <div className="mt-2 space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-muted-foreground">AI Confidence</span>
-                                    <span className="text-xs font-semibold text-foreground">{q.confidence}%</span>
-                                  </div>
-                                  <div className="h-1 overflow-hidden rounded-full bg-muted/70">
-                                    <div className="h-full bg-primary transition-all" style={{ width: `${q.confidence}%` }} />
-                                  </div>
-                                  <div className="mt-2">
-                                    <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{proof}</p>
+                            <div className={cn(
+                              "grid transition-all duration-300 ease-in-out overflow-hidden",
+                              expandedQuestions.has(index) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                            )}>
+                              <div className="overflow-hidden">
+                                <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                  <div className="mt-2 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs text-muted-foreground">AI Confidence</span>
+                                      <span className="text-xs font-semibold text-foreground">{q.confidence}%</span>
+                                    </div>
+                                    <div className="h-1 overflow-hidden rounded-full bg-muted/70">
+                                      <div className="h-full bg-primary transition-all" style={{ width: `${q.confidence}%` }} />
+                                    </div>
+                                    <div className="mt-2">
+                                      <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                      <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{proof}</p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            )}
+                            </div>
                           </div>
                         )
                       })}
