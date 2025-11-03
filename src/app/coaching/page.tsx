@@ -60,6 +60,8 @@ export default function CoachingPage() {
   const [selectedCallTaker, setSelectedCallTaker] = useState<string>("")
   const [isGenerating, setIsGenerating] = useState(false)
   const { toast } = useToast()
+  const [showAll, setShowAll] = useState(false)
+  const ITEMS_TO_SHOW = 7
 
   // -------- Fetch tasks on mount --------
   useEffect(() => {
@@ -102,6 +104,8 @@ export default function CoachingPage() {
       return matchesStatus && matchesSearch
     })
   }, [tasks, activeTab, searchQuery])
+
+  const displayedTasks = useMemo(() => (showAll ? filteredTasks : filteredTasks.slice(0, ITEMS_TO_SHOW)), [filteredTasks, showAll])
 
   const highPriorityTasks = useMemo(
     () => tasks.filter((t) => t.priority === "high" && t.status !== "completed").slice(0, 3),
@@ -315,8 +319,8 @@ export default function CoachingPage() {
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Coaching Tasks List */}
-        <Card className="lg:col-span-1">
+  {/* Coaching Tasks List */}
+  <Card className="lg:col-span-1 self-start">
           {filteredTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
@@ -336,8 +340,8 @@ export default function CoachingPage() {
                   <div className="col-span-2">Priority</div>
                 </div>
               </div>
-              <div className="max-h-[calc(100vh-22rem)] overflow-y-auto pr-2">
-                {filteredTasks.map((task) => (
+              <div className={`${filteredTasks.length > ITEMS_TO_SHOW ? 'max-h-[calc(100vh-22rem)] overflow-y-auto' : ''} pr-2`}>
+                {displayedTasks.map((task) => (
                   <div
                     key={task.id}
                     onClick={() => setSelectedTask(task)}
@@ -368,6 +372,15 @@ export default function CoachingPage() {
                   </div>
                 ))}
               </div>
+              {/* Show more / show less control placed outside the scroll container to avoid extra spacing */}
+              {filteredTasks.length > ITEMS_TO_SHOW && (
+                <div className="px-4 py-3">
+                  <Button variant="ghost" size="sm" onClick={() => setShowAll((s) => !s)} className="w-full">
+                    {showAll ? "Show less" : `Show more (${filteredTasks.length - ITEMS_TO_SHOW} more)`}
+                  </Button>
+                </div>
+              )}
+            
               <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
                 {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} found
               </div>
