@@ -640,3 +640,386 @@ export const evaluations: Evaluation[] = [
       "Strong medical emergency response with minor improvement opportunity. Operator demonstrated excellent protocol adherence and empathy. Pre-arrival instructions could be more detailed and specific to enhance caller support.",
   },
 ]
+
+export interface ProtocolQuestion {
+  id: string
+  question: string
+  points: number
+  answer?: "Yes" | "No" | "Refused" | "N/A"
+  isActive?: boolean
+  prompt?: string
+}
+
+export interface ProtocolSection {
+  id: string
+  title: string
+  totalPoints: number
+  questions: ProtocolQuestion[]
+}
+
+export interface Protocol {
+  id: string
+  type: "Fire" | "Police" | "EMS"
+  name: string
+  color: string
+  sections: ProtocolSection[]
+}
+
+export const protocols: Protocol[] = [
+  {
+    id: "protocol-fire",
+    type: "Fire",
+    name: "Call Taking for Fire Incidents",
+    color: "bg-red-500",
+    sections: [
+      {
+        id: "fire-interview",
+        title: "Interview Questions",
+        totalPoints: 325,
+        questions: [
+          {
+            id: "fire-q1",
+            question: "Verified address of occurrence?",
+            points: 200,
+            isActive: true,
+            prompt: "Confirm the exact address where the fire is occurring.",
+          },
+          {
+            id: "fire-q2",
+            question: "Caller's telephone number verified?",
+            points: 30,
+            isActive: true,
+            prompt: "Obtain and confirm the caller's callback number.",
+          },
+          {
+            id: "fire-q3",
+            question: "Asked about occupants in building?",
+            points: 20,
+            isActive: true,
+            prompt: "Determine if people are inside.",
+          },
+          {
+            id: "fire-q4",
+            question: "Occupants told to evacuate if safe?",
+            points: 25,
+            isActive: true,
+            prompt: "Advise to evacuate safely.",
+          },
+          {
+            id: "fire-q5",
+            question: "Asked other incident specific questions?",
+            points: 20,
+            isActive: true,
+            prompt: "Ask follow-up questions.",
+          },
+          {
+            id: "fire-q6",
+            question: "Caller's name obtained?",
+            points: 10,
+            isActive: true,
+            prompt: "Get caller's name.",
+          },
+          {
+            id: "fire-q7",
+            question: "Asked about time of occurrence?",
+            points: 15,
+            isActive: true,
+            prompt: "When did fire start?",
+          },
+          {
+            id: "fire-q8",
+            question: "Caller's address obtained?",
+            points: 5,
+            isActive: true,
+            prompt: "Get caller's address.",
+          },
+        ],
+      },
+      {
+        id: "fire-cad",
+        title: "CAD Skills",
+        totalPoints: 115,
+        questions: [
+          {
+            id: "fire-cad1",
+            question: "Checked prior incidents?",
+            points: 15,
+            isActive: true,
+            prompt: "Verify prior records.",
+          },
+          {
+            id: "fire-cad2",
+            question: "Complete info added to CAD?",
+            points: 50,
+            isActive: true,
+            prompt: "Add all information.",
+          },
+          {
+            id: "fire-cad3",
+            question: "Accurate info added to CAD?",
+            points: 50,
+            isActive: true,
+            prompt: "Verify accuracy.",
+          },
+        ],
+      },
+      {
+        id: "fire-telephone",
+        title: "Telephone Protocol/Skill",
+        totalPoints: 305,
+        questions: [
+          {
+            id: "fire-tel1",
+            question: "Answered within 3 seconds?",
+            points: 50,
+            isActive: true,
+            prompt: "Check answer time.",
+          },
+          {
+            id: "fire-tel2",
+            question: "Proper greeting used?",
+            points: 10,
+            isActive: true,
+            prompt: "Verify greeting.",
+          },
+          {
+            id: "fire-tel3",
+            question: "Listens and comprehends?",
+            points: 80,
+            isActive: true,
+            prompt: "Assess listening.",
+          },
+          {
+            id: "fire-tel4",
+            question: "Takes control with judgment?",
+            points: 25,
+            isActive: true,
+            prompt: "Evaluate control.",
+          },
+          { id: "fire-tel5", question: "Remained calm?", points: 30, isActive: true, prompt: "Assess composure." },
+          { id: "fire-tel6", question: "Proper tone used?", points: 15, isActive: true, prompt: "Verify tone." },
+          {
+            id: "fire-tel7",
+            question: "Professional language?",
+            points: 20,
+            isActive: true,
+            prompt: "Check language.",
+          },
+          { id: "fire-tel8", question: "Courteous?", points: 25, isActive: true, prompt: "Assess courtesy." },
+          {
+            id: "fire-tel9",
+            question: "No dead time on phone?",
+            points: 10,
+            isActive: true,
+            prompt: "Check engagement.",
+          },
+          {
+            id: "fire-tel10",
+            question: "Advises of transfer?",
+            points: 15,
+            isActive: true,
+            prompt: "Inform of transfer.",
+          },
+          {
+            id: "fire-tel11",
+            question: "Stays on line for transfer?",
+            points: 15,
+            isActive: true,
+            prompt: "Verify handoff.",
+          },
+          {
+            id: "fire-tel12",
+            question: "Directs to proper agency?",
+            points: 10,
+            isActive: true,
+            prompt: "Verify agency direction.",
+          },
+        ],
+      },
+      {
+        id: "fire-supervisor",
+        title: "Supervisor's Overview",
+        totalPoints: 100,
+        questions: [
+          {
+            id: "fire-super1",
+            question: "Overall call handled properly?",
+            points: 100,
+            isActive: true,
+            prompt: "Overall assessment.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "protocol-police",
+    type: "Police",
+    name: "Call Taking for Police Incident",
+    color: "bg-blue-500",
+    sections: [
+      {
+        id: "police-interview",
+        title: "Interview Questions",
+        totalPoints: 585,
+        questions: [
+          { id: "police-q1", question: "Verified address?", points: 200, isActive: true, prompt: "Confirm address." },
+          {
+            id: "police-q2",
+            question: "Caller's phone verified?",
+            points: 30,
+            isActive: true,
+            prompt: "Get callback.",
+          },
+          {
+            id: "police-q3",
+            question: "Time of occurrence?",
+            points: 30,
+            isActive: true,
+            prompt: "When did it happen?",
+          },
+          { id: "police-q4", question: "Asked about weapons?", points: 80, isActive: true, prompt: "Any weapons?" },
+          { id: "police-q5", question: "Alcohol/drug use?", points: 50, isActive: true, prompt: "Substance involved?" },
+          { id: "police-q6", question: "Need ambulance?", points: 15, isActive: true, prompt: "Medical help?" },
+          {
+            id: "police-q7",
+            question: "Description obtained?",
+            points: 20,
+            isActive: true,
+            prompt: "Describe suspect.",
+          },
+          { id: "police-q8", question: "Offender location?", points: 25, isActive: true, prompt: "Where is suspect?" },
+          { id: "police-q9", question: "Number of offenders?", points: 20, isActive: true, prompt: "How many?" },
+          { id: "police-q10", question: "Caller's name?", points: 5, isActive: true, prompt: "Name?" },
+          { id: "police-q11", question: "Caller's address?", points: 5, isActive: true, prompt: "Address?" },
+          {
+            id: "police-q12",
+            question: "Want to see officer?",
+            points: 20,
+            isActive: true,
+            prompt: "Response wanted?",
+          },
+          { id: "police-q13", question: "Other questions?", points: 20, isActive: true, prompt: "Follow-up?" },
+        ],
+      },
+      {
+        id: "police-cad",
+        title: "CAD Skills",
+        totalPoints: 115,
+        questions: [
+          {
+            id: "police-cad1",
+            question: "Checked prior incidents?",
+            points: 15,
+            isActive: true,
+            prompt: "Check history.",
+          },
+          { id: "police-cad2", question: "Complete info added?", points: 50, isActive: true, prompt: "All info." },
+          { id: "police-cad3", question: "Accurate info?", points: 50, isActive: true, prompt: "Accuracy check." },
+        ],
+      },
+      {
+        id: "police-telephone",
+        title: "Telephone Protocol/Skill",
+        totalPoints: 305,
+        questions: [
+          { id: "police-tel1", question: "Answered within 3 seconds?", points: 50, isActive: true, prompt: "Speed." },
+          { id: "police-tel2", question: "Proper greeting?", points: 10, isActive: true, prompt: "Greeting." },
+          { id: "police-tel3", question: "Comprehends?", points: 80, isActive: true, prompt: "Understanding." },
+          { id: "police-tel4", question: "Control with judgment?", points: 25, isActive: true, prompt: "Control." },
+          { id: "police-tel5", question: "Calm?", points: 30, isActive: true, prompt: "Composure." },
+          { id: "police-tel6", question: "Tone?", points: 15, isActive: true, prompt: "Tone." },
+          { id: "police-tel7", question: "Professional language?", points: 20, isActive: true, prompt: "Language." },
+          { id: "police-tel8", question: "Courteous?", points: 25, isActive: true, prompt: "Courtesy." },
+          { id: "police-tel9", question: "No dead time?", points: 10, isActive: true, prompt: "Engagement." },
+          { id: "police-tel10", question: "Transfer advised?", points: 15, isActive: true, prompt: "Transfer info." },
+          { id: "police-tel11", question: "Stays on line?", points: 15, isActive: true, prompt: "Handoff." },
+          { id: "police-tel12", question: "Directs properly?", points: 10, isActive: true, prompt: "Agency." },
+        ],
+      },
+      {
+        id: "police-supervisor",
+        title: "Supervisor's Overview",
+        totalPoints: 100,
+        questions: [
+          {
+            id: "police-super1",
+            question: "Overall handled properly?",
+            points: 100,
+            isActive: true,
+            prompt: "Assessment.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "protocol-ems",
+    type: "EMS",
+    name: "Call Taking for EMS Incidents",
+    color: "bg-green-500",
+    sections: [
+      {
+        id: "ems-interview",
+        title: "Interview Questions",
+        totalPoints: 470,
+        questions: [
+          { id: "ems-q1", question: "Verified address?", points: 200, isActive: true, prompt: "Address." },
+          { id: "ems-q2", question: "Caller's phone verified?", points: 30, isActive: true, prompt: "Callback." },
+          { id: "ems-q3", question: "Why ambulance needed?", points: 25, isActive: true, prompt: "Reason." },
+          { id: "ems-q4", question: "Patient age?", points: 20, isActive: true, prompt: "Age." },
+          { id: "ems-q5", question: "Patient conscious?", points: 25, isActive: true, prompt: "Alert." },
+          { id: "ems-q6", question: "Patient breathing?", points: 25, isActive: true, prompt: "Breathing." },
+          { id: "ems-q7", question: "Protocol followed?", points: 30, isActive: true, prompt: "Protocol." },
+          { id: "ems-q8", question: "Instructions given?", points: 30, isActive: true, prompt: "First aid." },
+          { id: "ems-q9", question: "Number injured?", points: 15, isActive: true, prompt: "Count." },
+          { id: "ems-q10", question: "Caller's name?", points: 10, isActive: true, prompt: "Name." },
+          { id: "ems-q11", question: "Caller's address?", points: 5, isActive: true, prompt: "Address." },
+        ],
+      },
+      {
+        id: "ems-cad",
+        title: "CAD Skills",
+        totalPoints: 115,
+        questions: [
+          { id: "ems-cad1", question: "Checked prior incidents?", points: 15, isActive: true, prompt: "History." },
+          { id: "ems-cad2", question: "Complete info?", points: 50, isActive: true, prompt: "All info." },
+          { id: "ems-cad3", question: "Accurate info?", points: 50, isActive: true, prompt: "Accuracy." },
+        ],
+      },
+      {
+        id: "ems-telephone",
+        title: "Telephone Protocol/Skill",
+        totalPoints: 305,
+        questions: [
+          { id: "ems-tel1", question: "Answered within 3 seconds?", points: 50, isActive: true, prompt: "Speed." },
+          { id: "ems-tel2", question: "Proper greeting?", points: 10, isActive: true, prompt: "Greeting." },
+          { id: "ems-tel3", question: "Comprehends?", points: 80, isActive: true, prompt: "Understanding." },
+          { id: "ems-tel4", question: "Control?", points: 25, isActive: true, prompt: "Control." },
+          { id: "ems-tel5", question: "Calm?", points: 30, isActive: true, prompt: "Composure." },
+          { id: "ems-tel6", question: "Tone?", points: 15, isActive: true, prompt: "Tone." },
+          { id: "ems-tel7", question: "Professional?", points: 20, isActive: true, prompt: "Language." },
+          { id: "ems-tel8", question: "Courteous?", points: 25, isActive: true, prompt: "Courtesy." },
+          { id: "ems-tel9", question: "No dead time?", points: 10, isActive: true, prompt: "Engagement." },
+          { id: "ems-tel10", question: "Transfer advised?", points: 15, isActive: true, prompt: "Transfer." },
+          { id: "ems-tel11", question: "Stays on line?", points: 15, isActive: true, prompt: "Handoff." },
+          { id: "ems-tel12", question: "Directs properly?", points: 10, isActive: true, prompt: "Agency." },
+        ],
+      },
+      {
+        id: "ems-supervisor",
+        title: "Supervisor's Overview",
+        totalPoints: 100,
+        questions: [
+          {
+            id: "ems-super1",
+            question: "Overall handled properly?",
+            points: 100,
+            isActive: true,
+            prompt: "Assessment.",
+          },
+        ],
+      },
+    ],
+  },
+]
