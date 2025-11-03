@@ -462,7 +462,7 @@ export default function EvaluationsPage() {
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
-                      <span className="text-xs text-muted-foreground">{selectedEvaluation.duration_seconds} sec</span>
+                      <span className="text-xs text-muted-foreground">{selectedEvaluation?.duration_seconds} sec</span>
                     </div>
 
                     <div className="relative h-14 sm:h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
