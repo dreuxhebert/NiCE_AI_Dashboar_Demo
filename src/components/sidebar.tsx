@@ -82,21 +82,26 @@ export function Sidebar({ collapsed }: SidebarProps) {
         {/* Brand */}
         <div
           className={cn(
-            "flex items-center border-b border-sidebar-border transition-all",
-            collapsed ? "h-12 px-2 justify-center" : "h-16 px-4"
+            "flex items-center border-b border-sidebar-border transition-all overflow-hidden h-16",
+            collapsed ? "px-2 justify-center" : "px-4"
           )}
         >
-          {/* Hide the big logo when collapsed */}
-          {!collapsed && (
+          {/* Animate logo fade out/in when sidebar collapses/expands */}
+          <div className={cn(
+            "transition-opacity duration-300 ease-in-out",
+            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}>
             <Image
+              key={isDark ? "dark" : "light"}
               src={logoSrc}
               alt="Company Logo"
               width={60}
               height={60}
               priority
-              className="h-8 w-auto"
+              className="h-8 w-auto transition-transform duration-300 ease-in-out"
+              style={{ transform: collapsed ? 'scale(0.8)' : 'scale(1)' }}
             />
-          )}
+          </div>
         </div>
 
         {/* Nav */}

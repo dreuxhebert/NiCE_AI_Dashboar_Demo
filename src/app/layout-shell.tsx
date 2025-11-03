@@ -42,7 +42,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   }
 
   return (
-    <>
+    <div className="overflow-x-hidden">
       <Sidebar collapsed={collapsed} />
       <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} />
       <main
@@ -53,6 +53,6 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
       </main>
       <Toaster />
-    </>
+    </div>
   )
 }
