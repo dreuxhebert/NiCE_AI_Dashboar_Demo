@@ -1023,3 +1023,149 @@ export const protocols: Protocol[] = [
     ],
   },
 ]
+
+// Extended operator performance data
+export interface OperatorPerformanceMetrics {
+  operatorName: string
+  rank: number
+  weeklyScores: { week: string; score: number; calls: number }[]
+  callTypeDistribution: { type: string; count: number; avgScore: number }[]
+  skillsAssessment: { skill: string; score: number; trend: "up" | "down" | "stable" }[]
+  recentCallPerformance: {
+    date: string
+    time: string
+    type: string
+    duration: string
+    score: number
+    sentiment: "positive" | "neutral" | "negative"
+  }[]
+  monthlyMetrics: {
+    month: string
+    totalCalls: number
+    avgScore: number
+    complianceRate: number
+    avgHandleTime: string
+  }[]
+}
+
+export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
+  "Sarah Johnson": {
+    operatorName: "Sarah Johnson",
+    rank: 1,
+    weeklyScores: [
+      { week: "Week 1", score: 91, calls: 82 },
+      { week: "Week 2", score: 93, calls: 88 },
+      { week: "Week 3", score: 94, calls: 86 },
+      { week: "Week 4", score: 94.5, calls: 86 },
+    ],
+    callTypeDistribution: [
+      { type: "Medical", count: 120, avgScore: 95 },
+      { type: "Fire", count: 52, avgScore: 94 },
+      { type: "Police", count: 88, avgScore: 93 },
+      { type: "Traffic", count: 50, avgScore: 96 },
+      { type: "Other", count: 32, avgScore: 94 },
+    ],
+    skillsAssessment: [
+      { skill: "Information Gathering", score: 96, trend: "up" },
+      { skill: "Caller Management", score: 94, trend: "stable" },
+      { skill: "Protocol Compliance", score: 95, trend: "up" },
+      { skill: "Communication", score: 97, trend: "up" },
+      { skill: "Response Time", score: 93, trend: "stable" },
+      { skill: "Documentation", score: 94, trend: "up" },
+    ],
+    recentCallPerformance: [
+      { date: "2025-01-15", time: "14:23", type: "Medical", duration: "4:32", score: 96, sentiment: "neutral" },
+      { date: "2025-01-15", time: "13:45", type: "Fire", duration: "3:15", score: 95, sentiment: "negative" },
+      { date: "2025-01-15", time: "12:18", type: "Traffic", duration: "2:48", score: 97, sentiment: "positive" },
+      { date: "2025-01-15", time: "11:52", type: "Police", duration: "6:21", score: 93, sentiment: "neutral" },
+      { date: "2025-01-15", time: "10:33", type: "Medical", duration: "5:12", score: 94, sentiment: "neutral" },
+    ],
+    monthlyMetrics: [
+      { month: "Oct 2024", totalCalls: 312, avgScore: 92.8, complianceRate: 94.2, avgHandleTime: "4:15" },
+      { month: "Nov 2024", totalCalls: 328, avgScore: 93.5, complianceRate: 95.1, avgHandleTime: "4:10" },
+      { month: "Dec 2024", totalCalls: 298, avgScore: 94.2, complianceRate: 95.8, avgHandleTime: "4:05" },
+      { month: "Jan 2025", totalCalls: 342, avgScore: 94.5, complianceRate: 96.2, avgHandleTime: "4:02" },
+    ],
+  },
+  "Mike Chen": {
+    operatorName: "Mike Chen",
+    rank: 2,
+    weeklyScores: [
+      { week: "Week 1", score: 89, calls: 76 },
+      { week: "Week 2", score: 91, calls: 80 },
+      { week: "Week 3", score: 92, calls: 82 },
+      { week: "Week 4", score: 92.8, calls: 80 },
+    ],
+    callTypeDistribution: [
+      { type: "Medical", count: 108, avgScore: 93 },
+      { type: "Fire", count: 48, avgScore: 92 },
+      { type: "Police", count: 82, avgScore: 92 },
+      { type: "Traffic", count: 48, avgScore: 94 },
+      { type: "Other", count: 32, avgScore: 92 },
+    ],
+    skillsAssessment: [
+      { skill: "Information Gathering", score: 94, trend: "up" },
+      { skill: "Caller Management", score: 91, trend: "up" },
+      { skill: "Protocol Compliance", score: 92, trend: "stable" },
+      { skill: "Communication", score: 93, trend: "up" },
+      { skill: "Response Time", score: 91, trend: "stable" },
+      { skill: "Documentation", score: 93, trend: "up" },
+    ],
+    recentCallPerformance: [
+      { date: "2025-01-15", time: "15:10", type: "Fire", duration: "3:45", score: 94, sentiment: "negative" },
+      { date: "2025-01-15", time: "14:22", type: "Medical", duration: "5:01", score: 91, sentiment: "neutral" },
+      { date: "2025-01-15", time: "13:05", type: "Police", duration: "4:18", score: 93, sentiment: "positive" },
+      { date: "2025-01-15", time: "11:48", type: "Traffic", duration: "3:12", score: 95, sentiment: "neutral" },
+      { date: "2025-01-15", time: "10:15", type: "Medical", duration: "4:55", score: 90, sentiment: "neutral" },
+    ],
+    monthlyMetrics: [
+      { month: "Oct 2024", totalCalls: 289, avgScore: 91.2, complianceRate: 92.8, avgHandleTime: "4:22" },
+      { month: "Nov 2024", totalCalls: 305, avgScore: 91.8, complianceRate: 93.4, avgHandleTime: "4:18" },
+      { month: "Dec 2024", totalCalls: 282, avgScore: 92.3, complianceRate: 94.1, avgHandleTime: "4:15" },
+      { month: "Jan 2025", totalCalls: 318, avgScore: 92.8, complianceRate: 94.5, avgHandleTime: "4:12" },
+    ],
+  },
+  "Emily Rodriguez": {
+    operatorName: "Emily Rodriguez",
+    rank: 3,
+    weeklyScores: [
+      { week: "Week 1", score: 88, calls: 70 },
+      { week: "Week 2", score: 90, calls: 74 },
+      { week: "Week 3", score: 91, calls: 76 },
+      { week: "Week 4", score: 91.2, calls: 75 },
+    ],
+    callTypeDistribution: [
+      { type: "Medical", count: 100, avgScore: 92 },
+      { type: "Fire", count: 44, avgScore: 90 },
+      { type: "Police", count: 74, avgScore: 91 },
+      { type: "Traffic", count: 44, avgScore: 92 },
+      { type: "Other", count: 33, avgScore: 91 },
+    ],
+    skillsAssessment: [
+      { skill: "Information Gathering", score: 92, trend: "stable" },
+      { skill: "Caller Management", score: 90, trend: "up" },
+      { skill: "Protocol Compliance", score: 91, trend: "stable" },
+      { skill: "Communication", score: 92, trend: "up" },
+      { skill: "Response Time", score: 90, trend: "up" },
+      { skill: "Documentation", score: 91, trend: "stable" },
+    ],
+    recentCallPerformance: [
+      { date: "2025-01-15", time: "16:05", type: "Medical", duration: "4:18", score: 92, sentiment: "neutral" },
+      { date: "2025-01-15", time: "14:50", type: "Traffic", duration: "2:55", score: 93, sentiment: "positive" },
+      { date: "2025-01-15", time: "13:30", type: "Police", duration: "5:10", score: 89, sentiment: "neutral" },
+      { date: "2025-01-15", time: "12:15", type: "Fire", duration: "3:40", score: 90, sentiment: "negative" },
+      { date: "2025-01-15", time: "11:00", type: "Medical", duration: "4:45", score: 92, sentiment: "neutral" },
+    ],
+    monthlyMetrics: [
+      { month: "Oct 2024", totalCalls: 268, avgScore: 89.8, complianceRate: 91.5, avgHandleTime: "4:28" },
+      { month: "Nov 2024", totalCalls: 282, avgScore: 90.3, complianceRate: 92.1, avgHandleTime: "4:24" },
+      { month: "Dec 2024", totalCalls: 265, avgScore: 90.8, complianceRate: 92.8, avgHandleTime: "4:20" },
+      { month: "Jan 2025", totalCalls: 295, avgScore: 91.2, complianceRate: 93.2, avgHandleTime: "4:18" },
+    ],
+  },
+}
+
+// Helper function to get operator metrics
+export const getOperatorMetrics = (operatorName: string): OperatorPerformanceMetrics | undefined => {
+  return operatorMetrics[operatorName]
+}

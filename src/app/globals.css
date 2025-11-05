@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
 
 /* Tell Tailwind how to detect dark mode: use a .dark class anywhere up the tree */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -293,6 +295,54 @@
   
   ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.55 0.1 260); /* medium blue on hover */
+  }
+
+  /* React Grid Layout Styles */
+  .react-grid-layout {
+    position: relative;
+    transition: height 200ms ease;
+  }
+  
+  .react-grid-item {
+    transition: all 200ms ease;
+    transition-property: left, top, width, height;
+  }
+  
+  .react-grid-item.cssTransforms {
+    transition-property: transform, width, height;
+  }
+  
+  .react-grid-item.resizing {
+    transition: none;
+    z-index: 100;
+    will-change: width, height;
+  }
+  
+  .react-grid-item.react-draggable-dragging {
+    transition: none;
+    z-index: 100;
+    will-change: transform;
+  }
+  
+  .react-grid-item > .react-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+  }
+  
+  .react-grid-item > .react-resizable-handle::after {
+    content: "";
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    border-right: 2px solid rgba(0, 0, 0, 0.4);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+  }
+  
+  .react-resizable-hide > .react-resizable-handle {
+    display: none;
   }
   
   * {

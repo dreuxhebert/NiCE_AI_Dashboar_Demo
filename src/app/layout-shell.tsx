@@ -1,44 +1,41 @@
 // app/layout-shell.tsx
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useState, type ReactNode } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { TopNav } from "@/components/top-nav"
 import { Toaster } from "@/components/ui/toaster"
 
-export default function LayoutShell({ children }: { children: React.ReactNode }) {
+export default function LayoutShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
 
-  // Auto-collapse sidebar below the breakpoint and lock it collapsed
   useEffect(() => {
-    // Tailwind lg breakpoint ~1024px; collapse below this width
-    const mq = window.matchMedia("(max-width: 1024px)")
-    const apply = (matches: boolean) => {
+    // match the tailwind lg breakpoint(~1024px)
+    const mediaQuery = window.matchMedia("(max-width: 1024px)")
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      const matches = event.matches
       setIsNarrow(matches)
       setCollapsed(matches ? true : false)
     }
-    // Initialize on mount
-    apply(mq.matches)
-    const onChange = (e: MediaQueryListEvent) => apply(e.matches)
-    if (mq.addEventListener) {
-      mq.addEventListener("change", onChange)
-    } else if (mq.addListener) {
-      mq.addListener(onChange)
-    }
+
+    // run once on mount
+    setIsNarrow(mediaQuery.matches)
+    setCollapsed(mediaQuery.matches ? true : false)
+
+    // modern way
+    mediaQuery.addEventListener("change", handleChange)
+
     return () => {
-      if (mq.removeEventListener) {
-        mq.removeEventListener("change", onChange)
-      } else if (mq.removeListener) {
-        mq.removeListener(onChange)
-      }
+      mediaQuery.removeEventListener("change", handleChange)
     }
   }, [])
 
   const handleToggleSidebar = () => {
-    // Prevent expanding when screen is narrow (forced collapsed)
+    // don’t allow expanding on narrow screens
     if (isNarrow) return
-    setCollapsed((v) => !v)
+    setCollapsed((prev) => !prev)
   }
 
   return (

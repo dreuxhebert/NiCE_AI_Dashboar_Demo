@@ -1,10 +1,9 @@
-// app/layout.tsx (SERVER COMPONENT — no "use client")
+// app/layout.tsx
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { Analytics } from "@vercel/analytics/next"
-import LayoutShell from "./layout-shell"
 
 export const metadata: Metadata = {
   title: "NiCE - 911 Call Management Dashboard",
@@ -14,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <LayoutShell>{children}</LayoutShell>
+        {children}
         <Analytics />
       </body>
     </html>
