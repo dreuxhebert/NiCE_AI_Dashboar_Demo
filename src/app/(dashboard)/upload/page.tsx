@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, FileAudio, X } from "lucide-react"
+import ProcessingModal from "@/components/processingModel";
 import { cn } from "@/lib/utils"
 import axios from "axios"
 
@@ -30,6 +31,7 @@ export default function UploadPage() {
   const [callType, setCallType] = useState("")
   const [language, setLanguage] = useState("")
   const [notes, setNotes] = useState("")
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast()
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -88,6 +90,7 @@ export default function UploadPage() {
       })
       return
     }
+    setLoading(true)
 
     // Build multipart body — DO NOT set Content-Type manually (Axios will add boundary)
     const formData = new FormData()
@@ -189,7 +192,7 @@ export default function UploadPage() {
         title: "Audio uploaded successfully",
         description: "Your audio file has been uploaded.",
       })
-
+      setLoading(false)
       // Reset form
       setSelectedFile(null)
       setDispatcher("")
@@ -376,6 +379,7 @@ export default function UploadPage() {
           </ul>
         </CardContent>
       </Card>
+      <ProcessingModal open={loading} message="Analyzing audio…" />
     </div>
   )
 }
