@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 
 const menuItems = [
-  { title: "Overview", href: "/", icon: LayoutDashboard },
+  { title: "Overview", href: "/overview", icon: LayoutDashboard },
   { title: "Evaluations", href: "/evaluations", icon: FileCheck },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
