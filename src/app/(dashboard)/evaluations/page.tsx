@@ -276,12 +276,16 @@ export default function EvaluationsPage() {
     if (!active) return base
     switch (kind) {
       case "yes":
+      case "Yes":
         return cn(base, "bg-primary text-primary-foreground border-transparent hover:opacity-90")
       case "no":
+      case "No":
         return cn(base, "bg-red-600 text-white border-transparent hover:bg-red-700")
       case "refused":
+      case "Refused":
         return cn(base, "bg-amber-500 text-white border-transparent hover:bg-amber-600")
       case "na":
+      case "N/A":
         return cn(base, "bg-violet-600 text-white border-transparent hover:bg-violet-700")
     }
   }
@@ -406,15 +410,14 @@ export default function EvaluationsPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {filteredEvaluations.map((evaluation) => (
+                              {filteredEvaluations.map((evaluation, idx) => (
                                 <tr
                                   key={evaluation._id}
                                   onClick={() => handleSelectEvaluationChange(evaluation)}
                                   className={cn(
-                                    "border-b border-border/50 cursor-pointer transition-colors",
-                                    selectedEvaluation?._id === evaluation._id
-                                      ? "bg-black/5 dark:bg-white/10" // selected highlight only
-                                      : "hover:bg-muted/30" // hover effect only when not selected
+                                    "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/50",
+                                    idx % 2 === 1 && "bg-muted/20",
+                                    selectedEvaluation?._id === evaluation._id && "bg-primary/10"
                                   )}
                                 >
                                   <td className="px-4 py-3">
@@ -424,6 +427,7 @@ export default function EvaluationsPage() {
                                   </td>
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
+                                    <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
                                   </td>
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
@@ -462,7 +466,7 @@ export default function EvaluationsPage() {
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
-                      <span className="text-xs text-muted-foreground">{selectedEvaluation?.duration_seconds} sec</span>
+                      <span className="text-xs text-muted-foreground">{selectedEvaluation?.duration_seconds || 0} sec</span>
                     </div>
 
                     <div className="relative h-14 sm:h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
@@ -490,18 +494,15 @@ export default function EvaluationsPage() {
                   <div className="flex-1 flex flex-col">
                     <div className="shrink-0 border-b border-border/50 bg-card px-3">
                       <Tabs defaultValue="transcript" className="flex-1 flex flex-col">
-                        <TabsList className="h-10 flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible flex w-full rounded-lg bg-transparent shadow-none border-0">
-                          <TabsTrigger
-                            value="transcript"
-                            className="flex-1 text-[11px] sm:text-xs px-2 sm:px-3 rounded-md transition-colors bg-transparent data-[state=active]:bg-black/5 dark:data-[state=active]:bg-white/10 data-[state=active]:text-foreground"
-                          >
-                            Call Transcript
+                        <TabsList className="h-10 bg-transparent flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible">
+                          <TabsTrigger value="transcript" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Transcript
                           </TabsTrigger>
-                          <TabsTrigger
-                            value="summary"
-                            className="flex-1 text-[11px] sm:text-xs px-2 sm:px-3 rounded-md transition-colors bg-transparent data-[state=active]:bg-black/5 dark:data-[state=active]:bg-white/10 data-[state=active]:text-foreground"
-                          >
-                            Call Summary
+                          <TabsTrigger value="summary" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Summary
+                          </TabsTrigger>
+                          <TabsTrigger value="details" className="text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted">
+                            Details
                           </TabsTrigger>
                         </TabsList>
 
@@ -519,6 +520,39 @@ export default function EvaluationsPage() {
                           <p className="text-xs text-foreground leading-relaxed bg-muted rounded-lg p-3">
                             {selectedEvaluation?.summary || "No summary available"}
                           </p>
+                        </TabsContent>
+
+                        {/* Details Content */}
+                        <TabsContent value="details" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
+                          <h3 className="text-xs font-semibold text-foreground mb-2">Call Details</h3>
+                          <div className="space-y-2 bg-muted rounded-lg p-3 border border-border/50">
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Call ID</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Duration</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Date</span>
+                              <span className="text-xs font-medium text-foreground">
+                                {new Date(selectedEvaluation?.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Operator</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.dispatcher_id}</span>
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between">
+                              <span className="text-xs text-muted-foreground">Type</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.callEvaluationType}</span>
+                            </div>
+                          </div>
                         </TabsContent>
                       </Tabs>
                     </div>
@@ -589,7 +623,7 @@ export default function EvaluationsPage() {
                     <Tabs defaultValue="summary" className="flex flex-col h-full" onValueChange={setActiveTab}>
                       <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
                         <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-card">
-                          Call Details
+                          Summary
                         </TabsTrigger>
                         <TabsTrigger value="fullform" className="flex-1 data-[state=active]:bg-card">
                           Full Form
@@ -689,7 +723,7 @@ export default function EvaluationsPage() {
                             <Separator className="bg-border/50" />
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-muted-foreground">Duration</span>
-                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds} sec</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}s</span>
                             </div>
                           </div>
                         </Card>
@@ -731,7 +765,7 @@ export default function EvaluationsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={val === "Refused" ? "refused" : "outline"}
+                                  variant={val === "Refused" ? "default" : "outline"}
                                   className={qaBtn(val === "Refused", "Refused")}
                                   onClick={() => updateQaDraft(callId, index, "Refused")}
                                   aria-disabled={!isEditing}
@@ -741,7 +775,7 @@ export default function EvaluationsPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={val === "N/A" ? "na" : "outline"}
+                                  variant={val === "N/A" ? "default" : "outline"}
                                   className={qaBtn(val === "N/A", "N/A")}
                                   onClick={() => updateQaDraft(callId, index, "N/A")}
                                   aria-disabled={!isEditing}
