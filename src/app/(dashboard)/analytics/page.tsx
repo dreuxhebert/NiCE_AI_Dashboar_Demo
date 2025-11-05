@@ -267,40 +267,52 @@ export default function AnalyticsPage() {
   // Grid layout configuration
   const layouts = {
     lg: [
-      { i: "auto-qa", x: 0, y: 0, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "manual-qa", x: 6, y: 0, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "qa-by-tag", x: 0, y: 4, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "qa-by-taker", x: 6, y: 4, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "qa-by-type", x: 0, y: 11, w: 12, h: 6, minH: 6, minW: 8 },
-      { i: "call-duration-chart", x: 0, y: 17, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "avg-call-duration", x: 6, y: 17, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "calls-processed", x: 0, y: 24, w: 6, h: 9, minH: 8, minW: 4 },
-      { i: "calls-by-type", x: 6, y: 24, w: 6, h: 9, minH: 8, minW: 4 },
-      { i: "leaderboard", x: 0, y: 33, w: 12, h: 9, minH: 8, minW: 8 },
+      { i: "auto-qa", x: 0, y: 0, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "manual-qa", x: 6, y: 0, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "qa-by-tag", x: 0, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "qa-by-taker", x: 6, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "qa-by-type", x: 0, y: 11, w: 12, h: 6, minH: 6, minW: 6 },
+      { i: "call-duration-chart", x: 0, y: 17, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "avg-call-duration", x: 6, y: 17, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "calls-processed", x: 0, y: 24, w: 6, h: 9, minH: 8, minW: 3 },
+      { i: "calls-by-type", x: 6, y: 24, w: 6, h: 9, minH: 8, minW: 3 },
+      { i: "leaderboard", x: 0, y: 33, w: 12, h: 9, minH: 8, minW: 6 },
     ],
     md: [
-      { i: "auto-qa", x: 0, y: 0, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "manual-qa", x: 6, y: 0, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "qa-by-tag", x: 0, y: 4, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "qa-by-taker", x: 6, y: 4, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "qa-by-type", x: 0, y: 11, w: 12, h: 6, minH: 6, minW: 8 },
-      { i: "call-duration-chart", x: 0, y: 17, w: 6, h: 7, minH: 6, minW: 4 },
-      { i: "avg-call-duration", x: 6, y: 17, w: 6, h: 4, minH: 4, minW: 4 },
-      { i: "calls-processed", x: 0, y: 24, w: 6, h: 9, minH: 8, minW: 4 },
-      { i: "calls-by-type", x: 6, y: 24, w: 6, h: 9, minH: 8, minW: 4 },
-      { i: "leaderboard", x: 0, y: 33, w: 12, h: 9, minH: 8, minW: 8 },
+      { i: "auto-qa", x: 0, y: 0, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "manual-qa", x: 6, y: 0, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "qa-by-tag", x: 0, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "qa-by-taker", x: 6, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "qa-by-type", x: 0, y: 11, w: 12, h: 6, minH: 6, minW: 6 },
+      { i: "call-duration-chart", x: 0, y: 17, w: 6, h: 7, minH: 6, minW: 3 },
+      { i: "avg-call-duration", x: 6, y: 17, w: 6, h: 4, minH: 4, minW: 3 },
+      { i: "calls-processed", x: 0, y: 24, w: 6, h: 9, minH: 8, minW: 3 },
+      { i: "calls-by-type", x: 6, y: 24, w: 6, h: 9, minH: 8, minW: 3 },
+      { i: "leaderboard", x: 0, y: 33, w: 12, h: 9, minH: 8, minW: 6 },
     ],
     sm: [
-      { i: "auto-qa", x: 0, y: 0, w: 12, h: 4, minH: 4, minW: 12 },
-      { i: "manual-qa", x: 0, y: 4, w: 12, h: 4, minH: 4, minW: 12 },
-      { i: "qa-by-tag", x: 0, y: 8, w: 12, h: 7, minH: 6, minW: 12 },
-      { i: "qa-by-taker", x: 0, y: 15, w: 12, h: 7, minH: 6, minW: 12 },
-      { i: "qa-by-type", x: 0, y: 22, w: 12, h: 6, minH: 6, minW: 12 },
-      { i: "call-duration-chart", x: 0, y: 28, w: 12, h: 7, minH: 6, minW: 12 },
-      { i: "avg-call-duration", x: 0, y: 35, w: 12, h: 4, minH: 4, minW: 12 },
-      { i: "calls-processed", x: 0, y: 39, w: 12, h: 9, minH: 8, minW: 12 },
-      { i: "calls-by-type", x: 0, y: 48, w: 12, h: 9, minH: 8, minW: 12 },
-      { i: "leaderboard", x: 0, y: 57, w: 12, h: 9, minH: 8, minW: 12 },
+      { i: "auto-qa", x: 0, y: 0, w: 12, h: 4, minH: 4, minW: 6 },
+      { i: "manual-qa", x: 0, y: 4, w: 12, h: 4, minH: 4, minW: 6 },
+      { i: "qa-by-tag", x: 0, y: 8, w: 12, h: 7, minH: 6, minW: 6 },
+      { i: "qa-by-taker", x: 0, y: 15, w: 12, h: 7, minH: 6, minW: 6 },
+      { i: "qa-by-type", x: 0, y: 22, w: 12, h: 6, minH: 6, minW: 6 },
+      { i: "call-duration-chart", x: 0, y: 28, w: 12, h: 7, minH: 6, minW: 6 },
+      { i: "avg-call-duration", x: 0, y: 35, w: 12, h: 4, minH: 4, minW: 6 },
+      { i: "calls-processed", x: 0, y: 39, w: 12, h: 9, minH: 8, minW: 6 },
+      { i: "calls-by-type", x: 0, y: 48, w: 12, h: 9, minH: 8, minW: 6 },
+      { i: "leaderboard", x: 0, y: 57, w: 12, h: 9, minH: 8, minW: 6 },
+    ],
+    xs: [
+      { i: "auto-qa", x: 0, y: 0, w: 12, h: 4, minH: 4, minW: 4 },
+      { i: "manual-qa", x: 0, y: 4, w: 12, h: 4, minH: 4, minW: 4 },
+      { i: "qa-by-tag", x: 0, y: 8, w: 12, h: 7, minH: 6, minW: 4 },
+      { i: "qa-by-taker", x: 0, y: 15, w: 12, h: 7, minH: 6, minW: 4 },
+      { i: "qa-by-type", x: 0, y: 22, w: 12, h: 6, minH: 6, minW: 4 },
+      { i: "call-duration-chart", x: 0, y: 28, w: 12, h: 7, minH: 6, minW: 4 },
+      { i: "avg-call-duration", x: 0, y: 35, w: 12, h: 4, minH: 4, minW: 4 },
+      { i: "calls-processed", x: 0, y: 39, w: 12, h: 9, minH: 8, minW: 4 },
+      { i: "calls-by-type", x: 0, y: 48, w: 12, h: 9, minH: 8, minW: 4 },
+      { i: "leaderboard", x: 0, y: 57, w: 12, h: 9, minH: 8, minW: 4 },
     ],
   };
 
@@ -314,14 +326,15 @@ export default function AnalyticsPage() {
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
-        breakpoints={{ lg: 1200, md: 996, sm: 768 }}
-        cols={{ lg: 12, md: 12, sm: 12 }}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
+        cols={{ lg: 12, md: 12, sm: 12, xs: 12 }}
         rowHeight={30}
         isDraggable={false}
         isResizable={false}
         margin={[24, 24]}
         containerPadding={[0, 0]}
         compactType="vertical"
+        useCSSTransforms={true}
       >
         {/* Top Row: Auto QA Score KPIs */}
         <div key="auto-qa">
