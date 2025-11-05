@@ -15,14 +15,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
+  // proxy-aware setup
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
   const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
   const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
+
+  // secret demo credentials
+  const DEMO_USER = "123"
+  const DEMO_PASS = "123"
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
+    // 1) Allow instant login if using demo creds
+    if (email === DEMO_USER && password === DEMO_PASS) {
+      router.push("/overview")
+      return
+    }
+
+    // 2) Otherwise, try backend
     try {
       const res = await fetch(getApiUrl("/auth/login"), {
         method: "POST",
@@ -44,14 +56,15 @@ export default function LoginPage() {
 
       router.push("/overview")
     } catch (err) {
-      setError("Could not reach server")
+      // 3) Handle backend sleep or 503s
+      setError("Server is waking up — try again or use demo creds.")
     }
   }
 
   return (
     <div className="w-full max-w-md">
       <div className="bg-card border border-border rounded-lg p-8 shadow-lg">
-        {/* Single Logo */}
+        {/* Logo section */}
         <div className="flex justify-center mb-8">
           <img
             src="/Inform-QAi_white.svg"
@@ -124,7 +137,9 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-6">© 2025 NiCE. All rights reserved.</p>
+      <p className="text-center text-xs text-muted-foreground mt-6">
+        © 2025 NiCE. All rights reserved.
+      </p>
     </div>
   )
 }
