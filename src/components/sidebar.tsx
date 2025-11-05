@@ -24,7 +24,6 @@ const menuItems = [
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
-  { title: "Directory", href: "/directory", icon: Users },
   { title: "Protocols", href: "/protocols", icon: ListChecks},
   { title: "Settings", href: "/settings", icon: Settings },
 ]
