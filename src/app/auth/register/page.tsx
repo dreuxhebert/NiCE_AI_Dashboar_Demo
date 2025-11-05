@@ -23,7 +23,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // proxy-aware config (matches rest of app)
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
   const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
   const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
@@ -71,7 +70,6 @@ export default function RegisterPage() {
         return
       }
 
-      // success → redirect to login
       router.push("/auth/login")
     } catch (err) {
       setError("Could not connect to server")
@@ -91,20 +89,19 @@ export default function RegisterPage() {
       <div className="bg-card border border-border rounded-lg p-8 shadow-lg">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-            <svg className="w-10 h-10 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
-            </svg>
-          </div>
+          <img
+            src="/Inform-QAi_white.svg"
+            alt="Inform QAi"
+            className="h-10 md:h-12 object-contain"
+          />
         </div>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Create Account</h1>
-          <p className="text-muted-foreground">Join NICE Ai today</p>
+          <p className="text-muted-foreground">To access your dashboard</p>
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
-          {/* Name fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="firstName" className="block text-sm font-medium text-foreground">
@@ -136,7 +133,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Email */}
           <div className="space-y-2">
             <label htmlFor="email" className="block text-sm font-medium text-foreground">
               Email Address
@@ -152,7 +148,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <label htmlFor="password" className="block text-sm font-medium text-foreground">
               Password
@@ -190,7 +185,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Confirm Password */}
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
               Confirm Password
@@ -244,7 +238,7 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-6">© 2025 NICE Ai. All rights reserved.</p>
+      <p className="text-center text-xs text-muted-foreground mt-6">© 2025 NiCE. All rights reserved.</p>
     </div>
   )
 }
