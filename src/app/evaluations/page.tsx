@@ -36,16 +36,18 @@ export default function EvaluationsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [qaQuestionsSet, setQaQuestionsSet] = useState<QAQuestion[]>([])
   const [callList, setCallList] = useState<CallData[]>([])
-  const [selectedEvaluation, setSelectedEvaluation] = useState<CallData>(callList[0])
+  const [selectedEvaluation, setSelectedEvaluation] = useState<CallData | null>(null)
   const [metStandards, setMetStandards] = useState<number>(0)
   const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [qaAnswers, setQaAnswers] = useState<String[]>([])
   const [qaAnswerDraft, setQaAnswersDraft] = useState<String[]>([])
-  const [callId, setCallId] = useState("")
   const [activeTab, setActiveTab] = useState<string>("summary")
   const { toast } = useToast()
   const router = useRouter()
+  const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
+
+
   const qaRef = useRef<HTMLDivElement | null>(null)
 
   // Environment-based API configuration (same pattern as other pages)
@@ -113,6 +115,13 @@ export default function EvaluationsPage() {
     scores: string[];
   }
 
+  interface call_analysis {
+    [question_id: string]: {
+        answer: string;
+        proof: string;
+    };
+  }
+
 
   const [qaResults, setQaResults] = useState<QaResults>(initialQa)
   const [qaDraft, setQaDraft] = useState<QaResults>(initialQa)
@@ -130,15 +139,16 @@ export default function EvaluationsPage() {
               : ["Empty"];
 
           const newId = first?._id ?? "";
+          const analysis: call_analysis = first?.qa_analysis ?? {}
 
           setSelectedEvaluation(first);
           setQaAnswers(next);
           setQaAnswersDraft(next);
-          setCallId(newId);
           const met = next.filter((score) => score === "yes").length;
           const crit = next.filter((score) => score === "no").length;
           setMetStandards(met);
           setCriticalViolations(crit);
+          setQaAnalysisTemp(analysis)
         }
       } catch (error) {
         console.error("Error fetching calls:", error)
@@ -151,6 +161,23 @@ export default function EvaluationsPage() {
     setQaDraft(initialQa)
     setIsEditing(false)
   }, [])
+
+  const handleClickSave = async () => {
+    console.log(qaAnalysisTemp)
+    console.log(selectedEvaluation?._id)
+  const res = await fetch(getApiUrl(`/calls/update`), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: selectedEvaluation?._id,
+      changedAnalysis: qaAnalysisTemp ?? {}
+    })
+  });
+  if (res.ok) {
+    toast({ title: "Saved", description: "QA Evaluation Updated" });
+    setIsEditing(false);
+  }
+}
 
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
@@ -177,16 +204,35 @@ export default function EvaluationsPage() {
     setCriticalViolations(noCount);
     setQaAnswers(evaluation.scores)
     setQaAnswersDraft(evaluation.scores)
-    setCallId(newId)
+    setQaAnalysisTemp(evaluation.qa_analysis ?? {})
     // Smoothly scroll to the QA form section
     qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  const updateQaDraft = (key: string, index: number, value: QaValue) => {
+  const updateQaDraft = (key: string, value: string) => {
     if (!isEditing) return
-    qaAnswers[index] = value
-    qaAnswerDraft[index] = value
-    setQaDraft((prev) => ({ ...prev, [key]: value }))
+    setQaAnalysisTemp(prev => ({
+      ...prev!,
+      [key]: {
+        answer: value,
+        proof: prev?.[key]?.proof ?? ""
+      }
+    }));
+    
+    setSelectedEvaluation(prev => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        qa_analysis: {
+          ...prev.qa_analysis,
+          [key]: {
+            answer: value,
+            proof: prev.qa_analysis[key]?.proof ?? ""
+          }
+        }
+      };
+    });
   }
 
   const getScoreColor = (score: number) => {
@@ -208,22 +254,13 @@ export default function EvaluationsPage() {
   const handleGenerateCoaching = () => {
     toast({
       title: "AI Coaching Task Created",
-      description: `Coaching task created for ${selectedEvaluation.dispatcher_id}`,
+      description: `Coaching task created for ${selectedEvaluation?.dispatcher_id}`,
     })
     router.push("/coaching")
   }
 
-  const handleSaveChanges = async () => {
-    await fetch(getApiUrl('/calls/'), { cache: 'no-store' })
-    setQaResults(qaDraft)
-    setQaAnswers(qaAnswerDraft)
-    setIsEditing(false)
-    toast({ title: "Changes saved" })
-  }
-
   const handleResetChanges = () => {
-    setQaDraft(qaResults)
-    setQaAnswersDraft(qaAnswers)
+    setQaAnalysisTemp(selectedEvaluation?.qa_analysis ?? {});
     toast({ title: "Draft reset", description: "Reverted to last saved answers." })
   }
 
@@ -272,19 +309,23 @@ export default function EvaluationsPage() {
 
   // Buttons: look normal when locked, shrink & wrap on small screens
   const qaBtn = (active: boolean, kind: QaValue) => {
-    const base = "h-7 px-2 text-[11px] sm:text-xs sm:px-2.5 border"
-    if (!active) return base
-    switch (kind) {
-      case "yes":
-        return cn(base, "bg-primary text-primary-foreground border-transparent hover:opacity-90")
-      case "no":
-        return cn(base, "bg-red-600 text-white border-transparent hover:bg-red-700")
-      case "refused":
-        return cn(base, "bg-amber-500 text-white border-transparent hover:bg-amber-600")
-      case "na":
-        return cn(base, "bg-violet-600 text-white border-transparent hover:bg-violet-700")
-    }
+  const base = "h-7 px-2 text-[11px] sm:text-xs sm:px-2.5 border"
+  if (!active) return base
+
+  const normalized = kind.toLowerCase()
+
+  switch (normalized) {
+    case "yes":
+      return cn(base, "bg-primary text-primary-foreground border-transparent hover:opacity-90")
+    case "no":
+      return cn(base, "bg-red-600 text-white border-transparent hover:bg-red-700")
+    case "refused":
+      return cn(base, "bg-amber-500 text-white border-transparent hover:bg-amber-600")
+    case "n/a":
+    case "na":
+      return cn(base, "bg-violet-600 text-white border-transparent hover:bg-violet-700")
   }
+}
 
   // Stable waveform bars (optional nicety)
   const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
@@ -628,7 +669,7 @@ export default function EvaluationsPage() {
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
                             <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
                             <div className="text-center">
-                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score))}>
+                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score ?? 0))}>
                                 {selectedEvaluation?.score}%
                               </div>
                               <p className="text-[11px] text-muted-foreground">
@@ -703,7 +744,7 @@ export default function EvaluationsPage() {
                         let answer = qaAnalysis?.[q._id]?.answer || ""
                         let proof = qaAnalysis?.[q._id]?.proof || ""
 
-                        const val = (isEditing ? qaAnswerDraft[index] : answer) as QaValue
+                        const val = (isEditing ? qaAnalysisTemp?.[q._id]?.answer : answer) as QaValue
                         return (
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                             <div className="flex items-center justify-between p-3 gap-3">
@@ -713,7 +754,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "Yes" ? "default" : "outline"}
                                   className={qaBtn(val === "Yes", "Yes")}
-                                  onClick={() => {updateQaDraft(callId, index, "Yes")}}
+                                  onClick={() => {updateQaDraft(q?._id, "Yes")}}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -723,7 +764,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "No" ? "destructive" : "outline"}
                                   className={qaBtn(val === "No", "No")}
-                                  onClick={() => updateQaDraft(callId, index, "No")}
+                                  onClick={() => updateQaDraft(q?._id, "No")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -733,7 +774,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "Refused" ? "refused" : "outline"}
                                   className={qaBtn(val === "Refused", "Refused")}
-                                  onClick={() => updateQaDraft(callId, index, "Refused")}
+                                  onClick={() => updateQaDraft(q?._id, "Refused")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -743,7 +784,7 @@ export default function EvaluationsPage() {
                                   size="sm"
                                   variant={val === "N/A" ? "na" : "outline"}
                                   className={qaBtn(val === "N/A", "N/A")}
-                                  onClick={() => updateQaDraft(callId, index, "N/A")}
+                                  onClick={() => updateQaDraft(q?._id, "N/A")}
                                   aria-disabled={!isEditing}
                                   tabIndex={isEditing ? 0 : -1}
                                 >
@@ -789,7 +830,7 @@ export default function EvaluationsPage() {
                               <RotateCcw className="h-3.5 w-3.5 mr-2" />
                               Reset Changes
                             </Button>
-                            <Button size="sm" onClick={handleSaveChanges}>
+                            <Button size="sm" onClick={handleClickSave}>
                               <Save className="h-3.5 w-3.5 mr-2" />
                               Save Changes
                             </Button>
