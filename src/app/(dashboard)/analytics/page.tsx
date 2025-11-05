@@ -3,6 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Environment-based API configuration
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
@@ -18,9 +21,10 @@ const getApiUrl = (path: string) => {
   return `${API_BASE}${path}`;
 }
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { dispatcherLeaderboard, callsByTypeData, evaluations } from "@/lib/sample-data";
-import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award, Target, Users, Phone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Responsive, WidthProvider } from "react-grid-layout";
@@ -67,6 +71,9 @@ const getQAScoresByIncidentType = () => {
 export default function AnalyticsPage() {
   const [callsData, setCallsData] = useState<any[]>([]);
   const [callsByDateData, setCallsByDateData] = useState<CallData[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [trendFilter, setTrendFilter] = useState<"all" | "up" | "down" | "stable">("all");
+  const [sortBy, setSortBy] = useState<"rank" | "calls" | "score">("rank");
   
   // Calculate average Auto QA Score
   const averageAutoQAScore = useMemo(() => {
@@ -76,6 +83,16 @@ export default function AnalyticsPage() {
     if (autoQAEvaluations.length === 0) return 0;
     const total = autoQAEvaluations.reduce((sum, evaluation) => sum + evaluation.score, 0);
     return Math.round((total / autoQAEvaluations.length) * 10) / 10;
+  }, []);
+
+  // Calculate directory stats
+  const directoryStats = useMemo(() => {
+    const totalOperators = dispatcherLeaderboard.length;
+    const totalCalls = dispatcherLeaderboard.reduce((sum, d) => sum + d.totalCalls, 0);
+    const avgScore = dispatcherLeaderboard.reduce((sum, d) => sum + d.avgScore, 0) / totalOperators;
+    const topPerformers = dispatcherLeaderboard.filter(d => d.avgScore >= 90).length;
+    
+    return { totalOperators, totalCalls, avgScore: avgScore.toFixed(1), topPerformers };
   }, []);
   
   // Get QA scores by incident type
@@ -89,6 +106,59 @@ export default function AnalyticsPage() {
     { tag: "Communication Clarity", avgScore: 90.2 },
     { tag: "Response Time", avgScore: 79.8 },
   ], []);
+
+  // Performance distribution data for directory
+  const performanceDistribution = useMemo(() => {
+    return [
+      { range: "90-100", count: dispatcherLeaderboard.filter(d => d.avgScore >= 90).length, fill: "#10b981" },
+      { range: "85-89", count: dispatcherLeaderboard.filter(d => d.avgScore >= 85 && d.avgScore < 90).length, fill: "#3b82f6" },
+      { range: "80-84", count: dispatcherLeaderboard.filter(d => d.avgScore >= 80 && d.avgScore < 85).length, fill: "#8b5cf6" },
+      { range: "75-79", count: dispatcherLeaderboard.filter(d => d.avgScore >= 75 && d.avgScore < 80).length, fill: "#f59e0b" },
+      { range: "<75", count: dispatcherLeaderboard.filter(d => d.avgScore < 75).length, fill: "#ef4444" },
+    ];
+  }, []);
+
+  // Calls by operator data
+  const callsByOperator = useMemo(() => {
+    return dispatcherLeaderboard.slice(0, 8).map(d => ({
+      name: d.name.split(' ')[0],
+      calls: d.totalCalls,
+      score: d.avgScore
+    }));
+  }, []);
+
+  // Filter and sort directory items
+  const filteredDirectoryItems = useMemo(() => {
+    let filtered = dispatcherLeaderboard;
+    
+    // Search filter
+    const term = searchQuery.trim().toLowerCase();
+    if (term) {
+      filtered = filtered.filter((d) => {
+        return (
+          String(d.rank).includes(term) ||
+          d.name.toLowerCase().includes(term) ||
+          String(d.totalCalls).includes(term) ||
+          String(d.avgScore).includes(term)
+        );
+      });
+    }
+    
+    // Trend filter
+    if (trendFilter !== "all") {
+      filtered = filtered.filter(d => d.trend === trendFilter);
+    }
+    
+    // Sort
+    const sorted = [...filtered];
+    if (sortBy === "calls") {
+      sorted.sort((a, b) => b.totalCalls - a.totalCalls);
+    } else if (sortBy === "score") {
+      sorted.sort((a, b) => b.avgScore - a.avgScore);
+    }
+    
+    return sorted;
+  }, [searchQuery, trendFilter, sortBy]);
 
   const fetchCallsByTypeData = async () => {
     try {
@@ -320,8 +390,16 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-sans text-3xl font-bold tracking-tight text-foreground">Analytics</h1>
-        <p className="text-muted-foreground">Dashboards</p>
+        <p className="text-muted-foreground">Performance metrics, insights, and operator directory</p>
       </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Performance Overview</TabsTrigger>
+          <TabsTrigger value="directory">Operator Directory</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
 
       <ResponsiveGridLayout
         className="layout"
@@ -611,13 +689,23 @@ export default function AnalyticsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium text-sm">{dispatcher.name}</TableCell>
-                        <TableCell className="text-right text-sm">{dispatcher.totalCalls}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="secondary" className={cn("font-medium text-xs", getScoreBadgeColor(dispatcher.avgScore))}>
-                            {dispatcher.avgScore}
-                          </Badge>
+                        <TableCell>
+                          <div className="flex items-center justify-end">
+                            <span className="text-sm">{dispatcher.totalCalls}</span>
+                          </div>
                         </TableCell>
-                        <TableCell className="text-center">{getTrendIcon(dispatcher.trend)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end">
+                            <Badge variant="secondary" className={cn("font-medium text-xs", getScoreBadgeColor(dispatcher.avgScore))}>
+                              {dispatcher.avgScore}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center">
+                            {getTrendIcon(dispatcher.trend)}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -627,6 +715,254 @@ export default function AnalyticsPage() {
           </Card>
         </div>
       </ResponsiveGridLayout>
+        </TabsContent>
+
+        <TabsContent value="directory" className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Total Operators
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{directoryStats.totalOperators}</div>
+                <p className="text-xs text-muted-foreground mt-1">Active call takers</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  Total Calls Handled
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{directoryStats.totalCalls.toLocaleString()}</div>
+                <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  +8% from last period
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  Average Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{directoryStats.avgScore}%</div>
+                <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  +2.1% improvement
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                  Top Performers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{directoryStats.topPerformers}</div>
+                <p className="text-xs text-muted-foreground mt-1">Score ≥ 90%</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Performance Distribution</CardTitle>
+                <CardDescription className="text-xs">Operators by score range</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="range" stroke="var(--muted-foreground)" fontSize={10} />
+                      <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                        {performanceDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Call Volume by Operator</CardTitle>
+                <CardDescription className="text-xs">Top 8 operators by total calls</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={callsByOperator}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} />
+                      <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="calls" 
+                        name="Calls"
+                        stroke="#3b82f6" 
+                        strokeWidth={2}
+                        dot={{ fill: "#3b82f6", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Employee Directory Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Employee Directory</CardTitle>
+              <CardDescription>Search and filter operators</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Filters */}
+              <div className="mb-4 flex flex-col sm:flex-row gap-3">
+                <Input 
+                  placeholder="Search employees (name, rank, calls, score)" 
+                  value={searchQuery} 
+                  onChange={(e: any) => setSearchQuery(e.target.value)}
+                  className="sm:max-w-xs"
+                />
+                
+                <Select value={trendFilter} onValueChange={(v: any) => setTrendFilter(v)}>
+                  <SelectTrigger className="sm:w-[150px]">
+                    <SelectValue placeholder="Trend" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Trends</SelectItem>
+                    <SelectItem value="up">↑ Trending Up</SelectItem>
+                    <SelectItem value="down">↓ Trending Down</SelectItem>
+                    <SelectItem value="stable">→ Stable</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                  <SelectTrigger className="sm:w-[150px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rank">Rank</SelectItem>
+                    <SelectItem value="calls">Total Calls</SelectItem>
+                    <SelectItem value="score">Score</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(searchQuery || trendFilter !== "all" || sortBy !== "rank") && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setSearchQuery("");
+                      setTrendFilter("all");
+                      setSortBy("rank");
+                    }}
+                    className="sm:ml-auto"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+
+              {/* Table */}
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[80px]">Rank</TableHead>
+                      <TableHead>Operator</TableHead>
+                      <TableHead className="text-right">Total Calls</TableHead>
+                      <TableHead className="text-right">Avg Score</TableHead>
+                      <TableHead className="text-center">Trend</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDirectoryItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          No operators found matching your filters
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredDirectoryItems.map((d) => (
+                        <TableRow key={d.rank}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getRankIcon(d.rank)}
+                              <span className="font-semibold">#{d.rank}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{d.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end">
+                              {d.totalCalls}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end">
+                              <Badge 
+                                variant="secondary" 
+                                className={cn("font-medium", getScoreBadgeColor(d.avgScore))}
+                              >
+                                {d.avgScore}%
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center">
+                              {getTrendIcon(d.trend)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end">
+                              <Link href={`/directory/profile/${d.rank}`}>
+                                <Button variant="ghost" size="sm">
+                                  View Profile
+                                </Button>
+                              </Link>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {filteredDirectoryItems.length > 0 && (
+                <div className="mt-4 text-sm text-muted-foreground">
+                  Showing {filteredDirectoryItems.length} of {dispatcherLeaderboard.length} operators
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
