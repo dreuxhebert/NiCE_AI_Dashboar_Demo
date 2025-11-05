@@ -163,7 +163,7 @@ export default function DirectoryProfilePage({ params }: Props) {
     <div className="space-y-6">
       {/* Header with Back Button */}
       <div className="flex items-center gap-4">
-        <Link href="/directory">
+        <Link href="/analyticsv2?tab=directory">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>

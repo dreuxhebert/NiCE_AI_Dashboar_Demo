@@ -23,6 +23,7 @@ const menuItems = [
   { title: "Evaluations", href: "/evaluations", icon: FileCheck },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Analytics V2", href: "/analyticsv2", icon: BarChart3 },
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
   { title: "Protocols", href: "/protocols", icon: ListChecks},
   { title: "Settings", href: "/settings", icon: Settings },
