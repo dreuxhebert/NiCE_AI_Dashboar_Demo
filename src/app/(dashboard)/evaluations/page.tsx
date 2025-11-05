@@ -464,7 +464,6 @@ export default function EvaluationsPage() {
                                   </td>
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
-                                    <p className="text-xs text-muted-foreground">{evaluation.call_id}</p>
                                   </td>
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
