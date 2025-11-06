@@ -41,3 +41,19 @@ export async function POST(req, { params }) {
 
   return passThrough(r);
 }
+
+export async function PATCH(req, { params }) {
+  const url = upstreamUrl(req, params.path);
+  const body = await req.text();
+
+  const r = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      ...Object.fromEntries(req.headers),
+    },
+    body,
+    cache: "no-store",
+  });
+
+  return passThrough(r);
+}
