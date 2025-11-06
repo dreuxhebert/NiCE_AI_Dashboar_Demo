@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { InteractionDrawer } from "@/components/interaction-drawer"
 import { Search, Filter } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Environment-based API configuration
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
@@ -164,18 +165,24 @@ export default function InteractionsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredInteractions.map((interaction) => (
+                  filteredInteractions.map((interaction, idx) => (
                     <TableRow
                       key={interaction.id}
-                      className="cursor-pointer"
+                      className={cn(
+                        "cursor-pointer",
+                        idx % 2 !== 1 && "bg-muted/40",
+                        "hover:bg-muted/80"
+                      )}
                       onClick={() => handleRowClick(interaction)}
                     >
-                      <TableCell className="font-medium">{interaction.fileName}</TableCell>
+                      <TableCell 
+                        className="font-medium">{interaction.fileName}
+                      </TableCell>
                       <TableCell>{interaction.dispatcher}</TableCell>
                       <TableCell>{interaction.language}</TableCell>
                       <TableCell>{interaction.model}</TableCell>
                       <TableCell>{interaction.callType}</TableCell>
-                      <TableCell>{interaction.duration}</TableCell>
+                      <TableCell>{interaction.duration} sec</TableCell>
                       <TableCell>
                         <StatusBadge status={interaction.status} />
                       </TableCell>

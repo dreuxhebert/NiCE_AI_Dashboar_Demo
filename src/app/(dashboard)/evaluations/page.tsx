@@ -41,11 +41,12 @@ export default function EvaluationsPage() {
   const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [qaAnswers, setQaAnswers] = useState<String[]>([])
-  const [qaAnswerDraft, setQaAnswersDraft] = useState<String[]>([])
   const [activeTab, setActiveTab] = useState<string>("summary")
   const { toast } = useToast()
   const router = useRouter()
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
+  const [qaAnalysis, setQaAnalysis] = useState<call_analysis | null>(null)
+  const [score, setScore] = useState<number>(0)
 
 
   const qaRef = useRef<HTMLDivElement | null>(null)
@@ -86,6 +87,7 @@ export default function EvaluationsPage() {
     type: string;
     evidence: string;
     confidence: number;
+    score: number;
   }
 
   
@@ -123,8 +125,14 @@ export default function EvaluationsPage() {
   }
 
 
-  const [qaResults, setQaResults] = useState<QaResults>(initialQa)
-  const [qaDraft, setQaDraft] = useState<QaResults>(initialQa)
+
+  const metCriteria = () => {
+    const answers = Object.values(qaAnalysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
+    const met = answers.filter((score) => score === "Yes").length;
+    const crit = answers.filter((score) => score === "No").length;
+    setMetStandards(met);
+    setCriticalViolations(crit);
+  }
 
   useEffect(() => {
     const fetchCalls = async () => {
@@ -133,22 +141,18 @@ export default function EvaluationsPage() {
         if (data?.length > 0) {
           
           const first = data[0];
-          const next =
-            Array.isArray(first?.scores) && first.scores.length > 0
-              ? [...first.scores]
-              : ["Empty"];
-
-          const newId = first?._id ?? "";
+          const answers = Object.values(first?.qa_analysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
+          const score = first?.score ?? "";
           const analysis: call_analysis = first?.qa_analysis ?? {}
 
           setSelectedEvaluation(first);
-          setQaAnswers(next);
-          setQaAnswersDraft(next);
-          const met = next.filter((score) => score === "yes").length;
-          const crit = next.filter((score) => score === "no").length;
+          const met = answers.filter((score) => score === "Yes").length;
+          const crit = answers.filter((score) => score === "No").length;
           setMetStandards(met);
           setCriticalViolations(crit);
           setQaAnalysisTemp(analysis)
+          setQaAnalysis(analysis)
+          setScore(score)
         }
       } catch (error) {
         console.error("Error fetching calls:", error)
@@ -157,27 +161,47 @@ export default function EvaluationsPage() {
 
     fetchCalls()
     getQaQuestions()
-    setQaResults(initialQa) //setQaAnswers
-    setQaDraft(initialQa)
     setIsEditing(false)
   }, [])
 
   const handleClickSave = async () => {
-    console.log(qaAnalysisTemp)
-    console.log(selectedEvaluation?._id)
-  const res = await fetch(getApiUrl(`/calls/update`), {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: selectedEvaluation?._id,
-      changedAnalysis: qaAnalysisTemp ?? {}
-    })
-  });
-  if (res.ok) {
-    toast({ title: "Saved", description: "QA Evaluation Updated" });
-    setIsEditing(false);
+    const res = await fetch(getApiUrl(`/calls/update`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: selectedEvaluation?._id,
+        changedAnalysis: qaAnalysisTemp ?? {}
+      })
+    });
+    const data = await res.json(); 
+    if (res.ok) {
+      toast({ title: "Saved", description: "QA Evaluation Updated" });
+      setIsEditing(false);
+    }
+    const merged = callList.map((call) =>
+      call._id === selectedEvaluation?._id
+        ? {
+            ...call,
+            qa_analysis: qaAnalysisTemp ?? {},
+            score : data.newScore
+          }
+        : call
+    );
+    setScore(data.newScore)
+    setCallList(merged);
+    setQaAnalysis(qaAnalysisTemp)
+
+    const yesCount = Object.values(qaAnalysisTemp ?? {}).filter(
+      (item) => item.answer?.toLowerCase() === "yes"
+    ).length;
+
+    const noCount = Object.values(qaAnalysisTemp ?? {}).filter(
+      (item) => item.answer?.toLowerCase() === "no"
+    ).length;
+
+    setMetStandards(yesCount);
+    setCriticalViolations(noCount);
   }
-}
 
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
@@ -203,8 +227,9 @@ export default function EvaluationsPage() {
     setMetStandards(yesCount);
     setCriticalViolations(noCount);
     setQaAnswers(evaluation.scores)
-    setQaAnswersDraft(evaluation.scores)
+    setScore(evaluation.score)
     setQaAnalysisTemp(evaluation.qa_analysis ?? {})
+    setQaAnalysis(evaluation.qa_analysis ?? {})
     // Smoothly scroll to the QA form section
     qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
@@ -218,21 +243,6 @@ export default function EvaluationsPage() {
         proof: prev?.[key]?.proof ?? ""
       }
     }));
-    
-    setSelectedEvaluation(prev => {
-      if (!prev) return prev;
-
-      return {
-        ...prev,
-        qa_analysis: {
-          ...prev.qa_analysis,
-          [key]: {
-            answer: value,
-            proof: prev.qa_analysis[key]?.proof ?? ""
-          }
-        }
-      };
-    });
   }
 
   const getScoreColor = (score: number) => {
@@ -452,9 +462,9 @@ export default function EvaluationsPage() {
                                   key={evaluation._id}
                                   onClick={() => handleSelectEvaluationChange(evaluation)}
                                   className={cn(
-                                    "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/50",
-                                    idx % 2 === 1 && "bg-muted/20",
-                                    selectedEvaluation?._id === evaluation._id && "bg-primary/10"
+                                    "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/80",
+                                    idx % 2 !== 1 && "bg-muted/30",
+                                    selectedEvaluation?._id === evaluation._id && "bg-primary/30"
                                   )}
                                 >
                                   <td className="px-4 py-3">
@@ -585,7 +595,7 @@ export default function EvaluationsPage() {
                             variant={isEditing ? "secondary" : "outline"}
                             className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
                             onClick={() => {
-                              if (!isEditing) setQaDraft(qaResults); setQaAnswersDraft(qaAnswers)
+                              if (!isEditing)
                               setIsEditing((v) => !v)
                             }}
                           >
@@ -668,8 +678,8 @@ export default function EvaluationsPage() {
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
                             <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
                             <div className="text-center">
-                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(selectedEvaluation?.score ?? 0))}>
-                                {selectedEvaluation?.score}%
+                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(score))}>
+                                {score}%
                               </div>
                               <p className="text-[11px] text-muted-foreground">
                                 {metStandards} of {metStandards + criticalViolations} Standards
@@ -729,7 +739,7 @@ export default function EvaluationsPage() {
                             <Separator className="bg-border/50" />
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-muted-foreground">Duration</span>
-                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds}s</span>
+                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds} sec</span>
                             </div>
                           </div>
                         </Card>
@@ -739,7 +749,6 @@ export default function EvaluationsPage() {
                       <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
                         <div className="space-y-2">
                       {qaQuestionsSet.map((q, index) => {
-                        const qaAnalysis = selectedEvaluation?.qa_analysis
                         let answer = qaAnalysis?.[q._id]?.answer || ""
                         let proof = qaAnalysis?.[q._id]?.proof || ""
 
@@ -748,6 +757,7 @@ export default function EvaluationsPage() {
                           <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
                             <div className="flex items-center justify-between p-3 gap-3">
                               <span className="text-sm text-foreground flex-1">{q.editedQuestion}</span>
+                              {/* <span className="text-sm text-foreground flex-1">{q.score}</span> */}
                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                 <Button
                                   size="sm"
