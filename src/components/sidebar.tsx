@@ -23,6 +23,7 @@ const menuItems = [
   { title: "Evaluations", href: "/evaluations", icon: FileCheck },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Analytics V2", href: "/analyticsv2", icon: BarChart3 },
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
   { title: "Protocols", href: "/protocols", icon: ListChecks},
   { title: "Settings", href: "/settings", icon: Settings },
@@ -57,8 +58,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
     [isDark]
   )
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === href : pathname?.startsWith(href)
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === href
+    // Exact match or starts with href followed by / or ? (query params)
+    return pathname === href || pathname?.startsWith(href + "/") || pathname?.startsWith(href + "?")
+  }
 
   const linkTextSize = collapsed ? "text-sm" : "text-lg"
 
