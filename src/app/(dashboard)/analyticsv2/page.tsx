@@ -69,9 +69,9 @@ const getQAScoresByIncidentType = () => {
 // Default grid layout configuration for Performance Overview
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: "auto-qa", x: 0, y: 0, w: 3, h: 4, minH: 4, minW: 2 },
-    { i: "manual-qa", x: 3, y: 0, w: 3, h: 4, minH: 4, minW: 2 },
-    { i: "avg-call-duration", x: 6, y: 0, w: 3, h: 4, minH: 4, minW: 2 },
+    { i: "auto-qa", x: 0, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
+    { i: "manual-qa", x: 3, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
+    { i: "avg-call-duration", x: 6, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
     { i: "qa-by-tag", x: 9, y: 0, w: 3, h: 7, minH: 6, minW: 2 },
     { i: "qa-by-taker", x: 0, y: 4, w: 3, h: 7, minH: 6, minW: 2 },
     { i: "call-duration-chart", x: 3, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
@@ -81,9 +81,9 @@ const DEFAULT_LAYOUTS = {
     { i: "leaderboard", x: 6, y: 20, w: 6, h: 9, minH: 8, minW: 3 },
   ],
   md: [
-    { i: "auto-qa", x: 0, y: 0, w: 4, h: 4, minH: 4, minW: 3 },
-    { i: "manual-qa", x: 4, y: 0, w: 4, h: 4, minH: 4, minW: 3 },
-    { i: "avg-call-duration", x: 8, y: 0, w: 4, h: 4, minH: 4, minW: 3 },
+    { i: "auto-qa", x: 0, y: 0, w: 4, h: 4, minH: 4, minW: 3, maxW: 6 },
+    { i: "manual-qa", x: 4, y: 0, w: 4, h: 4, minH: 4, minW: 3, maxW: 6 },
+    { i: "avg-call-duration", x: 8, y: 0, w: 4, h: 4, minH: 4, minW: 3, maxW: 6 },
     { i: "qa-by-tag", x: 0, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
     { i: "qa-by-taker", x: 6, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
     { i: "call-duration-chart", x: 0, y: 11, w: 12, h: 7, minH: 6, minW: 6 },
@@ -93,9 +93,9 @@ const DEFAULT_LAYOUTS = {
     { i: "leaderboard", x: 0, y: 33, w: 12, h: 9, minH: 8, minW: 6 },
   ],
   sm: [
-    { i: "auto-qa", x: 0, y: 0, w: 12, h: 4, minH: 4, minW: 6 },
-    { i: "manual-qa", x: 0, y: 4, w: 12, h: 4, minH: 4, minW: 6 },
-    { i: "avg-call-duration", x: 0, y: 8, w: 12, h: 4, minH: 4, minW: 6 },
+    { i: "auto-qa", x: 0, y: 0, w: 12, h: 4, minH: 4, minW: 6, maxW: 12 },
+    { i: "manual-qa", x: 0, y: 4, w: 12, h: 4, minH: 4, minW: 6, maxW: 12 },
+    { i: "avg-call-duration", x: 0, y: 8, w: 12, h: 4, minH: 4, minW: 6, maxW: 12 },
     { i: "qa-by-tag", x: 0, y: 12, w: 12, h: 7, minH: 6, minW: 6 },
     { i: "qa-by-taker", x: 0, y: 19, w: 12, h: 7, minH: 6, minW: 6 },
     { i: "call-duration-chart", x: 0, y: 26, w: 12, h: 7, minH: 6, minW: 6 },

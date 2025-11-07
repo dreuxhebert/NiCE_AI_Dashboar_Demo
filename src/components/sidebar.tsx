@@ -58,8 +58,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
     [isDark]
   )
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === href : pathname?.startsWith(href)
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === href
+    // Exact match or starts with href followed by / or ? (query params)
+    return pathname === href || pathname?.startsWith(href + "/") || pathname?.startsWith(href + "?")
+  }
 
   const linkTextSize = collapsed ? "text-sm" : "text-lg"
 
