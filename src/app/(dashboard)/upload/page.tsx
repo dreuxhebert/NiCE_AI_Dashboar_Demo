@@ -129,7 +129,7 @@ export default function UploadPage() {
         return
       }
 
-      const { interaction_id, transcription, summary, qa_analysis_result, score, duration_seconds } = uploadRes.data ?? {}
+      const { interaction_id, transcription, summary, qa_analysis_result, score, duration_seconds, stored_audio } = uploadRes.data ?? {}
       console.log(qa_analysis_result)
       if (!interaction_id) {
         toast({
@@ -163,8 +163,8 @@ export default function UploadPage() {
         scores: [],
         score: score,
         callEvaluationType: "auto",
-        qa_analysis: qa_analysis_result
-
+        qa_analysis: qa_analysis_result,
+        stored_audio: stored_audio
         // notes isn’t used by your backend right now; include if your API supports it
         // notes: clean(notes),
       }

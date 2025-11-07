@@ -89,7 +89,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
-
   const { toast } = useToast()
 
   // --- Effects ---
@@ -234,7 +233,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
 
             <div className="space-y-0.5">
               <h2 className="text-lg font-bold text-foreground tracking-tight">
-                {interaction.fileName}
+                {interaction.call_id}
               </h2>
               <p className="text-xs text-muted-foreground font-medium">
                 Call Analysis & Quality Assurance
@@ -268,7 +267,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Duration</p>
-                      <p className="text-sm font-bold text-foreground">{interaction.duration}</p>
+                      <p className="text-sm font-bold text-foreground">{interaction.duration_seconds}</p>
                     </div>
                   </div>
                 </div>
@@ -345,77 +344,77 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
             </div>
 
             {/* Tab Icons (smaller) */}
-<div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
-  {/* Summary */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn(
-      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-      activeTab === "summary" &&
-        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-    )}
-    onClick={() => setActiveTab("summary")}
-  >
-    <ClipboardList className="h-5 w-5" />
-  </Button>
+            <div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
+              {/* Summary */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "summary" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("summary")}
+              >
+                <ClipboardList className="h-5 w-5" />
+              </Button>
 
-  {/* Audio Player */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn(
-      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-      activeTab === "audio-player" &&
-        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-    )}
-    onClick={() => setActiveTab("audio-player")}
-  >
-    <Volume2 className="h-5 w-5" />
-  </Button>
+              {/* Audio Player */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "audio-player" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("audio-player")}
+              >
+                <Volume2 className="h-5 w-5" />
+              </Button>
 
-  {/* Scores */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn(
-      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-      activeTab === "scores" &&
-        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-    )}
-    onClick={() => setActiveTab("scores")}
-  >
-    <List className="h-5 w-5" />
-  </Button>
+              {/* Scores */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "scores" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("scores")}
+              >
+                <List className="h-5 w-5" />
+              </Button>
 
-  {/* Sentiment */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn(
-      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-      activeTab === "sentiment" &&
-        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-    )}
-    onClick={() => setActiveTab("sentiment")}
-  >
-    <Smile className="h-5 w-5" />
-  </Button>
+              {/* Sentiment */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "sentiment" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("sentiment")}
+              >
+                <Smile className="h-5 w-5" />
+              </Button>
 
-  {/* Details (moved to last) */}
-  <Button
-    variant="ghost"
-    size="icon"
-    className={cn(
-      "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-      activeTab === "details" &&
-        "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-    )}
-    onClick={() => setActiveTab("details")}
-  >
-    <Info className="h-5 w-5" />
-  </Button>
-</div>
+              {/* Details (moved to last) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
+                  activeTab === "details" &&
+                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
+                )}
+                onClick={() => setActiveTab("details")}
+              >
+                <Info className="h-5 w-5" />
+              </Button>
+            </div>
 
 
             {/* Tab Content */}
@@ -462,13 +461,13 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                 {activeTab === "audio-player" && (
                   <div className="space-y-4">
                     <AudioPlayerWithWaveform
-                      audioUrl={`/audio/${interaction.fileName}.mp3`}
-                      fileName={interaction.fileName}
+                      audioUrl={`/calls/audio/${interaction.call_id}`}
+                      fileName={interaction.call_id}
                       className="space-y-4"
                     />
                     <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        <strong>Audio Waveform:</strong> Visual representation of the call recording showing amplitude over time. 
+                        <strong>Audio Waveform:</strong> Visual representation of the call recording showing amplitude over time.
                         Click anywhere on the waveform to seek to that position in the audio.
                       </p>
                     </div>
@@ -507,7 +506,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                       <Separator />
                       <div className="flex justify-between items-center">
                         <span className="text-base text-muted-foreground">Duration</span>
-                        <span className="text-base font-medium text-foreground">{interaction.duration}</span>
+                        <span className="text-base font-medium text-foreground">{interaction.duration_seconds}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between items-center">

@@ -377,4 +377,56 @@
 .react-grid-layout > .react-grid-item {
   touch-action: none;
 }
+
+.audio-slider {
+  width: 100%;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--muted);
+  cursor: pointer;
+  --played-color: var(--primary);
+  --unplayed-color: var(--muted);
+}
+
+/* Chrome / Edge / Safari */
+.audio-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+  background-image: linear-gradient(
+    to right,
+    var(--played-color) var(--progress, 0%),
+    var(--unplayed-color) var(--progress, 0%)
+  );
+}
+
+.audio-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-top: -4px; /* center the thumb */
+}
+
+/* Firefox */
+.audio-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--unplayed-color);
+}
+
+.audio-slider::-moz-range-progress {
+  height: 6px;
+  background: var(--played-color);
+  border-radius: 9999px;
+}
+
+.audio-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+}
 /* ======================================================================= */

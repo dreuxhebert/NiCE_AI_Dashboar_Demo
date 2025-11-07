@@ -32,6 +32,20 @@ export function AudioPlayerWithWaveform({
   const [isMuted, setIsMuted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [waveformData, setWaveformData] = useState<number[]>([])
+
+  // Environment-based API configuration (same pattern as other pages)
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+  const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+  // Helper to get the correct API URL based on environment
+  const getApiUrl = (path: string) => {
+    if (USE_PROXY) {
+      // In production, route through Next.js API proxy
+      return `/api/proxy${path}`;
+    }
+    // In development, connect directly to backend
+    return `${API_BASE}${path}`;
+  }
   
   // Refs
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -50,6 +64,7 @@ export function AudioPlayerWithWaveform({
     })
     setWaveformData(data)
   }, [])
+
 
   // Draw waveform on canvas
   const drawWaveform = useCallback(() => {
@@ -300,7 +315,7 @@ export function AudioPlayerWithWaveform({
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src="/elevator_music.mp3"
+        src={getApiUrl(audioUrl ?? "")}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
         onTimeUpdate={handleTimeUpdate}

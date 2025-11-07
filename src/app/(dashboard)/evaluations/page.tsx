@@ -47,6 +47,14 @@ export default function EvaluationsPage() {
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
   const [qaAnalysis, setQaAnalysis] = useState<call_analysis | null>(null)
   const [score, setScore] = useState<number>(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // This is your existing mock waveform bars
+  const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
+
 
 
   const qaRef = useRef<HTMLDivElement | null>(null)
@@ -115,6 +123,7 @@ export default function EvaluationsPage() {
     };
     score: number;
     scores: string[];
+    stored_audio: string;
   }
 
   interface call_analysis {
@@ -122,16 +131,6 @@ export default function EvaluationsPage() {
         answer: string;
         proof: string;
     };
-  }
-
-
-
-  const metCriteria = () => {
-    const answers = Object.values(qaAnalysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
-    const met = answers.filter((score) => score === "Yes").length;
-    const crit = answers.filter((score) => score === "No").length;
-    setMetStandards(met);
-    setCriticalViolations(crit);
   }
 
   useEffect(() => {
@@ -337,8 +336,6 @@ export default function EvaluationsPage() {
     }
   }
 
-  // Stable waveform bars (optional nicety)
-  const bars = useMemo(() => Array.from({ length: 80 }, () => Math.random() * 60 + 20), [])
 
   // ---- Helpers ----
   const renderTranscript = (transcript?: string) => {
@@ -508,33 +505,123 @@ export default function EvaluationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-hidden">
                 {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
                 <Card className="flex flex-col border border-border/50 bg-card rounded-lg md:h-[min(64vh,100%)]">
-                  {/* Audio */}
+                {/* Audio */}
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
-                      <span className="text-xs text-muted-foreground">{selectedEvaluation?.duration_seconds || 0} sec</span>
+                      <span className="text-xs text-muted-foreground">
+                        {selectedEvaluation?.duration_seconds || 0} sec
+                      </span>
                     </div>
 
+                    {/* Hidden audio element */}
+                    <audio
+                      ref={audioRef}
+                      src={selectedEvaluation?.call_id ? getApiUrl(`/calls/audio/${selectedEvaluation.call_id}`) : undefined}
+                      onLoadedMetadata={() =>
+                        setDuration(audioRef.current ? audioRef.current.duration : 0)
+                      }
+                      onTimeUpdate={() =>
+                        setCurrentTime(audioRef.current ? audioRef.current.currentTime : 0)
+                      }
+                      onEnded={() => setIsPlaying(false)}
+                      preload="metadata"
+                    />
+
+                    {/* Waveform bars */}
                     <div className="relative h-14 sm:h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
                       <div className="absolute inset-0 flex items-center justify-center gap-[2px] px-2">
                         {bars.map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-primary/80 to-primary/40 rounded-full" style={{ height: `${height}%` }} />
+                          <div
+                            key={i}
+                            className="flex-1 bg-gradient-to-t from-primary/80 to-primary/40 rounded-full"
+                            style={{ height: `${height}%` }}
+                          />
                         ))}
                       </div>
+
+                      {/* Progress overlay */}
+                      <div
+                        className="absolute left-0 top-0 h-full bg-primary/20 transition-all"
+                        style={{
+                          width:
+                            duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
+                        }}
+                      />
                     </div>
 
+                    {/* Controls */}
                     <div className="flex items-center gap-3">
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 bg-transparent" aria-label={isPlaying ? "Pause audio" : "Play audio"} onClick={() => setIsPlaying(!isPlaying)}>
-                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      </Button>
-                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-1/3" />
-                      </div>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Volume">
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
+
+                    {/* Play / Pause */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 bg-transparent"
+                      aria-label={isPlaying ? "Pause audio" : "Play audio"}
+                      onClick={() => {
+                        if (!audioRef.current) return;
+                        if (isPlaying) {
+                          audioRef.current.pause();
+                          setIsPlaying(false);
+                        } else {
+                          audioRef.current.play();
+                          setIsPlaying(true);
+                        }
+                      }}
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
+
+                    {/* ✅ Draggable Seek Bar with Blue Played Portion */}
+                    <div className="flex-1 flex items-center">
+                      <input
+                        type="range"
+                        min={0}
+                        max={duration || 0}
+                        step={0.1}
+                        value={currentTime}
+                        onChange={(e) => {
+                          const newTime = Number(e.target.value);
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = newTime;
+                            setCurrentTime(newTime);
+                          }
+                        }}
+                        style={{
+                          "--progress": duration
+                            ? `${(currentTime / duration) * 100}%`
+                            : "0%",
+                        } as React.CSSProperties}
+                        className="audio-slider"
+                      />
                     </div>
+
+                    {/* Volume Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      aria-label="Volume"
+                      onClick={() => {
+                        if (!audioRef.current) return;
+                        audioRef.current.muted = !audioRef.current.muted;
+                        setIsMuted(audioRef.current.muted);
+                      }}
+                    >
+                      {isMuted ? (
+                        <Volume2 className="h-4 w-4" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
+                  </div>
+
 
                   {/* Tabs */}
                   <div className="flex-1 flex flex-col">

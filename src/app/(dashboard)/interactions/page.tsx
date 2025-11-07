@@ -26,14 +26,43 @@ const getApiUrl = (path: string) => {
 };
 
 export default function InteractionsPage() {
+
+    interface CallData {
+    _id: string;
+    id: string;
+    dispatcher_id: string;
+    call_id: string;
+    duration_seconds: number;
+    direction: string;
+    language: string;
+    model: string;
+    callType: string;
+    status: string;
+    sentiment: string;
+    transcript: string;
+    summary: string;
+    created_at: Date;
+    callEvaluationType: string;
+    qa_analysis: {
+      [question_id: string]: {
+        answer: string;
+        proof: string;
+      };
+    };
+    score: number;
+    scores: string[];
+    stored_audio: string;
+  }
+
   const [interactions, setInteractions] = useState<any[]>([])
-  const [selectedInteraction, setSelectedInteraction] = useState<any | null>(null)
+  const [selectedInteraction, setSelectedInteraction] = useState<CallData | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [callTypeFilter, setCallTypeFilter] = useState<string>("all")
 
-  const handleRowClick = (interaction: any) => {
+  const handleRowClick = (interaction: CallData) => {
+    console.log(selectedInteraction?.call_id)
     setSelectedInteraction(interaction)
     setDrawerOpen(true)
   }
@@ -57,17 +86,25 @@ export default function InteractionsPage() {
     const data = await res.json();
 
     const mappedData = (Array.isArray(data) ? data : []).map((item: any) => ({
-      id: item.id || item._id,
-      dispatcher: item.dispatcher_id,
+      _id: item._id,
+      id: item.id,  // this is your interaction_id
+      dispatcher_id: item.dispatcher_id,
+      call_id: item.call_id,  // <-- THIS exists in your CallData
+      duration_seconds: item.duration_seconds,
+      direction: item.direction,
       language: item.language,
       model: item.model,
       callType: item.callType,
-      duration: item.duration_seconds,
       status: item.status,
       sentiment: item.sentiment,
-      fileName: item.call_id,
       transcript: item.transcript,
       summary: item.summary,
+      created_at: item.created_at,
+      callEvaluationType: item.callEvaluationType,
+      qa_analysis: item.qa_analysis,
+      score: item.score,
+      scores: item.scores,
+      stored_audio: item.stored_audio,   // ✅ IMPORTANT
     }));
 
     setInteractions(mappedData);
@@ -176,9 +213,9 @@ export default function InteractionsPage() {
                       onClick={() => handleRowClick(interaction)}
                     >
                       <TableCell 
-                        className="font-medium">{interaction.fileName}
+                        className="font-medium">{interaction.call_id}
                       </TableCell>
-                      <TableCell>{interaction.dispatcher}</TableCell>
+                      <TableCell>{interaction.dispatcher_id}</TableCell>
                       <TableCell>{interaction.language}</TableCell>
                       <TableCell>{interaction.model}</TableCell>
                       <TableCell>{interaction.callType}</TableCell>
