@@ -18,6 +18,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    teamNumber: "",            // ✅ added
   })
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [error, setError] = useState("")
@@ -59,6 +60,13 @@ export default function RegisterPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
+          // ✅ map camelCase → snake_case
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          // if empty string, send null
+          team_number: formData.teamNumber ? Number(formData.teamNumber) : null,
+          // optional placeholder
+          layout_coords: {}, 
         }),
       })
 
@@ -133,6 +141,22 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* ✅ Team Number */}
+          <div className="space-y-2">
+            <label htmlFor="teamNumber" className="block text-sm font-medium text-foreground">
+              Team Number
+            </label>
+            <Input
+              id="teamNumber"
+              name="teamNumber"
+              type="number"
+              placeholder="e.g. 5"
+              value={formData.teamNumber}
+              onChange={handleChange}
+              min={1}
+            />
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="email" className="block text-sm font-medium text-foreground">
               Email Address
@@ -177,8 +201,14 @@ export default function RegisterPage() {
                 <div className="text-xs text-muted-foreground">Password requirements:</div>
                 {passwordRequirements.map((req, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
-                    {req.met ? <Check size={14} className="text-green-500" /> : <X size={14} className="text-destructive" />}
-                    <span className={req.met ? "text-green-500" : "text-muted-foreground"}>{req.label}</span>
+                    {req.met ? (
+                      <Check size={14} className="text-green-500" />
+                    ) : (
+                      <X size={14} className="text-destructive" />
+                    )}
+                    <span className={req.met ? "text-green-500" : "text-muted-foreground"}>
+                      {req.label}
+                    </span>
                   </div>
                 ))}
               </div>
