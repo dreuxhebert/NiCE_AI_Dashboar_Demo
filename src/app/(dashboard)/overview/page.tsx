@@ -30,10 +30,10 @@ export default function OverviewPage() {
           trend={{ value: "2.3 points", isPositive: true }}
         />
         <KpiCard
-          title="Calls Failed Processing"
+          title="Calls Processed"
           value="8"
           icon={AlertCircle}
-          trend={{ value: "3 from yesterday", isPositive: false }}
+          trend={{ value: "3 from yesterday", isPositive: true }}
         />
         <KpiCard title="Active Queue" value="23" icon={Clock} description="Currently processing" />
       </div>

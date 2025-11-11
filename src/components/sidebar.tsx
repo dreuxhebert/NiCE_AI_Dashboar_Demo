@@ -11,8 +11,8 @@ import {
   ClipboardCheck,
   Settings,
   FileCheck,
-  Users,
   ListChecks,
+  UserPen
 } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
@@ -22,10 +22,11 @@ const menuItems = [
   { title: "Overview", href: "/overview", icon: LayoutDashboard },
   { title: "Evaluations", href: "/evaluations", icon: FileCheck },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
-  { title: "Analytics", href: "/analytics", icon: BarChart3 },
-  { title: "Analytics V2", href: "/analyticsv2", icon: BarChart3 },
+  // { title: "Old Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Analytics", href: "/analyticsv2", icon: BarChart3 },
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
   { title: "Protocols", href: "/protocols", icon: ListChecks},
+  { title: "Employee Manager", href: "/employeeManagement", icon: UserPen},
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 

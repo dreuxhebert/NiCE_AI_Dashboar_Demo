@@ -15,6 +15,7 @@ import { dispatcherLeaderboard, callsByTypeData, evaluations } from "@/lib/sampl
 import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award, RotateCcw, Save, GripVertical, Users, Phone, Star, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Responsive, WidthProvider, Layout } from "react-grid-layout";
+import { number } from "framer-motion";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -145,6 +146,7 @@ export default function AnalyticsV2Page() {
   const [callsData, setCallsData] = useState<any[]>([]);
   const [callsByDateData, setCallsByDateData] = useState<CallData[]>([]);
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "1y" | "custom">("7d");
+  const [timeRangeScore, setTimeRangeScores] = useState("1d")
   const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
   const [isSaved, setIsSaved] = useState(false);
   const [directoryLayouts, setDirectoryLayouts] = useState(DEFAULT_DIRECTORY_LAYOUTS);
@@ -153,6 +155,11 @@ export default function AnalyticsV2Page() {
   const [trendFilter, setTrendFilter] = useState<"all" | "up" | "down" | "stable">("all");
   const [sortBy, setSortBy] = useState<"rank" | "calls" | "score">("rank");
   const [activeTab, setActiveTab] = useState(tabFromUrl);
+  const [avgTimeToday, setAvgTimeToday] = useState<number>(0)
+  const [avgTimeYesterday, setAvgTimeYesterday] = useState<number>(0)
+  const [avgScoreThisWeek, setAvgScoreThisWeek] = useState<number>(0)
+  const [avgScoreLastWeek, setAvgScoreLastWeek] = useState<number>(0)
+  const [avgScoreByCallType, setAvgScoreByCallType] = useState<Record<string, number[]>>({});
 
   // Update active tab when URL changes
   useEffect(() => {
@@ -298,6 +305,60 @@ export default function AnalyticsV2Page() {
     }
   };
 
+  const getAvgScoreByCallType = async (range: string) => {
+    const res = await fetch(getApiUrl("/calls/averageDataByCallType"), {
+      method: "POST",
+      body: JSON.stringify({ timeStamp: range }),
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch Average Time");
+    }
+
+    setAvgScoreByCallType({
+      Fire: [data.average_fire_score],
+      Medical: [data.average_medical_score],
+      Police: [data.average_police_score],
+      Other: [data.average_other_score]
+    });
+
+  };
+
+  const getAvgTime = async () => {
+    const res = await fetch(
+      getApiUrl("/calls/avgCallTime"),
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+    )
+    const data = await res.json(); 
+    if (!res.ok) {
+      throw new Error("Failed to fetch Average Time");
+    }
+    setAvgTimeToday(data["avg_today"])
+    setAvgTimeYesterday(data["avg_yesterday"])
+  }
+
+  const getAvgScore = async () => {
+    const res = await fetch(
+      getApiUrl("/calls/avgScore"),
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+    )
+    const data = await res.json(); 
+    if (!res.ok) {
+      throw new Error("Failed to fetch Average Time");
+    }
+    setAvgScoreThisWeek(data["avg_this_week"])
+    setAvgScoreLastWeek(data["avg_last_week"])
+  }
+
   const fetchCallsByDateData = async () => {
     try {
       const apiUrl = getApiUrl('/calls/byDate');
@@ -321,7 +382,13 @@ export default function AnalyticsV2Page() {
   useEffect(() => {
     fetchCallsByTypeData();
     fetchCallsByDateData();
+    getAvgTime()
+    getAvgScore()
   }, []);
+
+  useEffect(() => {
+    getAvgScoreByCallType(timeRangeScore)
+  }, [timeRangeScore]);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-5 w-5 text-amber-400" />;
@@ -503,11 +570,20 @@ export default function AnalyticsV2Page() {
               </div>
             </CardHeader>
             <CardContent className="pb-3 flex-1">
-              <div className="text-3xl font-bold text-foreground">{averageAutoQAScore}%</div>
-              <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                +1%, compared to previous 7 days
-              </p>
+              <div className="text-3xl font-bold text-foreground">{avgScoreThisWeek.toFixed(1)}%</div>
+              { avgScoreThisWeek < avgScoreLastWeek ? 
+                (
+                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    <TrendingDown className="h-3 w-3" />
+                    -{((avgScoreLastWeek / (avgScoreLastWeek + avgScoreThisWeek)) * 100).toFixed(1)}%, compared to previous Week
+                  </p>
+                ) : (
+                  <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    +{((avgScoreThisWeek / (avgScoreLastWeek + avgScoreThisWeek)) * 100).toFixed(1)}%, compared to previous Week
+                  </p>
+                )
+              }
             </CardContent>
           </Card>
         </div>
@@ -535,17 +611,26 @@ export default function AnalyticsV2Page() {
         <div key="avg-call-duration">
           <Card className="h-full overflow-hidden flex flex-col group">
             <CardHeader className="pb-2 flex-row items-start justify-between space-y-0">
-              <CardTitle className="text-sm font-medium line-clamp-2">Average Call Duration - Last 24 Hours</CardTitle>
+              <CardTitle className="text-sm font-medium line-clamp-2">Average Call Duration - Today</CardTitle>
               <div className="drag-handle cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent className="pb-4 flex-1">
-              <div className="text-3xl font-bold text-foreground">2.80 min(s)</div>
-              <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                +31%, compared to previous 24 hours
-              </p>
+              <div className="text-3xl font-bold text-foreground">{avgTimeToday}</div>
+
+              {avgTimeToday < avgTimeYesterday ? (
+                <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                  <TrendingDown className="h-3 w-3" />
+                  -{((avgTimeYesterday / (avgTimeYesterday + avgTimeToday)) * 100).toFixed(1)}% compared to previous 24 hours
+                </p>
+              ) : (
+                <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  +{((avgTimeToday / (avgTimeYesterday + avgTimeToday)) * 100).toFixed(1)}% compared to previous 24 hours
+                </p>
+              )}
+
             </CardContent>
           </Card>
         </div>
@@ -735,8 +820,23 @@ export default function AnalyticsV2Page() {
         {/* QA Score by Incident Type */}
         <div key="qa-by-type">
           <Card className="h-full overflow-hidden flex flex-col group">
-            <CardHeader className="pb-2 flex-row items-start justify-between space-y-0 flex-shrink-0">
-              <CardTitle className="text-sm font-medium line-clamp-1">Average QA Score by Incident Type</CardTitle>
+            <CardHeader className="pb-2 flex flex-col gap-1 flex-shrink-0">
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <CardTitle className="text-sm font-medium line-clamp-1">Average QA Score By Incident Type</CardTitle>
+                </div>
+
+                <Select value={timeRangeScore} onValueChange={setTimeRangeScores}>
+                  <SelectTrigger className="h-8 w-[80px] text-xs">
+                    <SelectValue placeholder="Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1d">1D</SelectItem>
+                    <SelectItem value="7d">7D</SelectItem>
+                    <SelectItem value="1m">1M</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="drag-handle cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -751,24 +851,33 @@ export default function AnalyticsV2Page() {
                       <TableHead className="text-right">Change</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
-                    {qaScoresByIncidentType.map((item, idx) => (
-                      <TableRow key={item.type}>
-                        <TableCell className="font-medium">{item.type}</TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-medium">{item.avgScore}%</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {idx % 3 === 0 ? (
-                            <span className="text-xs text-red-400">+0.85%</span>
-                          ) : idx % 3 === 1 ? (
-                            <span className="text-xs text-green-400">-0%</span>
-                          ) : (
-                            <span className="text-xs text-amber-400">+1.6%</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {["Fire", "Medical", "Police", "Other"].map((type, idx) => {
+                      const avgScore = avgScoreByCallType[type]?.[0] ?? 0;
+
+                      return (
+                        <TableRow key={type}>
+                          <TableCell className="font-medium">{type}</TableCell>
+
+                          <TableCell className="text-right">
+                            <span className="text-sm font-medium">
+                              {avgScore.toFixed(1)}%
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            {idx % 3 === 0 ? (
+                              <span className="text-xs text-red-400">+0.85%</span>
+                            ) : idx % 3 === 1 ? (
+                              <span className="text-xs text-green-400">-0%</span>
+                            ) : (
+                              <span className="text-xs text-amber-400">+1.6%</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
