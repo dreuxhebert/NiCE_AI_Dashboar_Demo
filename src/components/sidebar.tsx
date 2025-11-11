@@ -12,7 +12,7 @@ import {
   Settings,
   FileCheck,
   ListChecks,
-  UserPen
+  UserPen,
 } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
@@ -25,13 +25,15 @@ const menuItems = [
   // { title: "Old Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Analytics", href: "/analyticsv2", icon: BarChart3 },
   { title: "Interactions", href: "/interactions", icon: MessageSquare },
-  { title: "Protocols", href: "/protocols", icon: ListChecks},
-  { title: "Employee Manager", href: "/employeeManagement", icon: UserPen},
+  { title: "Protocols", href: "/protocols", icon: ListChecks },
+  // ⬇️ this one is admin-only
+  { title: "Employee Manager", href: "/admin/employeeManagement", icon: UserPen, adminOnly: true },
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 
 interface SidebarProps {
   collapsed: boolean
+  isAdmin?: boolean // ✅ new
 }
 
 // Watch the <html> class for "dark" and expose a boolean
@@ -48,7 +50,7 @@ function useIsDark(): boolean {
   return isDark
 }
 
-export function Sidebar({ collapsed }: SidebarProps) {
+export function Sidebar({ collapsed, isAdmin }: SidebarProps) {
   const pathname = usePathname()
   const isDark = useIsDark()
   const [mounted, setMounted] = useState(false)
@@ -61,8 +63,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === href
-    // Exact match or starts with href followed by / or ? (query params)
-    return pathname === href || pathname?.startsWith(href + "/") || pathname?.startsWith(href + "?")
+    return (
+      pathname === href ||
+      pathname?.startsWith(href + "/") ||
+      pathname?.startsWith(href + "?")
+    )
   }
 
   const linkTextSize = collapsed ? "text-sm" : "text-lg"
@@ -76,6 +81,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
   }
 
   const handleLeave = () => setTooltip(null)
+
+  // ✅ filter here: admin-only items only if isAdmin
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    return true
+  })
 
   return (
     <aside
@@ -92,11 +103,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
             collapsed ? "px-2 justify-center" : "px-4"
           )}
         >
-          {/* Animate logo fade out/in when sidebar collapses/expands */}
-          <div className={cn(
-            "transition-opacity duration-300 ease-in-out",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-          )}>
+          <div
+            className={cn(
+              "transition-opacity duration-300 ease-in-out",
+              collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+          >
             <Image
               key={isDark ? "dark" : "light"}
               src={logoSrc}
@@ -105,7 +117,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               height={60}
               priority
               className="h-8 w-auto transition-transform duration-300 ease-in-out"
-              style={{ transform: collapsed ? 'scale(0.8)' : 'scale(1)' }}
+              style={{ transform: collapsed ? "scale(0.8)" : "scale(1)" }}
             />
           </div>
         </div>
@@ -113,7 +125,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-2">
           <div className="space-y-1">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
               return (
@@ -132,7 +144,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   )}
                 >
                   <Icon className="h-6 w-6 text-primary" />
-                  {/* Hide label when collapsed, keep for screen readers */}
                   <span className={cn("whitespace-nowrap", collapsed ? "sr-only" : "inline")}>
                     {item.title}
                   </span>
@@ -164,17 +175,18 @@ export function Sidebar({ collapsed }: SidebarProps) {
           </Link>
         </div>
       </div>
-      {/* Styled tooltip rendered in a portal to avoid layout shifts/scrollbars */}
-      {mounted && collapsed && tooltip && createPortal(
-        <div
-          className="pointer-events-none fixed z-[1000] -translate-y-1/2 rounded-md border border-border bg-popover px-2 py-1 text-sm text-popover-foreground shadow"
-          style={{ top: tooltip.top, left: tooltip.left }}
-          role="tooltip"
-        >
-          {tooltip.text}
-        </div>,
-        document.body
-      )}
+
+      {mounted && collapsed && tooltip &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[1000] -translate-y-1/2 rounded-md border border-border bg-popover px-2 py-1 text-sm text-popover-foreground shadow"
+            style={{ top: tooltip.top, left: tooltip.left }}
+            role="tooltip"
+          >
+            {tooltip.text}
+          </div>,
+          document.body
+        )}
     </aside>
   )
 }

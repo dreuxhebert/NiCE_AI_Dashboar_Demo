@@ -2,31 +2,59 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Bell, ChevronDown, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react"
+import Link from "next/link"
+import {
+  Bell,
+  ChevronDown,
+  Moon,
+  Sun,
+  PanelLeftOpen,
+  PanelLeftClose,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import Link from "next/link"
 
 interface TopNavProps {
   collapsed?: boolean
   onToggleSidebar: () => void
 }
 
+interface CurrentUser {
+  email?: string
+  first_name?: string
+  last_name?: string
+  team_number?: number | null
+  avatar_url?: string
+}
+
+function getInitials(user: CurrentUser | null) {
+  if (!user) return "NA"
+  const f = user.first_name?.trim() || ""
+  const l = user.last_name?.trim() || ""
+  if (f || l) return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase()
+  if (user.email) return user.email.charAt(0).toUpperCase()
+  return "NA"
+}
+
 export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [user, setUser] = useState<CurrentUser | null>(null)
 
   useEffect(() => {
     setMounted(true)
-    
-    // Initialize theme from localStorage or system preference
+
     const el = document.documentElement
     const update = () => setIsDark(el.classList.contains("dark"))
-    
+
     try {
       const saved = localStorage.getItem("theme")
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -34,28 +62,65 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
       el.classList.toggle("dark", next)
       setIsDark(next)
     } catch {}
-    
-    // Watch for changes to dark class on html element
+
     const obs = new MutationObserver(update)
     obs.observe(el, { attributes: true, attributeFilter: ["class"] })
     return () => obs.disconnect()
+  }, [])
+
+  //match login logic
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+    if (!token) return
+
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
+    const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+    const getApiUrl = (path: string) =>
+      USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
+
+    fetch(getApiUrl("/auth/me"), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json()
+        setUser(data)
+      })
+      .catch(() => {})
   }, [])
 
   const toggleTheme = () => {
     const next = !isDark
     setIsDark(next)
     document.documentElement.classList.toggle("dark", next)
-    try { localStorage.setItem("theme", next ? "dark" : "light") } catch {}
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light")
+    } catch {}
   }
 
+  const displayName =
+    user?.first_name
+      ? user.last_name
+        ? `${user.first_name} ${user.last_name}`
+        : user.first_name
+      : user?.email
+        ? user.email
+        : "User"
+
   return (
-    <header className={`fixed top-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card transition-[left] duration-300 ease-in-out ${collapsed ? "left-16" : "left-64"}`}>
-      {/* Continue the vertical separator line along the top bar's left edge for visual consistency */}
+    <header
+      className={`fixed top-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card transition-[left] duration-300 ease-in-out ${
+        collapsed ? "left-16" : "left-64"
+      }`}
+    >
       <div className="absolute inset-y-0 left-0 border-l border-sidebar-border" aria-hidden />
       <div className="relative flex h-full items-center justify-between px-6">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button
-            variant="ghost" size="icon"
+            variant="ghost"
+            size="icon"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={onToggleSidebar}
@@ -66,14 +131,14 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2">
-          <Image 
+          <Image
             key={isDark ? "dark" : "light"}
-            src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"} 
-            alt="NiCE" 
-            width={120} 
-            height={40} 
-            priority 
-            className="h-8 w-auto" 
+            src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"}
+            alt="NiCE"
+            width={120}
+            height={40}
+            priority
+            className="h-8 w-auto"
           />
         </div>
 
@@ -85,13 +150,23 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
 
           {mounted && (
             <Button
-              variant="ghost" size="icon" onClick={toggleTheme}
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
               className="relative rounded-full border border-transparent transition-all hover:border-border"
               aria-label={isDark ? "Switch to Light" : "Switch to Dark"}
               title={isDark ? "Switch to Light" : "Switch to Dark"}
             >
-              <Sun className={`h-5 w-5 transition-all ${isDark ? "scale-0 rotate-90 opacity-0" : "scale-100 rotate-0 opacity-100"}`} />
-              <Moon className={`absolute h-5 w-5 transition-all ${isDark ? "scale-100 rotate-0 opacity-100" : "scale-0 -rotate-90 opacity-0"}`} />
+              <Sun
+                className={`h-5 w-5 transition-all ${
+                  isDark ? "scale-0 rotate-90 opacity-0" : "scale-100 rotate-0 opacity-100"
+                }`}
+              />
+              <Moon
+                className={`absolute h-5 w-5 transition-all ${
+                  isDark ? "scale-100 rotate-0 opacity-100" : "scale-0 -rotate-90 opacity-0"
+                }`}
+              />
             </Button>
           )}
 
@@ -99,21 +174,35 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">DH</AvatarFallback>
+                  <AvatarImage src={user?.avatar_url || ""} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {getInitials(user)}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">Demo</span>
+                <span className="text-sm font-medium">{displayName}</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/settings">Settings</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/support">Support</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/support">Support</Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); /* logout here */ }}>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault()
+                  localStorage.removeItem("access_token")
+                  setUser(null)
+                }}
+              >
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

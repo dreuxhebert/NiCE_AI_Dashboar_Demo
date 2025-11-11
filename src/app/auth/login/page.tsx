@@ -18,7 +18,8 @@ export default function LoginPage() {
   // proxy-aware setup
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
   const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
-  const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
+  const getApiUrl = (path: string) =>
+    USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
 
   // secret demo credentials
   const DEMO_USER = "123"
@@ -28,13 +29,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    // 1) Allow instant login if using demo creds
+    // 1) demo path
     if (email === DEMO_USER && password === DEMO_PASS) {
+      // no real token from backend here, so your top nav will show fallback
       router.push("/overview")
       return
     }
 
-    // 2) Otherwise, try backend
+    // 2) real backend path
     try {
       const res = await fetch(getApiUrl("/auth/login"), {
         method: "POST",
@@ -54,9 +56,20 @@ export default function LoginPage() {
         return
       }
 
+      // 👇 THIS is the important part
+      // your backend returns: { message, access_token, token_type, user: {...} }
+      if (typeof window !== "undefined") {
+        if (data.access_token) {
+          localStorage.setItem("access_token", data.access_token)
+        }
+        // optional: keep user too
+        if (data.user) {
+          localStorage.setItem("current_user", JSON.stringify(data.user))
+        }
+      }
+
       router.push("/overview")
     } catch (err) {
-      // 3) Handle backend sleep or 503s
       setError("Server is waking up — try again or use demo creds.")
     }
   }
