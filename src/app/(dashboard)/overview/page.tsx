@@ -3,11 +3,58 @@
 import { KpiCard } from "@/components/kpi-card"
 import { StatusBadge } from "@/components/status-badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, TrendingUp, AlertCircle, Clock } from "lucide-react"
+import { Phone, TrendingUp, AlertCircle, Clock, TrendingDown, } from "lucide-react"
 import { recentActivities, callsChartData } from "@/lib/sample-data"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { useEffect, useState } from "react"
 
 export default function OverviewPage() {
+
+  const [callsToday, setCallsToday] = useState<number>(0)
+  const [callsYesterday, setCallsYesterday] = useState<number>(0)
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+  const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+  // Helper to get the correct API URL based on environment
+  const getApiUrl = (path: string) => {
+    if (USE_PROXY) {
+      // In production, route through Next.js API proxy
+      return `/api/proxy${path}`;
+    }
+    // In development, connect directly to backend
+    return `${API_BASE}${path}`;
+  }
+
+  const totalCallsToday = async () => {
+    const resT = await fetch(
+      getApiUrl("/calls/callsToday"),{
+        method: "GET"
+      }
+    )
+    const dataT =await resT.json()
+    const resY = await fetch(
+      getApiUrl("/calls/callsToday"),{
+        method: "GET"
+      }
+    )
+    const dataY =await resY.json()
+    setCallsToday(dataT.total_calls_today)
+    setCallsYesterday(dataY.total_calls_yesterday)
+  }
+  const trendCallToday = () => {
+    if(callsToday < callsYesterday){
+      return {"trend": (callsYesterday - callsToday), "bool": false}
+    }else{
+      return {"trend": (callsToday - callsYesterday), "bool": true}
+    }
+  }
+
+  useEffect(() => {
+    totalCallsToday()
+    trendCallToday()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
@@ -19,9 +66,9 @@ export default function OverviewPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Calls Today"
-          value="342"
+          value={361}
           icon={Phone}
-          trend={{ value: "12% from yesterday", isPositive: true }}
+          trend={{ value: "43 calls", isPositive: trendCallToday()["bool"] } }
         />
         <KpiCard
           title="Average Operator Score"

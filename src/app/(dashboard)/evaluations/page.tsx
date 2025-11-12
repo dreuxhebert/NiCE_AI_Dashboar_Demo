@@ -202,6 +202,24 @@ export default function EvaluationsPage() {
     setCriticalViolations(noCount);
   }
 
+  const calTime = (givenTime?: number) => {
+    const time_sec = givenTime ?? 0;
+
+    if (time_sec < 60) {
+      return `${time_sec}s`;
+    }
+
+    if (time_sec < 3600) {
+      const min = Math.floor(time_sec / 60);
+      const sec = time_sec % 60;
+      return `${min}m  ${sec}s`;
+    }
+
+    const hr = Math.floor(time_sec / 3600);
+    const min = Math.floor((time_sec % 3600) / 60);
+    return `${hr}h ${min}m`;
+  };
+
   const toggleQuestion = (index: number) => {
     const s = new Set(expandedQuestions)
     s.has(index) ? s.delete(index) : s.add(index)
@@ -510,7 +528,7 @@ export default function EvaluationsPage() {
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
                       <span className="text-xs text-muted-foreground">
-                        {selectedEvaluation?.duration_seconds || 0} sec
+                        {calTime(selectedEvaluation?.duration_seconds) || 0}
                       </span>
                     </div>
 
@@ -826,7 +844,7 @@ export default function EvaluationsPage() {
                             <Separator className="bg-border/50" />
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-muted-foreground">Duration</span>
-                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.duration_seconds} sec</span>
+                              <span className="text-xs font-medium text-foreground">{calTime(selectedEvaluation?.duration_seconds)}</span>
                             </div>
                           </div>
                         </Card>

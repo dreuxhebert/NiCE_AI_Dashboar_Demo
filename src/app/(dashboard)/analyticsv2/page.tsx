@@ -160,6 +160,13 @@ export default function AnalyticsV2Page() {
   const [avgScoreThisWeek, setAvgScoreThisWeek] = useState<number>(0)
   const [avgScoreLastWeek, setAvgScoreLastWeek] = useState<number>(0)
   const [avgScoreByCallType, setAvgScoreByCallType] = useState<Record<string, number[]>>({});
+  interface CallDurationPoint {
+    date: string
+    avgDuration: number
+  }
+
+  const [callDuration, setCallDuration] = useState<CallDurationPoint[]>([]);
+
 
   // Update active tab when URL changes
   useEffect(() => {
@@ -317,7 +324,7 @@ export default function AnalyticsV2Page() {
     if (!res.ok) {
       throw new Error("Failed to fetch Average Time");
     }
-
+    
     setAvgScoreByCallType({
       Fire: [data.average_fire_score],
       Medical: [data.average_medical_score],
@@ -326,6 +333,20 @@ export default function AnalyticsV2Page() {
     });
 
   };
+
+  const getAvgCallDataByDays = async () => {
+    const res = await fetch(
+      getApiUrl("/calls/90daysData"),{
+        method: "GET"
+      }
+    )
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error("Failed to fetch Average Time");
+    }
+    return data
+
+  }
 
   const getAvgTime = async () => {
     const res = await fetch(
@@ -378,6 +399,12 @@ export default function AnalyticsV2Page() {
       console.error("Error fetching calls by date:", error);
     }
   };
+
+  useEffect(() => {
+    getAvgCallDataByDays()
+      .then((data) => setCallDuration(data))
+      .catch((err) => console.error(err));
+  }, []);
 
   useEffect(() => {
     fetchCallsByTypeData();
@@ -575,12 +602,12 @@ export default function AnalyticsV2Page() {
                 (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                     <TrendingDown className="h-3 w-3" />
-                    -{((avgScoreLastWeek / (avgScoreLastWeek + avgScoreThisWeek)) * 100).toFixed(1)}%, compared to previous Week
+                    {((avgScoreLastWeek - avgScoreThisWeek)).toFixed(1)}%, compared to previous Week
                   </p>
                 ) : (
                   <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" />
-                    +{((avgScoreThisWeek / (avgScoreLastWeek + avgScoreThisWeek)) * 100).toFixed(1)}%, compared to previous Week
+                    {(avgScoreThisWeek - avgScoreLastWeek).toFixed(1)}%, compared to previous Week
                   </p>
                 )
               }
@@ -622,12 +649,12 @@ export default function AnalyticsV2Page() {
               {avgTimeToday < avgTimeYesterday ? (
                 <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                   <TrendingDown className="h-3 w-3" />
-                  -{((avgTimeYesterday / (avgTimeYesterday + avgTimeToday)) * 100).toFixed(1)}% compared to previous 24 hours
+                  {(avgTimeYesterday - avgTimeToday).toFixed(1)} sec less than last day
                 </p>
               ) : (
                 <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  +{((avgTimeToday / (avgTimeYesterday + avgTimeToday)) * 100).toFixed(1)}% compared to previous 24 hours
+                  {(avgTimeToday - avgTimeYesterday).toFixed(1)} sec more than last day
                 </p>
               )}
 
@@ -712,7 +739,7 @@ export default function AnalyticsV2Page() {
             <CardContent className="pb-4 flex-1 min-h-0">
               <div className="h-full min-h-[150px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={callDurationData}>
+                  <AreaChart data={callDuration}>
                     <defs>
                       <linearGradient id="colorDuration" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />

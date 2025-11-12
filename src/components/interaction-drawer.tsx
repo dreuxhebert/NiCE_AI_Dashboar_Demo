@@ -89,6 +89,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
+  const [time, setTime] = useState<string>("")
   const { toast } = useToast()
 
   // --- Effects ---
@@ -97,6 +98,24 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
     const totalWeight = checkedCriteria.reduce((sum, c) => sum + c.weight, 0)
     setOverallScore(totalWeight)
   }, [criteria])
+
+  const calTime = (givenTime?: number) => {
+    const time_sec = givenTime ?? 0;
+
+    if (time_sec < 60) {
+      return `${time_sec}s`;
+    }
+
+    if (time_sec < 3600) {
+      const min = Math.floor(time_sec / 60);
+      const sec = time_sec % 60;
+      return `${min}m ${sec}s`;
+    }
+
+    const hr = Math.floor(time_sec / 3600);
+    const min = Math.floor((time_sec % 3600) / 60);
+    return `${hr}h ${min}m`;
+  };
 
   useEffect(() => {
     if (!open) {
@@ -267,7 +286,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Duration</p>
-                      <p className="text-sm font-bold text-foreground">{interaction.duration_seconds}</p>
+                      <p className="text-sm font-bold text-foreground">{calTime(interaction?.duration_seconds)}</p>
                     </div>
                   </div>
                 </div>
@@ -506,7 +525,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                       <Separator />
                       <div className="flex justify-between items-center">
                         <span className="text-base text-muted-foreground">Duration</span>
-                        <span className="text-base font-medium text-foreground">{interaction.duration_seconds}</span>
+                        <span className="text-base font-medium text-foreground">{calTime(interaction?.duration_seconds)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between items-center">
