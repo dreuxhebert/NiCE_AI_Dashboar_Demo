@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Bell,
   ChevronDown,
@@ -45,6 +46,7 @@ function getInitials(user: CurrentUser | null) {
 }
 
 export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [user, setUser] = useState<CurrentUser | null>(null)
@@ -68,7 +70,7 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
     return () => obs.disconnect()
   }, [])
 
-  //match login logic
+  // Match login logic
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
     if (!token) return
@@ -201,6 +203,7 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
                   e.preventDefault()
                   localStorage.removeItem("access_token")
                   setUser(null)
+                  router.push("/auth/login")   //Redirect to login after logout
                 }}
               >
                 Log out
