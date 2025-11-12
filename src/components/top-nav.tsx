@@ -57,13 +57,62 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
     const el = document.documentElement
     const update = () => setIsDark(el.classList.contains("dark"))
 
-    try {
-      const saved = localStorage.getItem("theme")
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-      const next = saved ? saved === "dark" : prefersDark
-      el.classList.toggle("dark", next)
-      setIsDark(next)
-    } catch {}
+    const loadTheme = async () => {
+      const token = localStorage.getItem("access_token")
+      
+      // For demo user, use localStorage only
+      if (token === "demo-token") {
+        try {
+          const saved = localStorage.getItem("theme")
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+          const next = saved ? saved === "dark" : prefersDark
+          el.classList.toggle("dark", next)
+          setIsDark(next)
+        } catch {}
+        return
+      }
+
+      // For authenticated users, try to fetch from backend
+      if (token) {
+        try {
+          const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
+          const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+          const getApiUrl = (path: string) =>
+            USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
+
+          const res = await fetch(getApiUrl('/user/theme'), {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            if (data.theme) {
+              const next = data.theme === "dark"
+              el.classList.toggle("dark", next)
+              setIsDark(next)
+              // Also save to localStorage as backup
+              localStorage.setItem("theme", data.theme)
+              return
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching theme from backend:", error)
+        }
+      }
+
+      // Fallback to localStorage or system preference
+      try {
+        const saved = localStorage.getItem("theme")
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+        const next = saved ? saved === "dark" : prefersDark
+        el.classList.toggle("dark", next)
+        setIsDark(next)
+      } catch {}
+    }
+
+    loadTheme()
 
     const obs = new MutationObserver(update)
     obs.observe(el, { attributes: true, attributeFilter: ["class"] })
@@ -93,13 +142,38 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
       .catch(() => {})
   }, [])
 
-  const toggleTheme = () => {
+  const toggleTheme = async () => {
     const next = !isDark
     setIsDark(next)
     document.documentElement.classList.toggle("dark", next)
+    const themeValue = next ? "dark" : "light"
+    
+    // Always save to localStorage as backup
     try {
-      localStorage.setItem("theme", next ? "dark" : "light")
+      localStorage.setItem("theme", themeValue)
     } catch {}
+
+    // For authenticated users (not demo), save to backend
+    const token = localStorage.getItem("access_token")
+    if (token && token !== "demo-token") {
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
+        const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+        const getApiUrl = (path: string) =>
+          USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
+
+        await fetch(getApiUrl('/user/theme'), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ theme: themeValue })
+        })
+      } catch (error) {
+        console.error("Error saving theme to backend:", error)
+      }
+    }
   }
 
   const displayName =

@@ -54,6 +54,9 @@ export function AudioPlayerWithWaveform({
   const mockIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Generate mock waveform data
+
+  //
+  
   const generateMockWaveform = useCallback(() => {
     const data = Array.from({ length: 150 }, (_, i) => {
       const bass = Math.sin(i * 0.02) * 0.4

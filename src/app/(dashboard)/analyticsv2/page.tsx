@@ -73,12 +73,12 @@ const DEFAULT_LAYOUTS = {
     { i: "auto-qa", x: 0, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
     { i: "manual-qa", x: 3, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
     { i: "avg-call-duration", x: 6, y: 0, w: 3, h: 4, minH: 4, minW: 2, maxW: 6 },
-    { i: "qa-by-tag", x: 9, y: 0, w: 3, h: 7, minH: 6, minW: 2 },
+    { i: "qa-by-tag", x: 9, y: 0, w: 3, h: 11, minH: 6, minW: 2 },
     { i: "qa-by-taker", x: 0, y: 4, w: 3, h: 7, minH: 6, minW: 2 },
     { i: "call-duration-chart", x: 3, y: 4, w: 6, h: 7, minH: 6, minW: 3 },
     { i: "calls-processed", x: 0, y: 11, w: 6, h: 9, minH: 8, minW: 3 },
     { i: "calls-by-type", x: 6, y: 11, w: 6, h: 9, minH: 8, minW: 3 },
-    { i: "qa-by-type", x: 0, y: 20, w: 6, h: 6, minH: 6, minW: 3 },
+    { i: "qa-by-type", x: 0, y: 20, w: 6, h: 9, minH: 6, minW: 3 },
     { i: "leaderboard", x: 6, y: 20, w: 6, h: 9, minH: 8, minW: 3 },
   ],
   md: [
@@ -178,29 +178,90 @@ export default function AnalyticsV2Page() {
     setMounted(true);
   }, []);
   
-  // Load saved layouts from localStorage on mount
+  // Load saved layouts from backend (or fallback to localStorage) on mount
   useEffect(() => {
-    const savedLayout = localStorage.getItem("analyticsv2-layout");
-    if (savedLayout) {
-      try {
-        const parsed = JSON.parse(savedLayout);
-        setLayouts(parsed);
-        setIsSaved(true);
-      } catch (e) {
-        console.error("Failed to parse saved layout", e);
-      }
-    }
+    const loadLayouts = async () => {
+      const token = localStorage.getItem("access_token");
+      
+      // Skip backend fetch for demo user
+      if (token === "demo-token") {
+        // Try localStorage for demo user
+        const savedLayout = localStorage.getItem("analyticsv2-layout");
+        if (savedLayout) {
+          try {
+            const parsed = JSON.parse(savedLayout);
+            setLayouts(parsed);
+            setIsSaved(true);
+          } catch (e) {
+            console.error("Failed to parse saved layout", e);
+          }
+        }
 
-    const savedDirectoryLayout = localStorage.getItem("analyticsv2-directory-layout");
-    if (savedDirectoryLayout) {
-      try {
-        const parsed = JSON.parse(savedDirectoryLayout);
-        setDirectoryLayouts(parsed);
-        setIsDirectorySaved(true);
-      } catch (e) {
-        console.error("Failed to parse saved directory layout", e);
+        const savedDirectoryLayout = localStorage.getItem("analyticsv2-directory-layout");
+        if (savedDirectoryLayout) {
+          try {
+            const parsed = JSON.parse(savedDirectoryLayout);
+            setDirectoryLayouts(parsed);
+            setIsDirectorySaved(true);
+          } catch (e) {
+            console.error("Failed to parse saved directory layout", e);
+          }
+        }
+        return;
       }
-    }
+
+      // For authenticated users, try to fetch from backend
+      if (token) {
+        try {
+          const apiUrl = getApiUrl('/user/layout');
+          const res = await fetch(apiUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.layout_coords) {
+              if (data.layout_coords.overview) {
+                setLayouts(data.layout_coords.overview);
+                setIsSaved(true);
+              }
+              if (data.layout_coords.directory) {
+                setDirectoryLayouts(data.layout_coords.directory);
+                setIsDirectorySaved(true);
+              }
+            }
+          } else {
+            console.log("No saved layout found in backend, checking localStorage");
+            // Fallback to localStorage if backend fetch fails
+            const savedLayout = localStorage.getItem("analyticsv2-layout");
+            if (savedLayout) {
+              try {
+                const parsed = JSON.parse(savedLayout);
+                setLayouts(parsed);
+              } catch (e) {
+                console.error("Failed to parse saved layout", e);
+              }
+            }
+
+            const savedDirectoryLayout = localStorage.getItem("analyticsv2-directory-layout");
+            if (savedDirectoryLayout) {
+              try {
+                const parsed = JSON.parse(savedDirectoryLayout);
+                setDirectoryLayouts(parsed);
+              } catch (e) {
+                console.error("Failed to parse saved directory layout", e);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching layout from backend:", error);
+        }
+      }
+    };
+
+    loadLayouts();
   }, []);
 
   // Calculate average Auto QA Score
@@ -492,15 +553,120 @@ export default function AnalyticsV2Page() {
     setIsSaved(false);
   };
 
-  // Save layout to localStorage for Performance Overview
-  const saveLayout = () => {
-    localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
-    setIsSaved(true);
+  // Save layout to backend (and localStorage as fallback) for Performance Overview
+  const saveLayout = async () => {
+    const token = localStorage.getItem("access_token");
+    
+    // For demo user, only save to localStorage
+    if (token === "demo-token") {
+      localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
+      setIsSaved(true);
+      return;
+    }
+
+    // For authenticated users, save to backend
+    if (token) {
+      try {
+        // First, get existing layout_coords to preserve directory layout
+        const getRes = await fetch(getApiUrl('/user/layout'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        let existingLayout = {};
+        if (getRes.ok) {
+          const data = await getRes.json();
+          existingLayout = data.layout_coords || {};
+        }
+
+        // Update with new overview layout
+        const updatedLayout = {
+          ...existingLayout,
+          overview: layouts
+        };
+
+        const apiUrl = getApiUrl('/user/layout');
+        const res = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ layout_coords: updatedLayout })
+        });
+
+        if (res.ok) {
+          setIsSaved(true);
+          // Also save to localStorage as backup
+          localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
+        } else {
+          console.error("Failed to save layout to backend");
+          // Fallback to localStorage
+          localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
+          setIsSaved(true);
+        }
+      } catch (error) {
+        console.error("Error saving layout:", error);
+        // Fallback to localStorage
+        localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
+        setIsSaved(true);
+      }
+    } else {
+      // No token, save to localStorage
+      localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
+      setIsSaved(true);
+    }
   };
 
   // Reset to default layout for Performance Overview
-  const resetLayout = () => {
+  const resetLayout = async () => {
     setLayouts(DEFAULT_LAYOUTS);
+    const token = localStorage.getItem("access_token");
+    
+    // For demo user, only remove from localStorage
+    if (token === "demo-token") {
+      localStorage.removeItem("analyticsv2-layout");
+      setIsSaved(false);
+      return;
+    }
+
+    // For authenticated users, update backend
+    if (token && token !== "demo-token") {
+      try {
+        // Get existing layout_coords to preserve directory layout
+        const getRes = await fetch(getApiUrl('/user/layout'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        let existingLayout = {};
+        if (getRes.ok) {
+          const data = await getRes.json();
+          existingLayout = data.layout_coords || {};
+        }
+
+        // Remove overview layout but keep directory
+        const updatedLayout = {
+          ...existingLayout,
+          overview: DEFAULT_LAYOUTS
+        };
+
+        const apiUrl = getApiUrl('/user/layout');
+        await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ layout_coords: updatedLayout })
+        });
+      } catch (error) {
+        console.error("Error resetting layout:", error);
+      }
+    }
+    
     localStorage.removeItem("analyticsv2-layout");
     setIsSaved(false);
   };
@@ -511,15 +677,120 @@ export default function AnalyticsV2Page() {
     setIsDirectorySaved(false);
   };
 
-  // Save layout to localStorage for Directory
-  const saveDirectoryLayout = () => {
-    localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
-    setIsDirectorySaved(true);
+  // Save layout to backend (and localStorage as fallback) for Directory
+  const saveDirectoryLayout = async () => {
+    const token = localStorage.getItem("access_token");
+    
+    // For demo user, only save to localStorage
+    if (token === "demo-token") {
+      localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
+      setIsDirectorySaved(true);
+      return;
+    }
+
+    // For authenticated users, save to backend
+    if (token) {
+      try {
+        // First, get existing layout_coords to preserve overview layout
+        const getRes = await fetch(getApiUrl('/user/layout'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        let existingLayout = {};
+        if (getRes.ok) {
+          const data = await getRes.json();
+          existingLayout = data.layout_coords || {};
+        }
+
+        // Update with new directory layout
+        const updatedLayout = {
+          ...existingLayout,
+          directory: directoryLayouts
+        };
+
+        const apiUrl = getApiUrl('/user/layout');
+        const res = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ layout_coords: updatedLayout })
+        });
+
+        if (res.ok) {
+          setIsDirectorySaved(true);
+          // Also save to localStorage as backup
+          localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
+        } else {
+          console.error("Failed to save directory layout to backend");
+          // Fallback to localStorage
+          localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
+          setIsDirectorySaved(true);
+        }
+      } catch (error) {
+        console.error("Error saving directory layout:", error);
+        // Fallback to localStorage
+        localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
+        setIsDirectorySaved(true);
+      }
+    } else {
+      // No token, save to localStorage
+      localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
+      setIsDirectorySaved(true);
+    }
   };
 
   // Reset to default layout for Directory
-  const resetDirectoryLayout = () => {
+  const resetDirectoryLayout = async () => {
     setDirectoryLayouts(DEFAULT_DIRECTORY_LAYOUTS);
+    const token = localStorage.getItem("access_token");
+    
+    // For demo user, only remove from localStorage
+    if (token === "demo-token") {
+      localStorage.removeItem("analyticsv2-directory-layout");
+      setIsDirectorySaved(false);
+      return;
+    }
+
+    // For authenticated users, update backend
+    if (token && token !== "demo-token") {
+      try {
+        // Get existing layout_coords to preserve overview layout
+        const getRes = await fetch(getApiUrl('/user/layout'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        let existingLayout = {};
+        if (getRes.ok) {
+          const data = await getRes.json();
+          existingLayout = data.layout_coords || {};
+        }
+
+        // Remove directory layout but keep overview
+        const updatedLayout = {
+          ...existingLayout,
+          directory: DEFAULT_DIRECTORY_LAYOUTS
+        };
+
+        const apiUrl = getApiUrl('/user/layout');
+        await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ layout_coords: updatedLayout })
+        });
+      } catch (error) {
+        console.error("Error resetting directory layout:", error);
+      }
+    }
+    
     localStorage.removeItem("analyticsv2-directory-layout");
     setIsDirectorySaved(false);
   };
