@@ -1,3 +1,5 @@
+"use client"
+
 import WavesurferPlayer from "@wavesurfer/react"
 import { useState } from "react";
 import type WaveSurfer from "wavesurfer.js";
