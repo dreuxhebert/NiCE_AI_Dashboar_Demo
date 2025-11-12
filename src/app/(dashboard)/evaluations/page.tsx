@@ -15,9 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  Play,
-  Pause,
-  Volume2,
   PencilLine,
   Save,
   RotateCcw,
@@ -27,11 +24,11 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { AddQuestionDrawer } from "@/components/add-question-drawer"
+import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
 
 export default function EvaluationsPage() {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
-  const [isPlaying, setIsPlaying] = useState(false)
   const [showTable, setShowTable] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [qaQuestionsSet, setQaQuestionsSet] = useState<QAQuestion[]>([])
@@ -47,10 +44,6 @@ export default function EvaluationsPage() {
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
   const [qaAnalysis, setQaAnalysis] = useState<call_analysis | null>(null)
   const [score, setScore] = useState<number>(0)
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
 
   // This is your existing mock waveform bars
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
@@ -532,112 +525,7 @@ export default function EvaluationsPage() {
                       </span>
                     </div>
 
-                    {/* Hidden audio element */}
-                    <audio
-                      ref={audioRef}
-                      src={selectedEvaluation?.call_id ? getApiUrl(`/calls/audio/${selectedEvaluation.call_id}`) : undefined}
-                      onLoadedMetadata={() =>
-                        setDuration(audioRef.current ? audioRef.current.duration : 0)
-                      }
-                      onTimeUpdate={() =>
-                        setCurrentTime(audioRef.current ? audioRef.current.currentTime : 0)
-                      }
-                      onEnded={() => setIsPlaying(false)}
-                      preload="metadata"
-                    />
-
-                    {/* Waveform bars */}
-                    <div className="relative h-14 sm:h-16 bg-muted rounded-lg overflow-hidden mb-3 border border-border/50">
-                      <div className="absolute inset-0 flex items-center justify-center gap-[2px] px-2">
-                        {bars.map((height, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 bg-gradient-to-t from-primary/80 to-primary/40 rounded-full"
-                            style={{ height: `${height}%` }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Progress overlay */}
-                      <div
-                        className="absolute left-0 top-0 h-full bg-primary/20 transition-all"
-                        style={{
-                          width:
-                            duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
-                        }}
-                      />
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center gap-3">
-
-                    {/* Play / Pause */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 bg-transparent"
-                      aria-label={isPlaying ? "Pause audio" : "Play audio"}
-                      onClick={() => {
-                        if (!audioRef.current) return;
-                        if (isPlaying) {
-                          audioRef.current.pause();
-                          setIsPlaying(false);
-                        } else {
-                          audioRef.current.play();
-                          setIsPlaying(true);
-                        }
-                      }}
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-4 w-4" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
-
-                    {/* ✅ Draggable Seek Bar with Blue Played Portion */}
-                    <div className="flex-1 flex items-center">
-                      <input
-                        type="range"
-                        min={0}
-                        max={duration || 0}
-                        step={0.1}
-                        value={currentTime}
-                        onChange={(e) => {
-                          const newTime = Number(e.target.value);
-                          if (audioRef.current) {
-                            audioRef.current.currentTime = newTime;
-                            setCurrentTime(newTime);
-                          }
-                        }}
-                        style={{
-                          "--progress": duration
-                            ? `${(currentTime / duration) * 100}%`
-                            : "0%",
-                        } as React.CSSProperties}
-                        className="audio-slider"
-                      />
-                    </div>
-
-                    {/* Volume Button */}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0"
-                      aria-label="Volume"
-                      onClick={() => {
-                        if (!audioRef.current) return;
-                        audioRef.current.muted = !audioRef.current.muted;
-                        setIsMuted(audioRef.current.muted);
-                      }}
-                    >
-                      {isMuted ? (
-                        <Volume2 className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                    <AudioPlayerWithWaveformV2 />
                   </div>
 
 
