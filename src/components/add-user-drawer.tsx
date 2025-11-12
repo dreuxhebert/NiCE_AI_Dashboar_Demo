@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, number } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddUserDialog {
@@ -12,8 +12,21 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
   const [firstName, setFirstname] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [teamNumber, setTeamNumber] = useState<number>();
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  const tabOptions = [
+    "Overview",
+    "Evaluations",
+    "Coaching",
+    "Analytics",
+    "Interactions",
+    "Protocol",
+    "Administrator"
+  ];
+
 
   const { toast } = useToast();
 
@@ -27,13 +40,17 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
     return `${API_BASE}${path}`;
   };
 
+  
+
   const handleAddUserClick = async () => {
     const body = {
       first_name: firstName,
       last_name: lastName,
-      email,
-      role,
-      password,
+      team_number: teamNumber,
+      email: email,
+      role: role,
+      password: password,
+      permissions: permissions
     };
 
     const res = await fetch(getApiUrl("/user/"), {
@@ -57,19 +74,31 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
   };
 
   const inputClass =
-    "border border-input bg-background/60 backdrop-blur-sm text-foreground p-3 rounded-xl w-full " +
-    "focus:ring-2 focus:ring-primary focus:outline-none transition shadow-sm hover:bg-background/80";
+    "border border-input bg-background/70 backdrop-blur-sm text-foreground " +
+    "p-3 rounded-xl w-full " +
+    "focus:ring-2 focus:ring-primary focus:outline-none transition shadow-sm " +
+    "placeholder:text-muted-foreground";
 
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md flex justify-center items-center z-50 p-4">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0, y: 30 }}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.8, opacity: 0, y: 30 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="bg-card/80 backdrop-blur-xl shadow-2xl border border-border/40 
-                   rounded-3xl w-full max-w-[460px] p-8 space-y-6"
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className="
+          bg-card/80 
+          backdrop-blur-xl 
+          shadow-2xl 
+          border border-border/40 
+          rounded-3xl 
+          w-full 
+          max-w-[560px]     /* ✅ Increased from 460px → 560px */
+          p-10 
+          space-y-7
+        "
       >
+
         <h2 className="text-2xl font-semibold text-center tracking-tight">
           Create New User
         </h2>
@@ -94,6 +123,13 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          <input
+            placeholder="Team Number"
+            type="number"
+            className={inputClass}
+            value={teamNumber}
+            onChange={(e) => setTeamNumber(Number(e.target.value))}
+          />
 
           {/* ✅ Perfectly Themed Role Dropdown */}
             <div className="relative">
@@ -117,20 +153,11 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
             >
-                <option value="" disabled className="text-muted-foreground">
-                Select Role
-                </option>
-
+                <option value="" disabled className="text-muted-foreground">Select Role</option>
                 <option value="PSAP Director / Manager">PSAP Director / Manager</option>
-                <option value="Operations Supervisor / Shift Supervisor">
-                Operations Supervisor / Shift Supervisor
-                </option>
-                <option value="Training & Quality Assurance Officer">
-                Training & Quality Assurance Officer
-                </option>
-                <option value="Lead Telecommunicator / Senior Dispatcher">
-                Lead Telecommunicator / Senior Dispatcher
-                </option>
+                <option value="Operations Supervisor / Shift Supervisor">Operations Supervisor / Shift Supervisor</option>
+                <option value="Training & Quality Assurance Officer">Training & Quality Assurance Officer</option>
+                <option value="Lead Telecommunicator / Senior Dispatcher">Lead Telecommunicator / Senior Dispatcher</option>
                 <option value="Call Takers">Call Takers</option>
                 <option value="Dispatchers">Dispatchers</option>
                 <option value="Specialized Dispatchers">Specialized Dispatchers</option>
@@ -148,7 +175,46 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
             </div>
+          </div>
+
+          {/* ✅ Tab Access Section */}
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground font-medium">Tab Access</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              {tabOptions.map((tab) => (
+                <label
+                  key={tab}
+                  className="
+                    flex items-center gap-3
+                    p-3 
+                    rounded-xl 
+                    border border-input 
+                    bg-background/60 
+                    backdrop-blur-sm 
+                    shadow-sm
+                    hover:bg-background/80
+                    cursor-pointer
+                    transition
+                  "
+                >
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    checked={permissions.includes(tab)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setPermissions([...permissions, tab]);
+                      } else {
+                        setPermissions(permissions.filter((t) => t !== tab));
+                      }
+                    }}
+                  />
+                  <span className="text-[0.95rem]">{tab}</span>
+                </label>
+              ))}
             </div>
+          </div>
 
           <input
             placeholder="Default Password"
@@ -159,15 +225,15 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
           />
         </div>
 
-        <div className="flex justify-end gap-4 pt-3">
+        <div className="flex justify-end gap-4 pt-4">
           <Button
             variant="outline"
-            className="rounded-xl px-6"
+            className="rounded-xl px-6 py-2.5 text-sm"
             onClick={closeDrawer}
           >
             Cancel
           </Button>
-          <Button className="rounded-xl px-6" onClick={handleAddUserClick}>
+          <Button className="rounded-xl px-6 py-2.5 text-sm" onClick={handleAddUserClick}>
             Add User
           </Button>
         </div>

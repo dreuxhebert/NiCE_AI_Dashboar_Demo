@@ -6,12 +6,20 @@ import { Sidebar } from "@/components/sidebar"
 import { TopNav } from "@/components/top-nav"
 import { Toaster } from "@/components/ui/toaster"
 
+const ALL_PERMISSIONS  = [
+    "Overview",
+    "Evaluations",
+    "Coaching",
+    "Analytics",
+    "Interactions",
+    "Protocol",
+    "Administrator"
+  ];
+
 export default function LayoutShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
-
-  // ✅ NEW: track admin
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [permissions, setPermissions] = useState<string[]>([])
 
   // figure out screen size
   useEffect(() => {
@@ -30,10 +38,16 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
       mediaQuery.removeEventListener("change", handleChange)
     }
   }, [])
-
-  // ✅ NEW: fetch user once to see if admin
+  
+  // ✅ NEW: fetch user once to see permissions
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+    // ✅ Detect demo mode
+    if (token === "demo-token") {
+      const u = JSON.parse(localStorage.getItem("current_user") || "{}")
+      setPermissions(u.permissions || ALL_PERMISSIONS)
+      return
+    }
     if (!token) return
 
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
@@ -47,9 +61,8 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
       .then(async (res) => {
         if (!res.ok) return
         const data = await res.json()
-        if (data.is_admin) {
-          setIsAdmin(true)
-        }
+        setPermissions(data.permissions || [])
+        console.log(`Permissions fetched were ${data.permissions}`)
       })
       .catch(() => {
         // ignore for now
@@ -64,7 +77,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-hidden">
       {/* ✅ pass isAdmin into Sidebar */}
-      <Sidebar collapsed={collapsed} isAdmin={isAdmin} />
+      <Sidebar collapsed={collapsed} permissions={permissions} />
       <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} />
       <main
         className={`mt-16 min-h-screen p-6 transition-[margin-left] duration-200 ${

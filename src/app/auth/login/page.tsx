@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Eye, EyeOff } from "lucide-react"
 
+  const ALL_PERMISSIONS  = [
+    "Overview",
+    "Evaluations",
+    "Coaching",
+    "Analytics",
+    "Interactions",
+    "Protocol",
+    "Administrator"
+  ];
+
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
@@ -31,10 +41,24 @@ export default function LoginPage() {
 
     // 1) demo path
     if (email === DEMO_USER && password === DEMO_PASS) {
-      // no real token from backend here, so your top nav will show fallback
-      router.push("/overview")
-      return
+
+    if (typeof window !== "undefined") {
+      // Store fake token (needed so /auth/me isn't triggered)
+      localStorage.setItem("access_token", "demo-token")
+
+      // Store full permissions
+      localStorage.setItem("current_user", JSON.stringify({
+        email: "demo@nice.com",
+        first_name: "Demo",
+        last_name: "User",
+        permissions: ALL_PERMISSIONS,
+        is_admin: true,  // optional: give admin access too
+      }))
     }
+
+    router.push("/overview")
+    return
+  }
 
     // 2) real backend path
     try {

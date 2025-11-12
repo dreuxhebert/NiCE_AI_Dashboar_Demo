@@ -71,3 +71,17 @@ export async function PATCH(req, { params }) {
 
   return passThrough(r)
 }
+
+export async function DELETE(req, { params }) {
+  const url = upstreamUrl(req, params.path)
+
+  const r = await fetch(url, {
+    method: "DELETE",
+    cache: "no-store",
+    headers: {
+      Authorization: req.headers.get("authorization") || "",
+    },
+  })
+
+  return passThrough(r)
+}

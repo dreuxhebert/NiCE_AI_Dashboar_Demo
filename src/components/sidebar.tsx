@@ -18,22 +18,22 @@ import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 
+
 const menuItems = [
-  { title: "Overview", href: "/overview", icon: LayoutDashboard },
-  { title: "Evaluations", href: "/evaluations", icon: FileCheck },
-  { title: "Coaching", href: "/coaching", icon: ClipboardCheck },
-  // { title: "Old Analytics", href: "/analytics", icon: BarChart3 },
-  { title: "Analytics", href: "/analyticsv2", icon: BarChart3 },
-  { title: "Interactions", href: "/interactions", icon: MessageSquare },
-  { title: "Protocols", href: "/protocols", icon: ListChecks },
-  // ⬇️ this one is admin-only
-  { title: "Employee Manager", href: "/admin/employeeManagement", icon: UserPen, adminOnly: true },
-  { title: "Settings", href: "/settings", icon: Settings },
+  { title: "Overview", href: "/overview", icon: LayoutDashboard, permission: "Overview" },
+  { title: "Evaluations", href: "/evaluations", icon: FileCheck, permission: "Evaluations" },
+  { title: "Coaching", href: "/coaching", icon: ClipboardCheck, permission: "Coaching" },
+  { title: "Analytics", href: "/analyticsv2", icon: BarChart3, permission: "Analytics" },
+  { title: "Interactions", href: "/interactions", icon: MessageSquare, permission: "Interactions" },
+  { title: "Protocols", href: "/protocols", icon: ListChecks, permission: "Protocol" },
+  { title: "Administrator", href: "/employeeManagement", icon: UserPen, permission: "Administrator" },
+  { title: "Settings", href: "/settings", icon: Settings},
 ]
+
 
 interface SidebarProps {
   collapsed: boolean
-  isAdmin?: boolean // ✅ new
+  permissions?: string[]
 }
 
 // Watch the <html> class for "dark" and expose a boolean
@@ -50,7 +50,7 @@ function useIsDark(): boolean {
   return isDark
 }
 
-export function Sidebar({ collapsed, isAdmin }: SidebarProps) {
+export function Sidebar({ collapsed, permissions }: SidebarProps) {
   const pathname = usePathname()
   const isDark = useIsDark()
   const [mounted, setMounted] = useState(false)
@@ -82,9 +82,12 @@ export function Sidebar({ collapsed, isAdmin }: SidebarProps) {
 
   const handleLeave = () => setTooltip(null)
 
-  // ✅ filter here: admin-only items only if isAdmin
   const visibleMenuItems = menuItems.filter((item) => {
-    if (item.adminOnly && !isAdmin) return false
+
+    if (item.permission) {
+      return permissions?.includes(item.permission)
+    }
+
     return true
   })
 
