@@ -48,8 +48,10 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
       last_name: lastName,
       team_number: teamNumber,
       email: email,
+      layout_coords: {},
       role: role,
       password: password,
+      theme: "dark",
       permissions: permissions
     };
 
