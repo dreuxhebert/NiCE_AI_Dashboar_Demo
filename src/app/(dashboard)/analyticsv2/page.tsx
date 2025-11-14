@@ -47,6 +47,12 @@ const callDurationData = [
   { date: "Jan 15", avgDuration: 4.0 },
 ];
 
+interface distribution {
+  range: string,
+  count: number,
+  fill: string
+} 
+
 // Calculate average QA scores by incident type from evaluations
 const getQAScoresByIncidentType = () => {
   const scoresByType: { [key: string]: { total: number; count: number } } = {};
@@ -159,6 +165,7 @@ export default function AnalyticsV2Page() {
   const [avgTimeYesterday, setAvgTimeYesterday] = useState<number>(0)
   const [avgScoreThisWeek, setAvgScoreThisWeek] = useState<number>(0)
   const [avgScoreLastWeek, setAvgScoreLastWeek] = useState<number>(0)
+  const [performanceDistribution, setPerformanceDistribution] =  useState<distribution[]>([])
   const [avgScoreByCallType, setAvgScoreByCallType] = useState<Record<string, number[]>>({});
   interface CallDurationPoint {
     date: string
@@ -306,16 +313,6 @@ export default function AnalyticsV2Page() {
     return { totalOperators, totalCalls, avgScore: avgScore.toFixed(1), topPerformers };
   }, []);
 
-  // Performance distribution data for directory
-  const performanceDistribution = useMemo(() => {
-    return [
-      { range: "90-100", count: dispatcherLeaderboard.filter(d => d.avgScore >= 90).length, fill: "#10b981" },
-      { range: "85-89", count: dispatcherLeaderboard.filter(d => d.avgScore >= 85 && d.avgScore < 90).length, fill: "#3b82f6" },
-      { range: "80-84", count: dispatcherLeaderboard.filter(d => d.avgScore >= 80 && d.avgScore < 85).length, fill: "#8b5cf6" },
-      { range: "75-79", count: dispatcherLeaderboard.filter(d => d.avgScore >= 75 && d.avgScore < 80).length, fill: "#f59e0b" },
-      { range: "<75", count: dispatcherLeaderboard.filter(d => d.avgScore < 75).length, fill: "#ef4444" },
-    ];
-  }, []);
 
   // Calls by operator data
   const callsByOperator = useMemo(() => {
@@ -461,6 +458,20 @@ export default function AnalyticsV2Page() {
     }
   };
 
+  
+  const getPerformanceDistribution =async () => {
+    const res = await fetch(
+      getApiUrl("/calls/performanceDistribution"),{
+        method: "GET"
+      }
+    )
+    if(!res.ok){
+      console.error("Failed to load performance Distribution");
+    }
+    const data = await res.json()
+    setPerformanceDistribution(data)
+  }
+
   useEffect(() => {
     getAvgCallDataByDays()
       .then((data) => setCallDuration(data))
@@ -472,6 +483,7 @@ export default function AnalyticsV2Page() {
     fetchCallsByDateData();
     getAvgTime()
     getAvgScore()
+    getPerformanceDistribution()
   }, []);
 
   useEffect(() => {
@@ -618,6 +630,7 @@ export default function AnalyticsV2Page() {
       setIsSaved(true);
     }
   };
+
 
   // Reset to default layout for Performance Overview
   const resetLayout = async () => {

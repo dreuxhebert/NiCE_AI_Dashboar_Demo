@@ -167,10 +167,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/auth/register" className="text-primary">
-            Sign up
-          </Link>
+          Don&apos;t have an account. Ask your superviser to register your details.
         </p>
       </div>
 

@@ -17,12 +17,14 @@ interface AudioPlayerWithWaveformProps {
   audioUrl?: string
   fileName?: string
   className?: string
+  callDuration?: number
 }
 
 export function AudioPlayerWithWaveform({ 
   audioUrl, 
   fileName,
-  className 
+  className ,
+  callDuration
 }: AudioPlayerWithWaveformProps) {
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false)
@@ -307,6 +309,24 @@ export function AudioPlayerWithWaveform({
     }
   }
 
+    const calTime = (givenTime?: number) => {
+    const time_sec = givenTime ?? 0;
+
+    if (time_sec < 60) {
+      return `${time_sec}s`;
+    }
+
+    if (time_sec < 3600) {
+      const min = Math.floor(time_sec / 60);
+      const sec = time_sec % 60;
+      return `${min}:${sec}`;
+    }
+
+    const hr = Math.floor(time_sec / 3600);
+    const min = Math.floor((time_sec % 3600) / 60);
+    return `${hr}${min}`;
+  };
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
@@ -330,49 +350,10 @@ export function AudioPlayerWithWaveform({
         onError={() => {
           console.info('elevator_music.mp3 not found - demo mode')
           setIsLoading(false)
-          setDuration(180) // 3 minutes demo duration
+          setDuration(callDuration ?? 180) // 3 minutes demo duration
         }}
         preload="metadata"
       />
-
-      {/* Waveform Visualization */}
-      <Card className="p-4">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AudioLines className="h-4 w-4 text-primary" />
-              <h5 className="text-sm font-semibold text-foreground">Audio Waveform</h5>
-            </div>
-            {fileName && (
-              <div className="text-xs text-muted-foreground font-mono px-2 py-1 bg-muted/50 rounded">
-                {fileName}
-              </div>
-            )}
-          </div>
-          
-          <div className="relative border border-border rounded-lg overflow-hidden bg-gradient-to-br from-background to-muted/20 aspect-[4/1]">
-            <canvas
-              ref={canvasRef}
-              width={800}
-              height={120}
-              className="w-full h-full cursor-pointer hover:bg-muted/10 transition-colors"
-              onClick={(e) => {
-                if (!duration) return
-                const rect = e.currentTarget.getBoundingClientRect()
-                const x = e.clientX - rect.left
-                const progress = x / rect.width
-                const newTime = progress * duration
-                handleSeek([progress * 100])
-              }}
-            />
-            {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
 
       {/* Audio Controls */}
       <div className="bg-background border border-border rounded-lg p-4">
@@ -381,7 +362,7 @@ export function AudioPlayerWithWaveform({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-foreground font-mono tabular-nums">{formatTime(currentTime)}</span>
-              <span className="text-muted-foreground font-mono tabular-nums">{formatTime(duration)}</span>
+              <span className="text-muted-foreground font-mono tabular-nums">{calTime(callDuration)}</span>
             </div>
             <div className="w-full">
               <input

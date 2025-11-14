@@ -10,6 +10,7 @@ import { SentimentBadge } from "@/components/sentiment-badge"
 import { AudioPlayerWithWaveform } from "@/components/audio-player-with-waveform"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import image from "@/components/callLogo.png"
 import {
   ClipboardList,
   Info,
@@ -89,7 +90,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
-  const [time, setTime] = useState<string>("")
   const { toast } = useToast()
 
   // --- Effects ---
@@ -244,7 +244,7 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
           <div className="flex items-center gap-4 relative z-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl">
               <img
-                src={logoUrl || "/NiCE_SMILE.svg"}
+                src={logoUrl || "/callLogo.png"}
                 alt="Company Logo"
                 className="h-8 w-8 object-contain"
               />
@@ -275,62 +275,20 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
           {/* Left Side - Transcript / Info */}
           <div className={cn("border-r border-border flex flex-col overflow-hidden transition-all duration-300", leftPanelWidth)}>
             <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
-              <div className="grid grid-cols-2 gap-3">
-                {/* Duration Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Duration</p>
-                      <p className="text-sm font-bold text-foreground">{calTime(interaction?.duration_seconds)}</p>
-                    </div>
-                  </div>
+              {/* ---------------------------------------------------------------------------------------------------------------------------------------------------------------- */}
+              {/* Audio Player */}
+              <div className="rounded-lg bg-muted/1 p-3">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <strong>Audio Player:</strong> Play the call recording at any point in time by clicking over the audio track.
+                  </p>
                 </div>
-
-                {/* Model Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Brain className="h-4.5 w-4.5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">AI Model</p>
-                      <p className="text-sm font-bold text-foreground">{interaction.model}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Language Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Languages className="h-4.5 w-4.5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Language</p>
-                      <p className="text-sm font-bold text-foreground">{interaction.language}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ID Card */}
-                <div className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <svg className="h-4.5 w-4.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] text-muted-foreground font-medium mb-0.5">Call ID</p>
-                      <p className="text-[11px] font-mono font-bold text-foreground truncate">{String(interaction.id).slice(0, 12)}...</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <AudioPlayerWithWaveform
+                  audioUrl={`/calls/audio/${interaction.call_id}`}
+                  fileName={interaction.call_id}
+                  className="space-y-4"
+                  callDuration={interaction.duration_seconds}
+                />
               </div>
             </div>
 
@@ -376,20 +334,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                 onClick={() => setActiveTab("summary")}
               >
                 <ClipboardList className="h-5 w-5" />
-              </Button>
-
-              {/* Audio Player */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-12 w-12 rounded-xl transition-all duration-200 hover:scale-110 hover:bg-primary/5",
-                  activeTab === "audio-player" &&
-                    "bg-primary/15 text-primary border-2 border-primary/30 shadow-lg shadow-primary/10 scale-105",
-                )}
-                onClick={() => setActiveTab("audio-player")}
-              >
-                <Volume2 className="h-5 w-5" />
               </Button>
 
               {/* Scores */}
@@ -472,23 +416,6 @@ export function InteractionDrawer({ interaction, open, onOpenChange, logoUrl }: 
                           </li>
                         ))}
                       </ul>
-                    </div>
-                  </div>
-                )}
-
-                {/* Audio Player */}
-                {activeTab === "audio-player" && (
-                  <div className="space-y-4">
-                    <AudioPlayerWithWaveform
-                      audioUrl={`/calls/audio/${interaction.call_id}`}
-                      fileName={interaction.call_id}
-                      className="space-y-4"
-                    />
-                    <div className="rounded-lg bg-muted/30 border border-border/50 p-3">
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        <strong>Audio Waveform:</strong> Visual representation of the call recording showing amplitude over time.
-                        Click anywhere on the waveform to seek to that position in the audio.
-                      </p>
                     </div>
                   </div>
                 )}
