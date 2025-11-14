@@ -55,7 +55,7 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
       permissions: permissions
     };
 
-    const res = await fetch(getApiUrl("/user/"), {
+    const res = await fetch(getApiUrl("/user"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
