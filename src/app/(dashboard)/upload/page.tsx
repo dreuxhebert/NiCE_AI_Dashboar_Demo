@@ -320,11 +320,9 @@ export default function UploadPage() {
                     <SelectValue placeholder="Select call type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Medical">Medical</SelectItem>
+                    <SelectItem value="EMS">EMS</SelectItem>
                     <SelectItem value="Fire">Fire</SelectItem>
-                    <SelectItem value="Shooting">Shooting</SelectItem>
-                    <SelectItem value="Traffic">Traffic</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Police">Police</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

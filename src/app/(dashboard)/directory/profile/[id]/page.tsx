@@ -96,11 +96,11 @@ export default function DirectoryProfilePage({ params }: Props) {
   // Recent call performance (mock data)
   const recentCalls = useMemo(() => {
     return [
-      { date: "2025-01-15", time: "14:23", type: "Medical", duration: "4:32", score: 94, sentiment: "neutral" },
+      { date: "2025-01-15", time: "14:23", type: "EMS", duration: "4:32", score: 94, sentiment: "neutral" },
       { date: "2025-01-15", time: "13:45", type: "Fire", duration: "3:15", score: 87, sentiment: "negative" },
-      { date: "2025-01-15", time: "12:18", type: "Traffic", duration: "2:48", score: 92, sentiment: "neutral" },
+      { date: "2025-01-15", time: "12:18", type: "Police", duration: "2:48", score: 92, sentiment: "neutral" },
       { date: "2025-01-15", time: "11:52", type: "Police", duration: "6:21", score: 88, sentiment: "positive" },
-      { date: "2025-01-15", time: "10:33", type: "Medical", duration: "5:12", score: 90, sentiment: "neutral" },
+      { date: "2025-01-15", time: "10:33", type: "EMS", duration: "5:12", score: 90, sentiment: "neutral" },
     ]
   }, [])
 

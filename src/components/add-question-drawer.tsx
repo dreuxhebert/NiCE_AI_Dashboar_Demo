@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
 
-const CALL_TYPES = ["All", "Medical", "Police", "Fire", "Other"]
+const CALL_TYPES = ["All", "EMS", "Police", "Fire"]
 
 interface AddQuestionDialogProps {
   open: boolean

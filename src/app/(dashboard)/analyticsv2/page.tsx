@@ -385,9 +385,8 @@ export default function AnalyticsV2Page() {
     
     setAvgScoreByCallType({
       Fire: [data.average_fire_score],
-      Medical: [data.average_medical_score],
-      Police: [data.average_police_score],
-      Other: [data.average_other_score]
+      EMS: [data.average_ems_score || data.average_medical_score],
+      Police: [data.average_police_score]
     });
 
   };
@@ -1164,7 +1163,7 @@ export default function AnalyticsV2Page() {
                   </TableHeader>
 
                   <TableBody>
-                    {["Fire", "Medical", "Police", "Other"].map((type, idx) => {
+                    {["Fire", "EMS", "Police"].map((type, idx) => {
                       const avgScore = avgScoreByCallType[type]?.[0] ?? 0;
 
                       return (

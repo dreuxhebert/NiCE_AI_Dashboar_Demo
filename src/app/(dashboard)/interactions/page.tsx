@@ -170,11 +170,9 @@ export default function InteractionsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Medical">Medical</SelectItem>
+                <SelectItem value="EMS">EMS</SelectItem>
                 <SelectItem value="Fire">Fire</SelectItem>
-                <SelectItem value="Shooting">Shooting</SelectItem>
-                <SelectItem value="Traffic">Traffic</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="Police">Police</SelectItem>
               </SelectContent>
             </Select>
           </div>

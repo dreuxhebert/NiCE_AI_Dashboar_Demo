@@ -33,7 +33,7 @@ export const interactions: Interaction[] = [
     dispatcher: "Sarah Johnson",
     language: "English",
     model: "GPT-4",
-    callType: "Medical",
+    callType: "EMS",
     submitted: "2024-01-15 14:23:15",
     processed: "2024-01-15 14:23:45",
     duration: "4:32",
@@ -79,7 +79,7 @@ Dispatcher: Fire department is on the way. Stay clear of the building.`,
     dispatcher: "Emily Rodriguez",
     language: "Spanish",
     model: "GPT-4",
-    callType: "Traffic",
+    callType: "Police",
     submitted: "2024-01-15 14:05:33",
     processed: "2024-01-15 14:06:12",
     duration: "2:48",
@@ -102,7 +102,7 @@ Dispatcher: Help is on the way. Stay in your vehicle if it's safe.`,
     dispatcher: "David Kim",
     language: "English",
     model: "GPT-3.5",
-    callType: "Shooting",
+    callType: "Police",
     submitted: "2024-01-15 13:52:18",
     processed: "2024-01-15 13:52:18",
     duration: "6:21",
@@ -118,7 +118,7 @@ Dispatcher: Help is on the way. Stay in your vehicle if it's safe.`,
     dispatcher: "Lisa Anderson",
     language: "English",
     model: "GPT-4",
-    callType: "Medical",
+    callType: "EMS",
     submitted: "2024-01-15 13:45:09",
     processed: "-",
     duration: "5:12",
@@ -134,7 +134,7 @@ Dispatcher: Help is on the way. Stay in your vehicle if it's safe.`,
     dispatcher: "Robert Taylor",
     language: "English",
     model: "GPT-4",
-    callType: "Other",
+    callType: "Police",
     submitted: "2024-01-15 13:32:44",
     processed: "2024-01-15 13:33:22",
     duration: "3:45",
@@ -158,7 +158,7 @@ export const recentActivities: CallActivity[] = [
     id: "1",
     fileName: "call_2024_001.mp3",
     dispatcher: "Sarah Johnson",
-    callType: "Medical",
+    callType: "EMS",
     status: "processed",
     timestamp: "2 minutes ago",
     duration: "4:32",
@@ -176,7 +176,7 @@ export const recentActivities: CallActivity[] = [
     id: "3",
     fileName: "call_2024_003.mp3",
     dispatcher: "Emily Rodriguez",
-    callType: "Traffic",
+    callType: "Police",
     status: "processed",
     timestamp: "12 minutes ago",
     duration: "2:48",
@@ -185,7 +185,7 @@ export const recentActivities: CallActivity[] = [
     id: "4",
     fileName: "call_2024_004.mp3",
     dispatcher: "David Kim",
-    callType: "Shooting",
+    callType: "Police",
     status: "failed",
     timestamp: "18 minutes ago",
     duration: "6:21",
@@ -194,7 +194,7 @@ export const recentActivities: CallActivity[] = [
     id: "5",
     fileName: "call_2024_005.mp3",
     dispatcher: "Lisa Anderson",
-    callType: "Medical",
+    callType: "EMS",
     status: "queued",
     timestamp: "25 minutes ago",
     duration: "-",
@@ -228,11 +228,9 @@ export const callsTrendData = [
 ]
 
 export const callsByTypeData = [
-  { type: "Medical", count: 145, fill: "hsl(var(--chart-1))" },
+  { type: "EMS", count: 245, fill: "hsl(var(--chart-1))" },
   { type: "Fire", count: 78, fill: "hsl(var(--chart-2))" },
-  { type: "Traffic", count: 92, fill: "hsl(var(--chart-3))" },
-  { type: "Shooting", count: 34, fill: "hsl(var(--chart-4))" },
-  { type: "Other", count: 67, fill: "hsl(var(--chart-5))" },
+  { type: "Police", count: 193, fill: "hsl(var(--chart-3))" },
 ]
 
 export interface DispatcherStats {
@@ -440,7 +438,7 @@ export interface Evaluation {
   score: number
   maxPoints: number
   callTakerName: string
-  callType: "Police" | "Medical" | "Fire" | "Traffic" | "Other"
+  callType: "Fire" | "EMS" | "Police"
   standardsMet: number
   standardsNotMet: number
   criticalViolations: string[]
@@ -479,7 +477,7 @@ export const evaluations: Evaluation[] = [
     score: 31,
     maxPoints: 100,
     callTakerName: "Michael Chen",
-    callType: "Medical",
+    callType: "EMS",
     standardsMet: 3,
     standardsNotMet: 4,
     criticalViolations: [
@@ -533,7 +531,7 @@ export const evaluations: Evaluation[] = [
     score: 72,
     maxPoints: 100,
     callTakerName: "Emily Rodriguez",
-    callType: "Traffic",
+    callType: "Police",
     standardsMet: 6,
     standardsNotMet: 2,
     criticalViolations: ["Callback Number Not Verified", "Location Confirmation Delayed"],
@@ -560,7 +558,7 @@ export const evaluations: Evaluation[] = [
     score: 94,
     maxPoints: 100,
     callTakerName: "David Kim",
-    callType: "Medical",
+    callType: "EMS",
     standardsMet: 9,
     standardsNotMet: 0,
     criticalViolations: [],
@@ -619,7 +617,7 @@ export const evaluations: Evaluation[] = [
     score: 88,
     maxPoints: 100,
     callTakerName: "Robert Taylor",
-    callType: "Medical",
+    callType: "EMS",
     standardsMet: 8,
     standardsNotMet: 1,
     criticalViolations: ["Pre-Arrival Instructions Could Be More Detailed"],
@@ -1059,11 +1057,9 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
       { week: "Week 4", score: 94.5, calls: 86 },
     ],
     callTypeDistribution: [
-      { type: "Medical", count: 120, avgScore: 95 },
+      { type: "EMS", count: 202, avgScore: 95 },
       { type: "Fire", count: 52, avgScore: 94 },
       { type: "Police", count: 88, avgScore: 93 },
-      { type: "Traffic", count: 50, avgScore: 96 },
-      { type: "Other", count: 32, avgScore: 94 },
     ],
     skillsAssessment: [
       { skill: "Information Gathering", score: 96, trend: "up" },
@@ -1074,11 +1070,11 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
       { skill: "Documentation", score: 94, trend: "up" },
     ],
     recentCallPerformance: [
-      { date: "2025-01-15", time: "14:23", type: "Medical", duration: "4:32", score: 96, sentiment: "neutral" },
+      { date: "2025-01-15", time: "14:23", type: "EMS", duration: "4:32", score: 96, sentiment: "neutral" },
       { date: "2025-01-15", time: "13:45", type: "Fire", duration: "3:15", score: 95, sentiment: "negative" },
-      { date: "2025-01-15", time: "12:18", type: "Traffic", duration: "2:48", score: 97, sentiment: "positive" },
+      { date: "2025-01-15", time: "12:18", type: "Police", duration: "2:48", score: 97, sentiment: "positive" },
       { date: "2025-01-15", time: "11:52", type: "Police", duration: "6:21", score: 93, sentiment: "neutral" },
-      { date: "2025-01-15", time: "10:33", type: "Medical", duration: "5:12", score: 94, sentiment: "neutral" },
+      { date: "2025-01-15", time: "10:33", type: "EMS", duration: "5:12", score: 94, sentiment: "neutral" },
     ],
     monthlyMetrics: [
       { month: "Oct 2024", totalCalls: 312, avgScore: 92.8, complianceRate: 94.2, avgHandleTime: "4:15" },
@@ -1097,11 +1093,9 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
       { week: "Week 4", score: 92.8, calls: 80 },
     ],
     callTypeDistribution: [
-      { type: "Medical", count: 108, avgScore: 93 },
+      { type: "EMS", count: 188, avgScore: 93 },
       { type: "Fire", count: 48, avgScore: 92 },
       { type: "Police", count: 82, avgScore: 92 },
-      { type: "Traffic", count: 48, avgScore: 94 },
-      { type: "Other", count: 32, avgScore: 92 },
     ],
     skillsAssessment: [
       { skill: "Information Gathering", score: 94, trend: "up" },
@@ -1113,10 +1107,10 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
     ],
     recentCallPerformance: [
       { date: "2025-01-15", time: "15:10", type: "Fire", duration: "3:45", score: 94, sentiment: "negative" },
-      { date: "2025-01-15", time: "14:22", type: "Medical", duration: "5:01", score: 91, sentiment: "neutral" },
+      { date: "2025-01-15", time: "14:22", type: "EMS", duration: "5:01", score: 91, sentiment: "neutral" },
       { date: "2025-01-15", time: "13:05", type: "Police", duration: "4:18", score: 93, sentiment: "positive" },
-      { date: "2025-01-15", time: "11:48", type: "Traffic", duration: "3:12", score: 95, sentiment: "neutral" },
-      { date: "2025-01-15", time: "10:15", type: "Medical", duration: "4:55", score: 90, sentiment: "neutral" },
+      { date: "2025-01-15", time: "11:48", type: "Police", duration: "3:12", score: 95, sentiment: "neutral" },
+      { date: "2025-01-15", time: "10:15", type: "EMS", duration: "4:55", score: 90, sentiment: "neutral" },
     ],
     monthlyMetrics: [
       { month: "Oct 2024", totalCalls: 289, avgScore: 91.2, complianceRate: 92.8, avgHandleTime: "4:22" },
@@ -1135,11 +1129,9 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
       { week: "Week 4", score: 91.2, calls: 75 },
     ],
     callTypeDistribution: [
-      { type: "Medical", count: 100, avgScore: 92 },
+      { type: "EMS", count: 177, avgScore: 92 },
       { type: "Fire", count: 44, avgScore: 90 },
       { type: "Police", count: 74, avgScore: 91 },
-      { type: "Traffic", count: 44, avgScore: 92 },
-      { type: "Other", count: 33, avgScore: 91 },
     ],
     skillsAssessment: [
       { skill: "Information Gathering", score: 92, trend: "stable" },
@@ -1150,11 +1142,11 @@ export const operatorMetrics: { [key: string]: OperatorPerformanceMetrics } = {
       { skill: "Documentation", score: 91, trend: "stable" },
     ],
     recentCallPerformance: [
-      { date: "2025-01-15", time: "16:05", type: "Medical", duration: "4:18", score: 92, sentiment: "neutral" },
-      { date: "2025-01-15", time: "14:50", type: "Traffic", duration: "2:55", score: 93, sentiment: "positive" },
+      { date: "2025-01-15", time: "16:05", type: "EMS", duration: "4:18", score: 92, sentiment: "neutral" },
+      { date: "2025-01-15", time: "14:50", type: "Police", duration: "2:55", score: 93, sentiment: "positive" },
       { date: "2025-01-15", time: "13:30", type: "Police", duration: "5:10", score: 89, sentiment: "neutral" },
       { date: "2025-01-15", time: "12:15", type: "Fire", duration: "3:40", score: 90, sentiment: "negative" },
-      { date: "2025-01-15", time: "11:00", type: "Medical", duration: "4:45", score: 92, sentiment: "neutral" },
+      { date: "2025-01-15", time: "11:00", type: "EMS", duration: "4:45", score: 92, sentiment: "neutral" },
     ],
     monthlyMetrics: [
       { month: "Oct 2024", totalCalls: 268, avgScore: 89.8, complianceRate: 91.5, avgHandleTime: "4:28" },
