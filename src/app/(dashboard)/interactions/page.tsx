@@ -69,7 +69,7 @@ export default function InteractionsPage() {
 
   const fetchInteractions = async () => {
   try {
-    const apiUrl = getApiUrl('/calls/');
+    const apiUrl = getApiUrl('/calls');
     const res = await fetch(apiUrl, { cache: 'no-store' });
 
     if (!res.ok) {

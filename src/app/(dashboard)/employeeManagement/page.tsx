@@ -38,7 +38,7 @@ export default function EmployeeManagementPage() {
     theme: string
   }
   const getUsers = async () => {
-    const res = await fetch(getApiUrl("/user/"), { method: "GET" });
+    const res = await fetch(getApiUrl("/user"), { method: "GET" });
     if (!res.ok) throw new Error("Failed to fetch users");
 
     const data = await res.json();

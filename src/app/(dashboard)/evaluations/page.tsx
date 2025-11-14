@@ -320,7 +320,7 @@ export default function EvaluationsPage() {
 
 
   const getCallData = async () => {
-    const res = await fetch(getApiUrl('/calls/'), { cache: 'no-store' });
+    const res = await fetch(getApiUrl('/calls'), { cache: 'no-store' });
     if (!res.ok) throw new Error("Failed to fetch call data");
     const data = await res.json();
     setCallList(data);
