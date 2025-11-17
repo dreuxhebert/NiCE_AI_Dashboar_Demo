@@ -682,7 +682,7 @@ export default function EvaluationsPage() {
 
                           {/* Progress Bar */}
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1">Status Bar</h3>
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1">Evaluation Status</h3>
                             <div className="text-center">
                               <ProgressBar currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"} />
                             </div>
