@@ -162,7 +162,7 @@ export default function UploadPage() {
         // Required by backend schema to avoid 422:
         scores: [],
         score: score,
-        callEvaluationType: "auto",
+        callEvaluationType: "Auto-Scored",
         qa_analysis: qa_analysis_result,
         stored_audio: stored_audio
         // notes isn’t used by your backend right now; include if your API supports it

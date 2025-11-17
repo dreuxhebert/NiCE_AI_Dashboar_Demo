@@ -95,7 +95,7 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
           border border-border/40 
           rounded-3xl 
           w-full 
-          max-w-[560px]     /* ✅ Increased from 460px → 560px */
+          max-w-[720px]
           p-10 
           space-y-7
         "
@@ -105,19 +105,27 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
           Create New User
         </h2>
 
-        <div className="grid gap-5">
+        <div className="space-y-5">
+
+        {/* 1️⃣ First Name + Last Name */}
+        <div className="grid grid-cols-2 gap-5">
           <input
             placeholder="First Name"
             className={inputClass}
             value={firstName}
             onChange={(e) => setFirstname(e.target.value)}
           />
+
           <input
             placeholder="Last Name"
             className={inputClass}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
           />
+        </div>
+
+        {/* 2️⃣ Email + Password */}
+        <div className="grid grid-cols-2 gap-5">
           <input
             placeholder="Email Address"
             type="email"
@@ -125,98 +133,6 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            placeholder="Team Number"
-            type="number"
-            className={inputClass}
-            value={teamNumber}
-            onChange={(e) => setTeamNumber(Number(e.target.value))}
-          />
-
-          {/* ✅ Perfectly Themed Role Dropdown */}
-            <div className="relative">
-            <select
-                className="
-                appearance-none 
-                w-full 
-                rounded-xl 
-                border border-input 
-                bg-background/70 
-                backdrop-blur-md
-                text-foreground 
-                font-sans
-                p-3 pr-12 
-                shadow-sm 
-                transition 
-                cursor-pointer
-                hover:bg-background/90
-                focus:ring-2 focus:ring-primary focus:outline-none
-                "
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-            >
-                <option value="" disabled className="text-muted-foreground">Select Role</option>
-                <option value="PSAP Director / Manager">PSAP Director / Manager</option>
-                <option value="Operations Supervisor / Shift Supervisor">Operations Supervisor / Shift Supervisor</option>
-                <option value="Training & Quality Assurance Officer">Training & Quality Assurance Officer</option>
-                <option value="Lead Telecommunicator / Senior Dispatcher">Lead Telecommunicator / Senior Dispatcher</option>
-                <option value="Call Takers">Call Takers</option>
-                <option value="Dispatchers">Dispatchers</option>
-                <option value="Specialized Dispatchers">Specialized Dispatchers</option>
-            </select>
-
-            {/* ✅ Custom Arrow */}
-            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                <svg
-                className="w-5 h-5 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-            </div>
-          </div>
-
-          {/* ✅ Tab Access Section */}
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground font-medium">Tab Access</p>
-
-            <div className="grid grid-cols-2 gap-4">
-              {tabOptions.map((tab) => (
-                <label
-                  key={tab}
-                  className="
-                    flex items-center gap-3
-                    p-3 
-                    rounded-xl 
-                    border border-input 
-                    bg-background/60 
-                    backdrop-blur-sm 
-                    shadow-sm
-                    hover:bg-background/80
-                    cursor-pointer
-                    transition
-                  "
-                >
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    checked={permissions.includes(tab)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setPermissions([...permissions, tab]);
-                      } else {
-                        setPermissions(permissions.filter((t) => t !== tab));
-                      }
-                    }}
-                  />
-                  <span className="text-[0.95rem]">{tab}</span>
-                </label>
-              ))}
-            </div>
-          </div>
 
           <input
             placeholder="Default Password"
@@ -226,6 +142,106 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+
+        {/* 3️⃣ Team Number + Role */}
+        <div className="grid grid-cols-2 gap-5">
+
+          <input
+            placeholder="Team Number"
+            type="number"
+            className={inputClass}
+            value={teamNumber}
+            onChange={(e) => setTeamNumber(Number(e.target.value))}
+          />
+
+          {/* Role Dropdown */}
+          <div className="relative">
+            <select
+              className="
+                appearance-none 
+                w-full 
+                rounded-xl 
+                border border-input 
+                bg-background/70 
+                backdrop-blur-md
+                text-foreground 
+                p-3 pr-12 
+                shadow-sm 
+                transition 
+                cursor-pointer
+                hover:bg-background/90
+                focus:ring-2 focus:ring-primary focus:outline-none
+              "
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="" disabled className="text-muted-foreground">Select Role</option>
+              <option value="PSAP Director / Manager">PSAP Director / Manager</option>
+              <option value="Operations Supervisor / Shift Supervisor">Operations Supervisor / Shift Supervisor</option>
+              <option value="Training & Quality Assurance Officer">Training & Quality Assurance Officer</option>
+              <option value="Lead Telecommunicator / Senior Dispatcher">Lead Telecommunicator / Senior Dispatcher</option>
+              <option value="Call Takers">Call Takers</option>
+              <option value="Dispatchers">Dispatchers</option>
+              <option value="Specialized Dispatchers">Specialized Dispatchers</option>
+            </select>
+
+            {/* Dropdown Arrow */}
+            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+              <svg
+                className="w-5 h-5 text-muted-foreground"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* 4️⃣ Tab Access Section (full width) */}
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground font-medium">Tab Access</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            {tabOptions.map((tab) => (
+              <label
+                key={tab}
+                className="
+                  flex items-center gap-3
+                  p-3 rounded-xl 
+                  border border-input 
+                  bg-background/60 
+                  backdrop-blur-sm 
+                  shadow-sm
+                  hover:bg-background/80
+                  cursor-pointer
+                  transition
+                "
+              >
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary"
+                  checked={permissions.includes(tab)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setPermissions([...permissions, tab]);
+                    } else {
+                      setPermissions(permissions.filter((t) => t !== tab));
+                    }
+                  }}
+                />
+                <span className="text-[0.95rem]">{tab}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+
+        
 
         <div className="flex justify-end gap-4 pt-4">
           <Button

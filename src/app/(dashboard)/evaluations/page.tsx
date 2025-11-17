@@ -25,6 +25,8 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { AddQuestionDrawer } from "@/components/add-question-drawer"
 import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
+import ProgressBar from "@/components/progress-bar"
+import { callsByTypeData } from "@/lib/sample-data"
 
 export default function EvaluationsPage() {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set())
@@ -127,31 +129,8 @@ export default function EvaluationsPage() {
   }
 
   useEffect(() => {
-    const fetchCalls = async () => {
-      try {
-        const data = await getCallData()
-        if (data?.length > 0) {
-          
-          const first = data[0];
-          const answers = Object.values(first?.qa_analysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
-          const score = first?.score ?? "";
-          const analysis: call_analysis = first?.qa_analysis ?? {}
 
-          setSelectedEvaluation(first);
-          const met = answers.filter((score) => score === "Yes").length;
-          const crit = answers.filter((score) => score === "No").length;
-          setMetStandards(met);
-          setCriticalViolations(crit);
-          setQaAnalysisTemp(analysis)
-          setQaAnalysis(analysis)
-          setScore(score)
-        }
-      } catch (error) {
-        console.error("Error fetching calls:", error)
-      }
-    }
-
-    fetchCalls()
+    getCallData()
     getQaQuestions()
     setIsEditing(false)
   }, [])
@@ -194,6 +173,21 @@ export default function EvaluationsPage() {
     setMetStandards(yesCount);
     setCriticalViolations(noCount);
   }
+
+  const handleMarkCompleted = async () => {
+    const res = await fetch(
+      getApiUrl(`/calls/updateEvaluationStatus?id=${selectedEvaluation?._id}`),
+      {
+        method: "PATCH",
+      }
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      toast({ title: "Updated Evaluation Status" });
+    }
+  };
 
   const calTime = (givenTime?: number) => {
     const time_sec = givenTime ?? 0;
@@ -318,13 +312,31 @@ export default function EvaluationsPage() {
   };
 
 
-
   const getCallData = async () => {
     const res = await fetch(getApiUrl('/calls'), { cache: 'no-store' });
     if (!res.ok) throw new Error("Failed to fetch call data");
     const data = await res.json();
     setCallList(data);
-    return data
+    try {
+      if (data?.length > 0) {
+        
+        const first = data[0];
+        const answers = Object.values(first?.qa_analysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
+        const score = first?.score ?? "";
+        const analysis: call_analysis = first?.qa_analysis ?? {}
+
+        setSelectedEvaluation(first);
+        const met = answers.filter((score) => score === "Yes").length;
+        const crit = answers.filter((score) => score === "No").length;
+        setMetStandards(met);
+        setCriticalViolations(crit);
+        setQaAnalysisTemp(analysis)
+        setQaAnalysis(analysis)
+        setScore(score)
+      }
+    } catch (error) {
+      console.error("Error fetching calls:", error)
+    }
   };
 
   // Buttons: look normal when locked, shrink & wrap on small screens
@@ -459,7 +471,7 @@ export default function EvaluationsPage() {
                               <tr className="border-b border-border/50">
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Resource</th>
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Incident Type</th>
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Agency</th>
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
                                 <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
                               </tr>
@@ -588,23 +600,11 @@ export default function EvaluationsPage() {
                             variant={isEditing ? "secondary" : "outline"}
                             className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
                             onClick={() => {
-                              if (!isEditing)
                               setIsEditing((v) => !v)
                             }}
                           >
                             <PencilLine className="h-3.5 w-3.5 mr-1.5" />
-                            {isEditing ? "Done" : "Edit"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={"outline"}
-                            className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
-                            onClick={() => {
-                              handleAddQuestion()
-                            }}
-                          >
-                            <Plus className="h-3.5 w-3.5 mr-1.5" />
-                            {"Add"}
+                            {isEditing ? "Cancel" : "Edit"}
                           </Button>
                         </>
                       )}
@@ -635,7 +635,7 @@ export default function EvaluationsPage() {
                           Summary
                         </TabsTrigger>
                         <TabsTrigger value="fullform" className="flex-1 data-[state=active]:bg-card">
-                          Full Form
+                          Update Form
                         </TabsTrigger>
                       </TabsList>
                       {/* Summary Tab */}
@@ -677,6 +677,14 @@ export default function EvaluationsPage() {
                               <p className="text-[11px] text-muted-foreground">
                                 {metStandards} of {metStandards + criticalViolations} Standards
                               </p>
+                            </div>
+                          </Card>
+
+                          {/* Progress Bar */}
+                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-[12px] font-semibold text-foreground mb-1">Status Bar</h3>
+                            <div className="text-center">
+                              <ProgressBar currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"} />
                             </div>
                           </Card>
 
@@ -835,6 +843,14 @@ export default function EvaluationsPage() {
                             <Button size="sm" onClick={handleClickSave}>
                               <Save className="h-3.5 w-3.5 mr-2" />
                               Save Changes
+                            </Button>
+                          </div>
+                        )}
+                        {!isEditing && (
+                          <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                            <p className="text-[11px] text-muted-foreground truncate content-center">On completing the evalution mark it as Completed</p>
+                            <Button size="sm" onClick={handleMarkCompleted}>
+                              Mark Completed
                             </Button>
                           </div>
                         )}
