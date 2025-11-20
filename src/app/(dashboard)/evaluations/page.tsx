@@ -367,6 +367,12 @@ export default function EvaluationsPage() {
     return (
       <div className="space-y-5">
         {lines.map((line, index) => {
+
+          // 🔥 Normalize speaker names
+          line = line.replace(/^Operator:/, "Dispatcher:");
+          line = line.replace(/^Call\s*Taker:/i, "Dispatcher:");
+          line = line.replace(/^Customer:/, "Caller:");
+
           const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
           let speaker: string | null = null
           let text = line
@@ -382,34 +388,33 @@ export default function EvaluationsPage() {
           }
 
           const isDispatcher = speaker === "Dispatcher"
-          const speakerLabel = speaker ? (speaker === "Dispatcher" ? "Operator" : speaker) : null
+          const speakerLabel = speaker === "Dispatcher" ? "Dispatcher" : "Caller"
 
           return (
             <div key={index} className="mb-4">
-              {speakerLabel && (
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="text-xs font-semibold text-primary">{speakerLabel}</span>
-                </div>
-              )}
-              <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}> 
-                {chunks.length > 0 ? (
-                  chunks.map((chunk, ci) => (
-                    <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
-                      <div
-                        className={cn(
-                          "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
-                          isDispatcher
-                            ? "bg-muted/30 text-foreground border border-border"
-                            : "bg-primary/10 text-foreground border border-primary/20",
-                        )}
-                      >
+              <div className={cn("flex flex-col gap-2", isDispatcher ? "items-start" : "items-end")}>
+                {chunks.map((chunk, ci) => (
+                  <div key={ci} className={cn("flex flex-col mb-2 last:mb-0", isDispatcher ? "items-start" : "items-end")}>
+                    <div
+                      className={cn(
+                        "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                        isDispatcher
+                          ? "bg-muted/30 text-foreground border border-border"   // LEFT (Dispatcher)
+                          : "bg-primary/10 text-foreground border border-primary/20", // RIGHT (Caller)
+                      )}
+                    >
+                      <>
+                        <span className={cn(
+                          "font-semibold",
+                          isDispatcher ? "text-blue-600" : "text-purple-600"
+                        )}>
+                          {isDispatcher ? "Dispatcher:" : "Caller:"}
+                        </span>{" "}
                         {chunk}
-                      </div>
+                      </>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground">{text}</div>
-                )}
+                  </div>
+                ))}
               </div>
             </div>
           )
@@ -417,6 +422,7 @@ export default function EvaluationsPage() {
       </div>
     )
   }
+
 
  return (
     <>
