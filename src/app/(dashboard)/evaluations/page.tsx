@@ -290,24 +290,34 @@ const handleDialogExport = async (options: {
     const left = 10
     const lineHeight = 7
     const maxWidth = 180 // page width minus margins
+    const bottomMargin = 280 // when to start a new page
 
-    const addLine = (text: string, opts: { bold?: boolean } = {}) => {
-      if (y > 280) {
-        doc.addPage()
-        y = 10
-      }
+    // Helper: add wrapped text with per-line page break handling
+    const addWrappedText = (text: string, opts: { bold?: boolean } = {}) => {
       if (opts.bold) {
         doc.setFont("helvetica", "bold")
       } else {
         doc.setFont("helvetica", "normal")
       }
+
       const lines = doc.splitTextToSize(text, maxWidth)
-      doc.text(lines, left, y)
-      y += lineHeight * lines.length
+
+      lines.forEach((line: string) => {
+        if (y > bottomMargin) {
+          doc.addPage()
+          y = 10
+        }
+        doc.text(line, left, y)
+        y += lineHeight
+      })
+    }
+
+    const addLine = (text: string, opts: { bold?: boolean } = {}) => {
+      addWrappedText(text, opts)
     }
 
     const addSectionTitle = (title: string) => {
-      if (y + lineHeight > 280) {
+      if (y + lineHeight > bottomMargin) {
         doc.addPage()
         y = 10
       }
@@ -373,7 +383,7 @@ const handleDialogExport = async (options: {
     // -------- TRANSCRIPT --------
     if (options.includeTranscript && selectedEvaluation.transcript) {
       addSectionTitle("Call Transcript")
-      addLine(selectedEvaluation.transcript)
+      addWrappedText(selectedEvaluation.transcript)
     }
 
     // -------- AUDIO LINK --------
