@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { jsPDF } from "jspdf"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { AddQuestionDrawer } from "@/components/add-question-drawer"
 import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
 import ProgressBar from "@/components/progress-bar"
+import { ExportReportDialog } from "@/components/export-report-dialog" 
 import { callsByTypeData } from "@/lib/sample-data"
 
 export default function EvaluationsPage() {
@@ -46,11 +48,11 @@ export default function EvaluationsPage() {
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
   const [qaAnalysis, setQaAnalysis] = useState<call_analysis | null>(null)
   const [score, setScore] = useState<number>(0)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // This is your existing mock waveform bars
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
-
-
 
   const qaRef = useRef<HTMLDivElement | null>(null)
 
@@ -256,15 +258,151 @@ export default function EvaluationsPage() {
   }
 
   const getScoreBadgeVariant = (score: number) => {
-    if (score >= 80) return "default"
-    if (score >= 60) return "secondary"
-    return "destructive"
+  if (score >= 80) return "default"
+  if (score >= 60) return "secondary"
+  return "destructive"
+}
+
+const handleExportReport = () => {
+  setExportDialogOpen(true)
+}
+
+const handleDialogExport = async (options: {
+  includeForm: boolean
+  includeTranscript: boolean
+  includeAudioLink: boolean
+}) => {
+  if (!selectedEvaluation) {
+    toast({
+      title: "No call selected",
+      description: "Please select an evaluation before exporting.",
+      variant: "destructive",
+    })
+    return
   }
 
-  const handleExportReport = () => {
-    toast({ title: "Export initiated", description: "Your evaluation report is being generated..." })
-  }
+  setIsExporting(true)
 
+  try {
+    const doc = new jsPDF()
+    const qaSource = qaAnalysisTemp ?? qaAnalysis ?? {}
+    let y = 10
+    const left = 10
+    const lineHeight = 7
+    const maxWidth = 180 // page width minus margins
+
+    const addLine = (text: string, opts: { bold?: boolean } = {}) => {
+      if (y > 280) {
+        doc.addPage()
+        y = 10
+      }
+      if (opts.bold) {
+        doc.setFont("helvetica", "bold")
+      } else {
+        doc.setFont("helvetica", "normal")
+      }
+      const lines = doc.splitTextToSize(text, maxWidth)
+      doc.text(lines, left, y)
+      y += lineHeight * lines.length
+    }
+
+    const addSectionTitle = (title: string) => {
+      if (y + lineHeight > 280) {
+        doc.addPage()
+        y = 10
+      }
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(14)
+      doc.text(title, left, y)
+      y += lineHeight
+      doc.setFontSize(11)
+    }
+
+    // -------- HEADER --------
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(16)
+    doc.text("Evaluation Report", left, y)
+    y += 10
+    doc.setFontSize(11)
+
+    addSectionTitle("Call Information")
+    addLine(`Operator: ${selectedEvaluation.dispatcher_id || "N/A"}`)
+    addLine(`Call ID: ${selectedEvaluation.call_id || "N/A"}`)
+    addLine(`Call Type: ${selectedEvaluation.callType || "N/A"}`)
+    addLine(`Evaluation Type: ${selectedEvaluation.callEvaluationType || "N/A"}`)
+    addLine(
+      `Date / Time: ${
+        selectedEvaluation.created_at
+          ? new Date(selectedEvaluation.created_at).toLocaleString()
+          : "N/A"
+      }`
+    )
+    addLine(`Duration: ${calTime(selectedEvaluation.duration_seconds)}`)
+
+    // -------- SCORES --------
+    addSectionTitle("Scores & Compliance")
+    addLine(`Overall Score: ${score}%`)
+    addLine(`Standards Met: ${metStandards}`)
+    addLine(`Not Met (Critical): ${criticalViolations}`)
+    addLine(
+      `Total Standards Evaluated: ${metStandards + criticalViolations || "N/A"}`
+    )
+
+    // -------- SUMMARY --------
+    addSectionTitle("Call Summary")
+    addLine(selectedEvaluation.summary || "No summary available")
+
+    // -------- QA FORM --------
+    if (options.includeForm) {
+      addSectionTitle("QA Evaluation")
+
+      qaQuestionsSet.forEach((q, index) => {
+        const a = qaSource[q._id]?.answer ?? "N/A"
+        const proof = qaSource[q._id]?.proof ?? ""
+
+        addLine(`Q${index + 1}: ${q.editedQuestion}`, { bold: true })
+        addLine(`Answer: ${a}`)
+        addLine(`AI Confidence: ${q.confidence}%`)
+        if (proof) {
+          addLine(`Evidence: ${proof}`)
+        }
+        y += 3 // small spacer between questions
+      })
+    }
+
+    // -------- TRANSCRIPT --------
+    if (options.includeTranscript && selectedEvaluation.transcript) {
+      addSectionTitle("Call Transcript")
+      addLine(selectedEvaluation.transcript)
+    }
+
+    // -------- AUDIO LINK --------
+    if (options.includeAudioLink && selectedEvaluation.stored_audio) {
+      addSectionTitle("Audio Recording")
+      addLine(`URL: ${selectedEvaluation.stored_audio}`)
+    }
+
+    const fileName =
+      `evaluation-${selectedEvaluation.call_id || selectedEvaluation._id}.pdf`
+
+    doc.save(fileName)
+
+    toast({
+      title: "Export complete",
+      description: "Your evaluation report PDF has been downloaded.",
+    })
+  } catch (error) {
+    console.error(error)
+    toast({
+      title: "Export failed",
+      description: "There was a problem generating the report.",
+      variant: "destructive",
+    })
+  } finally {
+    setIsExporting(false)
+    setExportDialogOpen(false)
+  }
+}
   const handleGenerateCoaching = () => {
     toast({
       title: "AI Coaching Task Created",
@@ -870,9 +1008,20 @@ export default function EvaluationsPage() {
             {/* RIGHT COLUMN removed: content merged into QA card above */}
           </div>
         </div>
-        <AddQuestionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onAdded={() => { getQaQuestions() }} />
-      </div>
+        <AddQuestionDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onAdded={() => { getQaQuestions() }}
+        />
 
+        {/* ⬇️ NEW: Export dialog */}
+        <ExportReportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleDialogExport}
+          isExporting={isExporting}
+        />
+      </div>
       {/* Responsive scaling styles */}
       <style jsx global>{`
         /* The trick:
