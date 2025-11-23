@@ -43,7 +43,7 @@ const DialogOverlay = React.forwardRef<
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     backdropFilter: "blur(2px)",
     opacity: 1,
-    pointerEvents: "none", // keep clicks passing through while we debug; you can re-enable later
+    pointerEvents: "auto", // allow overlay to block interactions with background
     ...styleFromProps,
   }
 

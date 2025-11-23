@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import {
   Sparkles,
-  Plus,
   Calendar,
   AlertCircle,
   CheckCircle2,
@@ -23,13 +22,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// ---- Env-based API config (same pattern as other pages) ----
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
 const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
 const getApiUrl = (path: string) => (USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`)
-// -----------------------------------------------------------
 
-// Types aligned with backend responses
 type TaskStatus = "pending" | "in-progress" | "completed"
 type TaskPriority = "low" | "medium" | "high"
 
@@ -51,21 +47,34 @@ interface CoachingTask {
   updated_at?: string
 }
 
+interface CallOption {
+  callId: string
+  dispatcherId: string
+  callType: string
+  summary: string | null
+}
+
 export default function CoachingPage() {
   const [activeTab, setActiveTab] = useState<TaskStatus>("pending")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [tasks, setTasks] = useState<CoachingTask[]>([])
   const [selectedTask, setSelectedTask] = useState<CoachingTask | null>(null)
+
   const [showAIModal, setShowAIModal] = useState(false)
-  const [selectedCallTaker, setSelectedCallTaker] = useState<string>("")
+  const [availableCalls, setAvailableCalls] = useState<CallOption[]>([])
+  const [selectedCallId, setSelectedCallId] = useState<string>("")
   const [isGenerating, setIsGenerating] = useState(false)
+
   const { toast } = useToast()
   const [showAll, setShowAll] = useState(false)
   const ITEMS_TO_SHOW = 7
 
-  // -------- Fetch tasks on mount --------
+  // -------------------------
+  // Fetch Tasks
+  // -------------------------
   useEffect(() => {
     let mounted = true
+
     const fetchTasks = async () => {
       try {
         const res = await fetch(getApiUrl("/coaching/tasks"), { cache: "no-store" })
@@ -76,36 +85,69 @@ export default function CoachingPage() {
           setSelectedTask(data[0] ?? null)
         }
       } catch (e: any) {
-        console.error("Fetch coaching tasks error:", e?.message || e)
-        if (mounted) {
-          toast({
-            title: "Could not load coaching tasks",
-            description: e?.message || "Please check your backend.",
-            variant: "destructive",
-          })
-        }
+        toast({
+          title: "Could not load coaching tasks",
+          description: e?.message,
+          variant: "destructive",
+        })
       }
     }
 
     fetchTasks()
-
-    return () => {
-      mounted = false
-    }
+    return () => { mounted = false }
   }, [])
 
-  // -------- Derived UI state --------
+  // -------------------------
+  // Fetch Calls
+  // -------------------------
+  useEffect(() => {
+    let mounted = true
+
+    const fetchCalls = async () => {
+      try {
+        const res = await fetch(getApiUrl("/calls"), { cache: "no-store" })
+        if (!res.ok) throw new Error(`Failed to fetch calls: ${res.status}`)
+        const data: any[] = await res.json()
+
+        if (!mounted) return
+
+        const options: CallOption[] = data.map((c) => ({
+          callId: c.call_id,
+          dispatcherId: c.dispatcher_id ?? "Unknown",
+          callType: c.callType ?? "General",
+          summary: c.summary ?? null,
+        }))
+
+        setAvailableCalls(options)
+      } catch (e: any) {
+        toast({
+          title: "Could not load calls",
+          description: e?.message,
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchCalls()
+    return () => { mounted = false }
+  }, [])
+
+  // -------------------------
+  // Derived UI State
+  // -------------------------
   const filteredTasks = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
+    const q = searchQuery.toLowerCase()
     return tasks.filter((t) => {
       const matchesStatus = t.status === activeTab
       const name = (t.callTakerName || "").toLowerCase()
-      const matchesSearch = !q || name.includes(q)
-      return matchesStatus && matchesSearch
+      return matchesStatus && (!q || name.includes(q))
     })
   }, [tasks, activeTab, searchQuery])
 
-  const displayedTasks = useMemo(() => (showAll ? filteredTasks : filteredTasks.slice(0, ITEMS_TO_SHOW)), [filteredTasks, showAll])
+  const displayedTasks = useMemo(() => (showAll ? filteredTasks : filteredTasks.slice(0, ITEMS_TO_SHOW)), [
+    filteredTasks,
+    showAll,
+  ])
 
   const highPriorityTasks = useMemo(
     () => tasks.filter((t) => t.priority === "high" && t.status !== "completed").slice(0, 3),
@@ -116,18 +158,9 @@ export default function CoachingPage() {
   const inProgressCount = tasks.filter((t) => t.status === "in-progress").length
   const completedCount = tasks.filter((t) => t.status === "completed").length
 
-  // For AI modal: build a unique list of call takers from tasks
-  const callTakers = useMemo(() => {
-    const map = new Map<string, string>()
-    tasks.forEach((t) => {
-      const id = (t.callTakerId || t.callTakerName || "").trim()
-      const name = (t.callTakerName || t.callTakerId || "Unknown").trim() || "Unknown"
-      if (id) map.set(id, name)
-    })
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
-  }, [tasks])
-
-  // -------- Helpers --------
+  // -------------------------
+  // Helpers
+  // -------------------------
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case "high":
@@ -154,56 +187,95 @@ export default function CoachingPage() {
     }
   }
 
-  // -------- Actions --------
+  // Build Call Label (cleaner UI)
+  const getCallLabel = (c: CallOption) => {
+    const base = `${c.dispatcherId} • ${c.callType}`
+    if (!c.summary) return base
+    const trimmed = c.summary.length > 80 ? `${c.summary.slice(0, 80)}…` : c.summary
+    return `${base} • ${trimmed}`
+  }
+
+  // -------------------------
+  // Mark as Scheduled
+  // -------------------------
   const handleMarkAsScheduled = async () => {
     if (!selectedTask) return
+
     try {
-      // optimistic update
       const prev = selectedTask
       setSelectedTask({ ...prev, status: "in-progress" })
       setTasks((arr) => arr.map((t) => (t.id === prev.id ? { ...t, status: "in-progress" } : t)))
 
-      // persist to backend (route added earlier)
       await fetch(getApiUrl(`/coaching/tasks/${selectedTask.id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "in-progress" }),
       })
 
-      toast({ title: "Task Updated", description: `Coaching task for ${prev.callTakerName} marked as scheduled.` })
+      toast({
+        title: "Task Updated",
+        description: `Coaching task for ${prev.callTakerName} marked as scheduled.`,
+      })
     } catch (e: any) {
-      toast({ title: "Update failed", description: e?.message || "Could not update task", variant: "destructive" })
+      toast({
+        title: "Update failed",
+        description: e?.message,
+        variant: "destructive",
+      })
     }
   }
 
+  // -------------------------
+  // AI Coaching
+  // -------------------------
   const handleGenerateAICoaching = async () => {
-    if (!selectedCallTaker) {
+    if (!selectedCallId) {
       toast({
-        title: "Selection Required",
-        description: "Please select a call taker to generate coaching recommendations.",
+        title: "Select a call",
         variant: "destructive",
       })
       return
     }
 
     setIsGenerating(true)
-    try {
-      // OPTIONAL: if you want to backfill new tasks based on calls:
-      // await fetch(getApiUrl("/coaching/generate"), { method: "POST" })
-      // Then refetch tasks:
-      // const res = await fetch(getApiUrl("/coaching/tasks"), { cache: "no-store" })
-      // const data: CoachingTask[] = await res.json()
-      // setTasks(data)
 
-      const ct = callTakers.find((c) => c.id === selectedCallTaker)
-      toast({
-        title: "AI Coaching Task Created",
-        description: `Personalized coaching recommendations generated for ${ct?.name}.`,
+    try {
+      const res = await fetch(getApiUrl("/coaching/ai-generate/call"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId: selectedCallId }),
       })
-    } finally {
-      setIsGenerating(false)
-      setShowAIModal(false)
-      setSelectedCallTaker("")
+
+      if (!res.ok) throw new Error(`AI generation failed: ${res.status}`)
+
+      const result = await res.json()
+      const newTask: CoachingTask | null = result.task ?? null
+
+      if (newTask) {
+        setTasks((prev) => [newTask, ...prev])
+        setSelectedTask(newTask)
+        toast({ title: "AI Coaching Task Created" })
+      }
+    } catch (e: any) {
+      toast({
+        title: "Generation failed",
+        description: e?.message,
+        variant: "destructive",
+      })
+    }
+
+    setIsGenerating(false)
+    setShowAIModal(false)
+    setSelectedCallId("")
+  }
+
+  // Ensure any open portalized controls (like Select) are blurred/closed when dialog closes
+  const handleAIModalOpenChange = (open: boolean) => {
+    setShowAIModal(open)
+    if (!open && typeof document !== "undefined") {
+      // blur the active element to ensure any open Select portals close and focus is cleared
+      const ae = document.activeElement as HTMLElement | null
+      ae?.blur()
     }
   }
 
@@ -212,28 +284,24 @@ export default function CoachingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-sans text-3xl font-bold tracking-tight text-foreground">Coaching Management</h1>
+          <h1 className="text-3xl font-bold">Coaching Management</h1>
           <p className="text-muted-foreground">Provide targeted feedback and development opportunities</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowAIModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            AI Coaching Assistant
-          </Button>
-          <Button className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600">
-            <Plus className="mr-2 h-4 w-4" />
-            New Coaching Task
-          </Button>
-        </div>
+
+        <Button
+          onClick={() => setShowAIModal(true)}
+          className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          AI Coaching Assistant
+        </Button>
       </div>
 
+      {/* High Priority Tasks */}
       {highPriorityTasks.length > 0 && searchQuery === "" && (
         <Card className="border-red-500/20 bg-red-500/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-red-500">
+            <CardTitle className="flex items-center gap-2 text-red-500 text-lg">
               <AlertCircle className="h-5 w-5" />
               High Priority Tasks Requiring Attention
             </CardTitle>
@@ -244,30 +312,31 @@ export default function CoachingPage() {
               {highPriorityTasks.map((task) => (
                 <Card
                   key={task.id}
-                  className="cursor-pointer transition-all hover:border-red-500/50"
+                  className="cursor-pointer hover:border-red-500/50"
                   onClick={() => {
                     setSelectedTask(task)
                     setActiveTab(task.status)
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-semibold text-foreground">{task.callTakerName || "Unknown"}</h4>
-                          <p className="text-sm text-muted-foreground">{task.focusArea || "General"}</p>
-                        </div>
-                        <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-xs">HIGH</Badge>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold">{task.callTakerName || "Unknown"}</h4>
+                        <p className="text-sm">{task.focusArea || "General"}</p>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                          Due:{" "}
-                          {task.dueDate
-                            ? new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                            : "—"}
-                        </span>
-                      </div>
+                      <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-xs">HIGH</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        Due:{" "}
+                        {task.dueDate
+                          ? new Date(task.dueDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "—"}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -277,15 +346,16 @@ export default function CoachingPage() {
         </Card>
       )}
 
+      {/* Search */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Search className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Search Employee:</span>
+          <span className="text-sm font-medium">Search Employee:</span>
         </div>
+
         <div className="relative flex-1 max-w-md">
           <Input
-            type="text"
-            placeholder="Type to search employees..."
+            placeholder="Type to search employees…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pr-10"
@@ -294,13 +364,14 @@ export default function CoachingPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSearchQuery("")}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => setSearchQuery("")}
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
+
         {searchQuery && (
           <span className="text-sm text-muted-foreground">
             {filteredTasks.length} result{filteredTasks.length !== 1 ? "s" : ""}
@@ -317,78 +388,74 @@ export default function CoachingPage() {
         </TabsList>
       </Tabs>
 
-      {/* Main Content */}
+      {/* Main Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-  {/* Coaching Tasks List */}
-  <Card className="lg:col-span-1 self-start">
+        {/* Task List */}
+        <Card className="lg:col-span-1 self-start">
           {filteredTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-center text-muted-foreground">
+            <div className="py-12 flex flex-col items-center">
+              <CheckCircle2 className="h-12 w-12 mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
                 {searchQuery
                   ? `No ${activeTab.replace("-", " ")} tasks found for "${searchQuery}"`
                   : `No ${activeTab.replace("-", " ")} coaching tasks`}
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden">
-              <div className="border-b border-border">
-                <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-medium text-muted-foreground">
-                  <div className="col-span-4">Name</div>
-                  <div className="col-span-3">Focus Area</div>
-                  <div className="col-span-3">Due Date</div>
-                  <div className="col-span-2">Priority</div>
-                </div>
+            <div>
+              {/* Header */}
+              <div className="border-b px-4 py-3 grid grid-cols-12 text-xs font-medium text-muted-foreground">
+                <div className="col-span-4">Name</div>
+                <div className="col-span-3">Focus</div>
+                <div className="col-span-3">Due</div>
+                <div className="col-span-2">Priority</div>
               </div>
-              <div className={`${filteredTasks.length > ITEMS_TO_SHOW ? 'max-h-[calc(100vh-22rem)] overflow-y-auto' : ''} pr-2`}>
+
+              {/* Scrollable List */}
+              <div
+                className={filteredTasks.length > ITEMS_TO_SHOW ? "max-h-[calc(100vh-22rem)] overflow-y-auto pr-2" : ""}
+              >
                 {displayedTasks.map((task) => (
                   <div
                     key={task.id}
                     onClick={() => setSelectedTask(task)}
                     className={cn(
-                      "grid grid-cols-12 gap-2 px-4 py-3 text-sm border-b border-border cursor-pointer hover:bg-muted/50 transition-colors",
-                      selectedTask?.id === task.id && "bg-primary/5 hover:bg-primary/10"
+                      "grid grid-cols-12 gap-2 px-4 py-3 text-sm border-b cursor-pointer hover:bg-muted/50",
+                      selectedTask?.id === task.id && "bg-primary/5"
                     )}
                   >
-                    <div className="col-span-4 font-medium text-foreground">
-                      {task.callTakerName || "Unknown"}
-                    </div>
-                    <div className="col-span-3 text-muted-foreground">
-                      {task.focusArea || "General"}
-                    </div>
+                    <div className="col-span-4 font-medium">{task.callTakerName || "Unknown"}</div>
+                    <div className="col-span-3 text-muted-foreground">{task.focusArea || "General"}</div>
                     <div className="col-span-3 text-muted-foreground">
                       {task.dueDate
                         ? new Date(task.dueDate).toLocaleDateString("en-US", {
                             month: "short",
-                            day: "numeric"
+                            day: "numeric",
                           })
                         : "—"}
                     </div>
                     <div className="col-span-2">
-                      <Badge className={cn("text-xs", getPriorityColor(task.priority))}>
-                        {task.priority}
-                      </Badge>
+                      <Badge className={cn("text-xs", getPriorityColor(task.priority))}>{task.priority}</Badge>
                     </div>
                   </div>
                 ))}
               </div>
-              {/* Show more / show less control placed outside the scroll container to avoid extra spacing */}
+
+              {/* Show More */}
               {filteredTasks.length > ITEMS_TO_SHOW && (
                 <div className="px-4 py-3">
-                  <Button variant="ghost" size="sm" onClick={() => setShowAll((s) => !s)} className="w-full">
-                    {showAll ? "Show less" : `Show more (${filteredTasks.length - ITEMS_TO_SHOW} more)`}
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowAll((s) => !s)}>
+                    {showAll
+                      ? "Show less"
+                      : `Show more (${filteredTasks.length - ITEMS_TO_SHOW} more)`}
                   </Button>
                 </div>
               )}
-            
-              <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
-                {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} found
-              </div>
             </div>
           )}
         </Card>
 
-        {/* Coaching Details Panel */}
+        {/* Details Panel */}
         <div className="lg:col-span-2">
           {selectedTask ? (
             <Card>
@@ -417,155 +484,148 @@ export default function CoachingPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Issue Description */}
+
+              <CardContent className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+
+                {/* ISSUE DESCRIPTION */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-amber-500" />
-                    <h3 className="font-semibold text-foreground">Issue Description</h3>
+                    <h3 className="font-semibold">Issue Description</h3>
                   </div>
-                  <p className="leading-relaxed text-muted-foreground">{selectedTask.issueDescription || "—"}</p>
+
+                  <div className="leading-relaxed text-muted-foreground prose prose-sm max-w-none">
+                    {selectedTask.issueDescription ? (
+                      <div dangerouslySetInnerHTML={{ __html: selectedTask.issueDescription }} />
+                    ) : (
+                      "—"
+                    )}
+                  </div>
                 </div>
 
-                {/* Coaching Suggestions */}
+                {/* COACHING SUGGESTIONS */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-blue-500" />
-                    <h3 className="font-semibold text-foreground">Coaching Suggestions</h3>
+                    <h3 className="font-semibold">Coaching Suggestions</h3>
                   </div>
+
                   <ul className="space-y-2">
                     {(selectedTask.coachingSuggestions ?? []).map((suggestion, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <span className="mt-1 text-blue-500">💡</span>
-                        <span className="leading-relaxed text-muted-foreground">{suggestion}</span>
+                        <span
+                          className="leading-relaxed text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: suggestion }}
+                        />
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {/* Action Items */}
+                {/* ACTION ITEMS */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    <h3 className="font-semibold text-foreground">Action Items</h3>
+                    <h3 className="font-semibold">Action Items</h3>
                   </div>
+
                   <div className="space-y-3">
-                    {(selectedTask.actionItems ?? []).map((item, index) => (
-                      <div key={index} className="flex items-start gap-3">
+                    {(selectedTask.actionItems ?? []).map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
                         {item.completed ? (
-                          <CheckCircle2 className="mt-1 h-5 w-5 text-green-500" />
+                          <CheckCircle2 className="h-5 w-5 mt-1 text-green-500" />
                         ) : (
-                          <XCircle className="mt-1 h-5 w-5 text-muted-foreground" />
+                          <XCircle className="h-5 w-5 mt-1 text-muted-foreground" />
                         )}
-                        <span className={cn("leading-relaxed", item.completed ? "text-muted-foreground line-through" : "text-foreground")}>
-                          {item.text}
-                        </span>
+
+                        <span
+                          className={cn(
+                            "leading-relaxed",
+                            item.completed ? "line-through text-muted-foreground" : ""
+                          )}
+                          dangerouslySetInnerHTML={{ __html: item.text }}
+                        />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Completion Notes (if completed) */}
-                {selectedTask.status === "completed" && selectedTask.completionNotes && (
-                  <div className="space-y-2 rounded-lg border border-green-500/20 bg-green-500/5 p-4">
-                    <h3 className="font-semibold text-green-500">Completion Notes</h3>
-                    <p className="leading-relaxed text-muted-foreground">{selectedTask.completionNotes}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Completed on:{" "}
-                      {selectedTask.completedDate
-                        ? new Date(selectedTask.completedDate).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions */}
+                {/* Buttons */}
                 {selectedTask.status === "pending" && (
-                  <div className="flex gap-3 pt-4">
-                    <Button onClick={handleMarkAsScheduled} className="flex-1">
-                      Mark as Scheduled
-                    </Button>
-                  </div>
-                )}
-
-                {selectedTask.status === "in-progress" && (
-                  <div className="flex gap-3 pt-4">
-                    <Button className="flex-1">Mark as Completed</Button>
-                  </div>
+                  <Button onClick={handleMarkAsScheduled} className="w-full">
+                    Mark as Scheduled
+                  </Button>
                 )}
               </CardContent>
             </Card>
           ) : (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-24">
+              <CardContent className="py-24 flex flex-col items-center">
                 <ClipboardCheck className="mb-4 h-16 w-16 text-muted-foreground" />
-                <p className="text-center text-lg text-muted-foreground">Select a coaching task to view details</p>
+                <p className="text-muted-foreground text-lg">Select a coaching task to view details</p>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
 
-      {/* AI Coaching Assistant Modal */}
-      <Dialog open={showAIModal} onOpenChange={setShowAIModal}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* AI Coaching Modal */}
+  <Dialog open={showAIModal} onOpenChange={handleAIModalOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
               AI Coaching Assistant
             </DialogTitle>
             <DialogDescription>
-              Generate personalized coaching recommendations based on performance data
+              Generate personalized coaching recommendations based on a specific 911 call.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Select Call Taker</label>
-              <Select value={selectedCallTaker} onValueChange={setSelectedCallTaker}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a call taker..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {callTakers.map((ct) => (
-                    <SelectItem key={ct.id} value={ct.id}>
-                      {ct.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-4">
+            <label className="text-sm font-medium">Select Call</label>
+
+            <Select value={selectedCallId} onValueChange={setSelectedCallId}>
+              <SelectTrigger className="w-full truncate">
+                <SelectValue placeholder="Choose a call..." />
+              </SelectTrigger>
+
+              {/* FIXED DROPDOWN UI */}
+              <SelectContent className="w-[480px] max-h-72">
+                {availableCalls.map((c) => (
+                  <SelectItem key={c.callId} value={c.callId} className="py-2">
+                    <span className="block text-sm font-medium text-foreground">{c.dispatcherId}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
               <p className="text-sm leading-relaxed text-muted-foreground">
-                The AI will automatically retrieve recent evaluations, analyze missed standards or low-score criteria,
-                and generate personalized coaching topics, suggestions, and action items.
+                The AI will analyze the transcript, QA results, and context, then generate coaching suggestions.
               </p>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={() => setShowAIModal(false)} className="flex-1">
               Cancel
             </Button>
+
             <Button
               onClick={handleGenerateAICoaching}
-              disabled={!selectedCallTaker || isGenerating}
+              disabled={!selectedCallId || isGenerating}
               className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
             >
               {isGenerating ? (
                 <>
                   <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Generating...
+                  Generating…
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Coaching
+                  <Sparkles className="mr-2 h-4 w-4" /> Generate Coaching
                 </>
               )}
             </Button>
