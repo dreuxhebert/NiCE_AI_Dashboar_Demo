@@ -27,7 +27,6 @@ import {
   CheckCircle,
 } from "lucide-react"
 
-// ---------- API helper (your pattern) ----------
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ??
   "https://inform-ai-backend.onrender.com"
@@ -40,7 +39,6 @@ const getApiUrl = (path: string) => {
   return `${API_BASE}${path}`
 }
 
-// ---------- Types ----------
 interface InteractionDrawerProps {
   interaction: any | null
   open: boolean
@@ -78,11 +76,11 @@ interface ScoreItem {
   score: number
 }
 
-  interface EmergencyType {
-    agency: string;
-    specific_emergency: string;
-    confidence: string;
-  }
+interface EmergencyType {
+  agency: string;
+  specific_emergency: string;
+  confidence: string;
+}
 
 type TabType =
   | "summary"
@@ -109,7 +107,6 @@ interface SentimentResponse {
   }[]
 }
 
-// ---------- Component ----------
 export function InteractionDrawer({
   interaction,
   open,
@@ -127,13 +124,11 @@ export function InteractionDrawer({
     null,
   )
   const [telephoneSkills, setTelephoneSkills] = useState<ScoreItem[]>([])
-  const [salesEffectiveness, setSalesEffectiveness] = useState<ScoreItem[]>([])
   const [sentimentLoading, setSentimentLoading] = useState(false)
   const [sentimentError, setSentimentError] = useState<string | null>(null)
 
   const { toast } = useToast()
 
-  // ----- Theme detection -----
   useEffect(() => {
     const root = document.documentElement
     setIsDark(root.classList.contains("dark"))
@@ -150,7 +145,6 @@ export function InteractionDrawer({
     return () => observer.disconnect()
   }, [])
 
-  // ----- Grading total -----
   useEffect(() => {
     const checkedCriteria = criteria.filter((c) => c.checked)
     const totalWeight = checkedCriteria.reduce((sum, c) => sum + c.weight, 0)
@@ -173,7 +167,6 @@ export function InteractionDrawer({
     return `${hr}h ${min}m`
   }
 
-  // ----- Reset when closed -----
   useEffect(() => {
     if (!open) {
       setActiveTab("summary")
@@ -184,13 +177,11 @@ export function InteractionDrawer({
       setSentimentScore(null)
       setAgentBehaviorScore(null)
       setTelephoneSkills([])
-      setSalesEffectiveness([])
       setSentimentError(null)
       setSentimentLoading(false)
     }
   }, [open])
 
-  // ----- Fetch Elevate sentiment & scores -----
   useEffect(() => {
     if (!open || !interaction?.call_id) return
 
@@ -230,16 +221,6 @@ export function InteractionDrawer({
             })),
           )
         }
-
-        if (Array.isArray(data.salesEffectiveness)) {
-          setSalesEffectiveness(
-            data.salesEffectiveness.map((m) => ({
-              label: m.label,
-              sentiment: m.sentiment,
-              score: m.score,
-            })),
-          )
-        }
       } catch (err: any) {
         console.error("Failed to fetch sentiment", err)
         setSentimentError(err?.message || "Failed to fetch sentiment")
@@ -251,7 +232,6 @@ export function InteractionDrawer({
 
   if (!interaction) return null
 
-  // ----- Handlers -----
   const handleCheckChange = (id: string, checked: boolean) => {
     setCriteria((prev) =>
       prev.map((criterion) =>
@@ -283,7 +263,6 @@ export function InteractionDrawer({
     })
   }
 
-  // ----- Utils -----
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case "Positive":
@@ -299,90 +278,89 @@ export function InteractionDrawer({
     }
   }
 
-const parseTranscript = (transcript: string, chunkSize = 30) => {
-  if (!transcript) return null
+  const parseTranscript = (transcript: string, chunkSize = 30) => {
+    if (!transcript) return null
 
-  const lines = transcript.split("\n")
-  return lines.map((line, index) => {
-    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-    let speaker = null
-    let text = line
+    const lines = transcript.split("\n")
+    return lines.map((line, index) => {
+      const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+      let speaker = null
+      let text = line
 
-    if (match) {
-      speaker = match[1]
-      text = match[2]
-    }
+      if (match) {
+        speaker = match[1]
+        text = match[2]
+      }
 
-    const words = String(text || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
+      const words = String(text || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
 
-    const chunks: string[] = []
-    for (let i = 0; i < words.length; i += chunkSize) {
-      chunks.push(words.slice(i, i + chunkSize).join(" "))
-    }
+      const chunks: string[] = []
+      for (let i = 0; i < words.length; i += chunkSize) {
+        chunks.push(words.slice(i, i + chunkSize).join(" "))
+      }
 
-    const isDispatcher = speaker === "Dispatcher"
-    const isCaller = speaker === "Caller"
+      const isDispatcher = speaker === "Dispatcher"
+      const isCaller = speaker === "Caller"
 
-    const speakerLabel = speaker
-      ? speaker === "Dispatcher"
-        ? "Operator"
-        : "Caller"
-      : null
+      const speakerLabel = speaker
+        ? speaker === "Dispatcher"
+          ? "Operator"
+          : "Caller"
+        : null
 
-    return (
-      <div key={index} className="mb-4">
-        {speakerLabel && (
+      return (
+        <div key={index} className="mb-4">
+          {speakerLabel && (
+            <div
+              className={cn(
+                "mb-1.5 flex items-center gap-2",
+                isCaller ? "justify-end" : "justify-start"
+              )}
+            >
+              <span className="text-xs font-semibold text-primary">
+                {speakerLabel}
+              </span>
+            </div>
+          )}
+
           <div
             className={cn(
-              "mb-1.5 flex items-center gap-2",
-              isCaller ? "justify-end" : "justify-start"
+              "flex flex-col gap-2",
+              isDispatcher ? "items-start" : isCaller ? "items-end" : "items-start"
             )}
           >
-            <span className="text-xs font-semibold text-primary">
-              {speakerLabel}
-            </span>
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "flex flex-col gap-2",
-            isDispatcher ? "items-start" : isCaller ? "items-end" : "items-start"
-          )}
-        >
-          {chunks.length > 0 ? (
-            chunks.map((chunk, ci) => (
-              <div
-                key={ci}
-                className={cn(
-                  "flex flex-col mb-2 last:mb-0",
-                  isDispatcher ? "items-start" : "items-end"
-                )}
-              >
+            {chunks.length > 0 ? (
+              chunks.map((chunk, ci) => (
                 <div
+                  key={ci}
                   className={cn(
-                    "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
-                    isDispatcher
-                      ? "bg-muted/30 text-foreground border border-border"
-                      : "bg-primary/10 text-foreground border border-primary/20 text-right"
+                    "flex flex-col mb-2 last:mb-0",
+                    isDispatcher ? "items-start" : "items-end"
                   )}
                 >
-                  {chunk}
+                  <div
+                    className={cn(
+                      "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                      isDispatcher
+                        ? "bg-muted/30 text-foreground border border-border"
+                        : "bg-primary/10 text-foreground border border-primary/20 text-right"
+                    )}
+                  >
+                    {chunk}
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground">{text}</div>
-          )}
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">{text}</div>
+            )}
+          </div>
         </div>
-      </div>
-    )
-  })
-}
-
+      )
+    })
+  }
 
   const isAudioPlayerActive = activeTab === "audio-player"
   const leftPanelWidth = isAudioPlayerActive ? "w-[70%]" : "w-[60%]"
@@ -402,14 +380,12 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
           height: "85vh",
         }}
       >
-        {/* A11y title/description (hidden visually) */}
         <DialogTitle className="sr-only">Call interaction details</DialogTitle>
         <DialogDescription className="sr-only">
           Detailed view of the selected call, including transcript, AI analysis,
           scores, and sentiment.
         </DialogDescription>
 
-        {/* Header */}
         <div className="relative flex items-center justify-between border-b border-border px-6 py-4 shrink-0 bg-gradient-to-r from-background via-muted/30 to-background overflow-hidden">
           <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
 
@@ -442,9 +418,7 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
           </Button>
         </div>
 
-        {/* Main Content */}
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* Left: audio + transcript */}
           <div
             className={cn(
               "border-r border-border flex flex-col overflow-hidden transition-all duration-300",
@@ -478,14 +452,12 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
             </div>
           </div>
 
-          {/* Right: tabs */}
           <div
             className={cn(
               "flex flex-col overflow-hidden transition-all duration-300",
               rightPanelWidth,
             )}
           >
-            {/* Tab Header */}
             <div className="border-b border-border bg-gradient-to-br from-muted/50 via-muted/30 to-background px-6 py-4 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -506,7 +478,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
               </div>
             </div>
 
-            {/* Tab Icons */}
             <div className="flex items-center justify-around border-b border-border bg-muted/20 px-4 py-3 shrink-0">
               <Button
                 variant="ghost"
@@ -561,7 +532,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
               </Button>
             </div>
 
-            {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
               <div
                 className={cn(
@@ -569,7 +539,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                   activeTab === "audio-player" && "px-6 py-5",
                 )}
               >
-                {/* Summary */}
                 {activeTab === "summary" && (
                   <div className="space-y-6">
                     <div className="rounded-2xl bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 p-5">
@@ -611,7 +580,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                   </div>
                 )}
 
-                {/* Details */}
                 {activeTab === "details" && (
                   <div className="space-y-5">
                     <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -696,7 +664,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                   </div>
                 )}
 
-                {/* Transcript (full view) */}
                 {activeTab === "transcript" && (
                   <div className="space-y-5">
                     <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -711,10 +678,8 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                   </div>
                 )}
 
-                {/* Scores */}
                 {activeTab === "scores" && (
                   <div className="space-y-8">
-                    {/* Telephone Skills / Customer Satisfaction */}
                     <div>
                       <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
                         <List className="h-5 w-5 text-primary" />
@@ -772,60 +737,9 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                         </div>
                       )}
                     </div>
-
-                    <Separator />
-
-                    {/* Sales Effectiveness */}
-                    <div>
-                      <h4 className="mb-5 text-base font-semibold text-foreground flex items-center gap-2">
-                        <List className="h-5 w-5 text-primary" />
-                        Sales Effectiveness
-                      </h4>
-
-                      {sentimentLoading ? (
-                        <div className="text-sm text-muted-foreground">
-                          Loading scores...
-                        </div>
-                      ) : sentimentError ? (
-                        <div className="text-sm text-red-400">
-                          Could not load scores: {sentimentError}
-                        </div>
-                      ) : salesEffectiveness.length === 0 ? (
-                        <div className="text-sm text-muted-foreground">
-                          No scoring data available for this call.
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {salesEffectiveness.map((item, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between py-2"
-                            >
-                              <span className="text-base text-muted-foreground">
-                                {item.label}
-                              </span>
-                              <div className="flex items-center gap-6">
-                                <span
-                                  className={cn(
-                                    "text-base font-medium min-w-[140px] text-right",
-                                    getSentimentColor(item.sentiment),
-                                  )}
-                                >
-                                  {item.sentiment}
-                                </span>
-                                <span className="w-16 text-right font-mono text-base text-foreground">
-                                  {item.score}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
 
-                {/* Sentiment */}
                 {activeTab === "sentiment" && (
                   <div className="space-y-5">
                     <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -890,8 +804,6 @@ const parseTranscript = (transcript: string, chunkSize = 30) => {
                     )}
                   </div>
                 )}
-
-                {/* (Optional) grading tab left as-is if you add it later */}
               </div>
             </div>
           </div>
