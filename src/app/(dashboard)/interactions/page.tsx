@@ -43,34 +43,52 @@ const getApiUrl = (path: string) => {
   }
   return `${API_BASE}${path}`
 }
-
+type QaValue = "yes" | "no" | "refused" | "na" | "Yes" | "No" | "Refused" | "N/A"
 // ---------------- Types ----------------
-interface CallData {
-  _id: string
-  id: string // Elevate interactionIdentifier
-  dispatcher_id: string
-  call_id: string
-  duration_seconds: number
-  direction: string
-  language: string
-  model: string
-  callType: string
-  status: Status
-  sentiment: string
-  transcript: string
-  summary: string
-  created_at: Date
-  callEvaluationType: string
-  qa_analysis: {
-    [question_id: string]: {
-      answer: string
-      proof: string
-    }
+  interface EmergencyType {
+    agency: string;
+    specific_emergency: string;
+    confidence: string;
   }
-  score: number
-  scores: string[]
-  stored_audio: string
-}
+  
+  interface QAResult {
+    Answer: QaValue;
+    Proof: string;
+  }
+
+  
+  interface CallData {
+    _id: string;
+    dispatcher_id?: string;
+    call_id?: string;
+    duration_seconds?: number;
+    score?: number;
+    callEvaluationType?: string;
+    direction?: string;
+    language?: string;
+    model?: string;
+
+    callType?: EmergencyType[];
+
+    status?: string;
+
+    // Sentiment block
+    sentiment?: string;
+    sentimentDescription?: string | null;
+    sentimentScore?: number | null;
+    sentimentRawScore?: number | null;
+
+    transcript?: string;
+    summary?: string;
+
+    qa_analysis?: {
+      [question: string]: QAResult;
+    };
+
+    created_at?: string; // ISO string from backend (recommended instead of Date)
+
+    stored_audio?: string; // if you later store audio URL
+  }
 
 interface RowSentiment {
   sentiment: string
@@ -155,20 +173,20 @@ export default function InteractionsPage() {
     if (interactions.length === 0) return
 
     interactions.forEach((interaction) => {
-      if (!interaction.id) return
-      if (rowSentiments[interaction.id]) return // already fetched
+      if (!interaction._id) return
+      if (rowSentiments[interaction._id]) return // already fetched
 
       ;(async () => {
         try {
           const url = getApiUrl(
             `/elevate.api/sentiment?interaction_id=${encodeURIComponent(
-              interaction.id,
+              interaction.call_id ?? "",
             )}`,
           )
           const res = await fetch(url)
           if (!res.ok) {
             console.error(
-              `Failed to fetch sentiment for ${interaction.id}:`,
+              `Failed to fetch sentiment for ${interaction._id}:`,
               res.status,
             )
             return
@@ -177,7 +195,7 @@ export default function InteractionsPage() {
           const data = await res.json()
           setRowSentiments((prev) => ({
             ...prev,
-            [interaction.id]: {
+            [interaction._id]: {
               sentiment: data.sentiment || "Neutral",
               sentimentScore:
                 typeof data.sentimentScore === "number"
@@ -187,7 +205,7 @@ export default function InteractionsPage() {
           }))
         } catch (err) {
           console.error(
-            `Error calling /elevate.api/sentiment for ${interaction.id}:`,
+            `Error calling /elevate.api/sentiment for ${interaction._id}:`,
             err,
           )
         }
@@ -227,12 +245,17 @@ export default function InteractionsPage() {
     const matchesSearch =
       interaction.call_id?.toLowerCase().includes(q) ||
       interaction.dispatcher_id?.toLowerCase().includes(q) ||
-      interaction.callType?.toLowerCase().includes(q)
+      interaction.callType?.some(ct =>
+        ct.agency.toLowerCase().includes(q) ||
+        ct.specific_emergency.toLowerCase().includes(q)
+      )
 
     const matchesStatus =
       statusFilter === "all" || interaction.status === statusFilter
+
     const matchesCallType =
-      callTypeFilter === "all" || interaction.callType === callTypeFilter
+      callTypeFilter === "all" ||
+      interaction.callType?.some(ct => ct.agency === callTypeFilter)
 
     // Keyword search: check if ALL keywords are present in the transcript
     const matchesKeywords =
@@ -374,7 +397,7 @@ export default function InteractionsPage() {
                   </TableRow>
                 ) : (
                   filteredInteractions.map((interaction, idx) => {
-                    const rowSentiment = rowSentiments[interaction.id]
+                    const rowSentiment = rowSentiments[interaction._id]
 
                     return (
                       <TableRow
@@ -392,12 +415,20 @@ export default function InteractionsPage() {
                         <TableCell>{interaction.dispatcher_id}</TableCell>
                         <TableCell>{interaction.language}</TableCell>
                         <TableCell>{interaction.model}</TableCell>
-                        <TableCell>{interaction.callType}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col text-sm">
+                            {interaction.callType?.map((ct, i) => (
+                              <span key={i}>
+                                {ct.agency} - {ct.specific_emergency}
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {interaction.duration_seconds} sec
                         </TableCell>
                         <TableCell>
-                          <StatusBadge status={interaction.status} />
+                          <StatusBadge status={(interaction.status ?? "failed") as Status} />
                         </TableCell>
                         <TableCell>
                           <SentimentBadge

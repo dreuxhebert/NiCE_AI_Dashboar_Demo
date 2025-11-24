@@ -28,9 +28,7 @@ export default function UploadPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [dispatcher, setDispatcher] = useState("")
-  const [callType, setCallType] = useState("")
   const [language, setLanguage] = useState("")
-  const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false);
   const { toast } = useToast()
 
@@ -82,7 +80,7 @@ export default function UploadPage() {
       return
     }
 
-    if (!dispatcher || !callType || !language) {
+    if (!dispatcher || !language) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -96,7 +94,6 @@ export default function UploadPage() {
     const formData = new FormData()
     formData.append("audio_file", selectedFile, selectedFile.name)
     formData.append("dispatcher", dispatcher)
-    formData.append("call_type", callType)
     formData.append("language", language)
 
     console.log("Upload → API_BASE:", API_BASE, "USE_PROXY:", USE_PROXY)
@@ -129,65 +126,20 @@ export default function UploadPage() {
         return
       }
 
-      const { interaction_id, transcription, summary, qa_analysis_result, score, duration_seconds, stored_audio } = uploadRes.data ?? {}
-      console.log(qa_analysis_result)
-      if (!interaction_id) {
-        toast({
-          title: "Upload failed",
-          description: "Missing interaction_id from server response.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Helper to turn empty strings into undefined
-      const clean = (v: any) => {
-        if (v === null || v === undefined) return undefined
-        const s = String(v).trim()
-        return s.length ? s : undefined
-      }
-
-      const call = {
-        dispatcher_id: clean(dispatcher),
-        call_id: interaction_id,
-        duration_seconds: duration_seconds,
-        direction: "Inbound",
-        language: clean(language),
-        model: "general",
-        callType: clean(callType),
-        status: "processed",
-        sentiment: "positive",
-        transcript: transcription,
-        summary: summary,
-        // Required by backend schema to avoid 422:
-        scores: [],
-        score: score,
-        callEvaluationType: "Auto-Scored",
-        qa_analysis: qa_analysis_result,
-        stored_audio: stored_audio
-        // notes isn’t used by your backend right now; include if your API supports it
-        // notes: clean(notes),
-      }
-
-      // 2) Persist the call record (small JSON can still go through proxy)
-      const createRes = await axios.post(getApiUrl("/calls/createCall"), call, {
-        headers: { "Content-Type": "application/json" },
-        timeout: 60000,
-        validateStatus: () => true,
+      const body = uploadRes.data
+      const res = await fetch(getApiUrl("/calls/createNewCall"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       })
 
-      if (createRes.status < 200 || createRes.status >= 300) {
-        console.error("createCall failed", createRes.status, createRes.data)
-        toast({
-          title: `Call save failed (${createRes.status})`,
-          description:
-            typeof createRes.data === "string" ? createRes.data : JSON.stringify(createRes.data),
-          variant: "destructive",
-        })
-        return
+      if (!res.ok) {
+        const err = await res.text()
+        console.error("createNewCall failed:", err)
       }
 
-      console.log("Create call response:", createRes.data)
       toast({
         title: "Audio uploaded successfully",
         description: "Your audio file has been uploaded.",
@@ -196,9 +148,8 @@ export default function UploadPage() {
       // Reset form
       setSelectedFile(null)
       setDispatcher("")
-      setCallType("")
       setLanguage("")
-      setNotes("")
+
     } catch (err: any) {
       console.error("Network/axios error:", {
         message: err?.message,
@@ -314,20 +265,6 @@ export default function UploadPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="callType">Call Type *</Label>
-                <Select value={callType} onValueChange={setCallType} required>
-                  <SelectTrigger id="callType">
-                    <SelectValue placeholder="Select call type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EMS">EMS</SelectItem>
-                    <SelectItem value="Fire">Fire</SelectItem>
-                    <SelectItem value="Police">Police</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="language">Language *</Label>
                 <Select value={language} onValueChange={setLanguage} required>
                   <SelectTrigger id="language">
@@ -341,17 +278,6 @@ export default function UploadPage() {
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Enter any additional information about the call..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                />
               </div>
 
               <Button type="submit" className="w-full" size="lg">

@@ -78,6 +78,12 @@ interface ScoreItem {
   score: number
 }
 
+  interface EmergencyType {
+    agency: string;
+    specific_emergency: string;
+    confidence: string;
+  }
+
 type TabType =
   | "summary"
   | "details"
@@ -293,84 +299,94 @@ export function InteractionDrawer({
     }
   }
 
-  const parseTranscript = (transcript: string, chunkSize = 30) => {
-    if (!transcript) return null
+const parseTranscript = (transcript: string, chunkSize = 30) => {
+  if (!transcript) return null
 
-    const lines = transcript.split("\n")
-    return lines.map((line, index) => {
-      const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
-      let speaker = null
-      let text = line
-      if (match) {
-        speaker = match[1]
-        text = match[2]
-      }
+  const lines = transcript.split("\n")
+  return lines.map((line, index) => {
+    const match = line.match(/^(Dispatcher|Caller):\s*(.+)$/)
+    let speaker = null
+    let text = line
 
-      const words = String(text || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-      const chunks: string[] = []
-      for (let i = 0; i < words.length; i += chunkSize) {
-        chunks.push(words.slice(i, i + chunkSize).join(" "))
-      }
+    if (match) {
+      speaker = match[1]
+      text = match[2]
+    }
 
-      const isDispatcher = speaker === "Dispatcher"
-      const speakerLabel = speaker
-        ? speaker === "Dispatcher"
-          ? "Operator"
-          : speaker
-        : null
+    const words = String(text || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
 
-      return (
-        <div key={index} className="mb-4">
-          {speakerLabel && (
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="text-xs font-semibold text-primary">
-                {speakerLabel}
-              </span>
-            </div>
-          )}
+    const chunks: string[] = []
+    for (let i = 0; i < words.length; i += chunkSize) {
+      chunks.push(words.slice(i, i + chunkSize).join(" "))
+    }
 
+    const isDispatcher = speaker === "Dispatcher"
+    const isCaller = speaker === "Caller"
+
+    const speakerLabel = speaker
+      ? speaker === "Dispatcher"
+        ? "Operator"
+        : "Caller"
+      : null
+
+    return (
+      <div key={index} className="mb-4">
+        {speakerLabel && (
           <div
             className={cn(
-              "flex flex-col gap-2",
-              isDispatcher ? "items-start" : "items-end",
+              "mb-1.5 flex items-center gap-2",
+              isCaller ? "justify-end" : "justify-start"
             )}
           >
-            {chunks.length > 0 ? (
-              chunks.map((chunk, ci) => (
+            <span className="text-xs font-semibold text-primary">
+              {speakerLabel}
+            </span>
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "flex flex-col gap-2",
+            isDispatcher ? "items-start" : isCaller ? "items-end" : "items-start"
+          )}
+        >
+          {chunks.length > 0 ? (
+            chunks.map((chunk, ci) => (
+              <div
+                key={ci}
+                className={cn(
+                  "flex flex-col mb-2 last:mb-0",
+                  isDispatcher ? "items-start" : "items-end"
+                )}
+              >
                 <div
-                  key={ci}
                   className={cn(
-                    "flex flex-col mb-2 last:mb-0",
-                    isDispatcher ? "items-start" : "items-end",
+                    "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
+                    isDispatcher
+                      ? "bg-muted/30 text-foreground border border-border"
+                      : "bg-primary/10 text-foreground border border-primary/20 text-right"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[82%] px-3 py-2 rounded-lg text-sm leading-relaxed",
-                      isDispatcher
-                        ? "bg-muted/30 text-foreground border border-border"
-                        : "bg-primary/10 text-foreground border border-primary/20",
-                    )}
-                  >
-                    {chunk}
-                  </div>
+                  {chunk}
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">{text}</div>
-            )}
-          </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-muted-foreground">{text}</div>
+          )}
         </div>
-      )
-    })
-  }
+      </div>
+    )
+  })
+}
+
 
   const isAudioPlayerActive = activeTab === "audio-player"
-  const leftPanelWidth = isAudioPlayerActive ? "w-[40%]" : "w-[60%]"
-  const rightPanelWidth = isAudioPlayerActive ? "w-[60%]" : "w-[40%]"
+  const leftPanelWidth = isAudioPlayerActive ? "w-[70%]" : "w-[60%]"
+  const rightPanelWidth = isAudioPlayerActive ? "w-[70%]" : "w-[40%]"
 
   const effectiveSentiment = sentiment ?? interaction.sentiment ?? "Neutral"
   const effectiveSentimentScore = sentimentScore ?? interaction.sentimentScore ?? 0
@@ -383,7 +399,7 @@ export function InteractionDrawer({
         style={{
           width: "min(96vw, 1400px)",
           maxWidth: "min(96vw, 1400px)",
-          height: "90vh",
+          height: "85vh",
         }}
       >
         {/* A11y title/description (hidden visually) */}
@@ -608,7 +624,7 @@ export function InteractionDrawer({
                           Operator
                         </span>
                         <span className="text-base font-medium text-foreground">
-                          {interaction.dispatcher}
+                          {interaction.dispatcher_id}
                         </span>
                       </div>
                       <Separator />
@@ -617,7 +633,11 @@ export function InteractionDrawer({
                           Call Type
                         </span>
                         <Badge variant="outline" className="text-sm">
-                          {interaction.callType}
+                          {interaction.callType?.map((ct: EmergencyType, index: number) => (
+                            <span key={index}>
+                              {ct.agency}: {ct.specific_emergency}
+                            </span>
+                          ))}
                         </Badge>
                       </div>
                       <Separator />

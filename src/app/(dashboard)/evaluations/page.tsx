@@ -41,15 +41,14 @@ export default function EvaluationsPage() {
   const [metStandards, setMetStandards] = useState<number>(0)
   const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [qaAnswers, setQaAnswers] = useState<String[]>([])
   const [activeTab, setActiveTab] = useState<string>("summary")
   const { toast } = useToast()
   const router = useRouter()
-  const [qaAnalysisTemp, setQaAnalysisTemp] = useState<call_analysis | null>(null)
-  const [qaAnalysis, setQaAnalysis] = useState<call_analysis | null>(null)
   const [score, setScore] = useState<number>(0)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [qaAnalysisTemp, setQaAnalysisTemp] = useState<CallAnalysis>({})
+  const [qaAnalysis, setQaAnalysis] = useState<CallAnalysis>({})
 
   // This is your existing mock waveform bars
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
@@ -74,16 +73,6 @@ export default function EvaluationsPage() {
   type QaValue = "yes" | "no" | "refused" | "na" | "Yes" | "No" | "Refused" | "N/A"
   type QaResults = Record<string, QaValue>
 
-  const initialQa: QaResults = {
-    location: "yes",
-    phoneNumber: "yes",
-    emergencyNature: "yes",
-    callerName: "no",
-    safetyConcerns: "yes",
-    callbackInfo: "no",
-    respondersNotified: "yes",
-  }
-
   interface QAQuestion {
     _id: string;
     originalQuestion: string;
@@ -95,38 +84,55 @@ export default function EvaluationsPage() {
     score: number;
   }
 
+  interface EmergencyType {
+    agency: string;
+    specific_emergency: string;
+    confidence: string;
+  }
+  
+  interface QAResult {
+    Answer: QaValue;
+    Proof: string;
+  }
+
   
   interface CallData {
     _id: string;
-    id: string;
-    dispatcher_id: string;
-    call_id: string;
-    duration_seconds: number;
-    direction: string;
-    language: string;
-    model: string;
-    callType: string;
-    status: string;
-    sentiment: string;
-    transcript: string;
-    summary: string;
-    created_at: Date;
-    callEvaluationType: string;
-    qa_analysis: {
-      [question_id: string]: {
-        answer: string;
-        proof: string;
-      };
+    dispatcher_id?: string;
+    call_id?: string;
+    duration_seconds?: number;
+    score?: number;
+    callEvaluationType?: string;
+    direction?: string;
+    language?: string;
+    model?: string;
+
+    callType?: EmergencyType[];
+
+    status?: string;
+
+    // Sentiment block
+    sentiment?: string;
+    sentimentDescription?: string | null;
+    sentimentScore?: number | null;
+    sentimentRawScore?: number | null;
+
+    transcript?: string;
+    summary?: string;
+
+    qa_analysis?: {
+      [question: string]: QAResult;
     };
-    score: number;
-    scores: string[];
-    stored_audio: string;
+
+    created_at?: string; // ISO string from backend (recommended instead of Date)
+
+    stored_audio?: string; // if you later store audio URL
   }
 
-  interface call_analysis {
+  interface CallAnalysis {
     [question_id: string]: {
-        answer: string;
-        proof: string;
+      Answer: QaValue;
+      Proof: string;
     };
   }
 
@@ -138,42 +144,59 @@ export default function EvaluationsPage() {
   }, [])
 
   const handleClickSave = async () => {
+    if (!selectedEvaluation?._id) return
+
+    const cleanedAnalysis = Object.fromEntries(
+      Object.entries(qaAnalysisTemp ?? {}).map(([key, value]) => [
+        key,
+        {
+          Answer: value.Answer,
+          Proof: value.Proof ?? ""
+        }
+      ])
+    )
+
     const res = await fetch(getApiUrl(`/calls/update`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: selectedEvaluation?._id,
-        changedAnalysis: qaAnalysisTemp ?? {}
+        id: selectedEvaluation._id,
+        changedAnalysis: cleanedAnalysis
       })
-    });
-    const data = await res.json(); 
+    })
+
+    const data = await res.json()
+
     if (res.ok) {
-      toast({ title: "Saved", description: "QA Evaluation Updated" });
-      setIsEditing(false);
+      toast({ title: "Saved", description: "QA Evaluation Updated" })
+      setIsEditing(false)
     }
+
     const merged = callList.map((call) =>
-      call._id === selectedEvaluation?._id
+      call._id === selectedEvaluation._id
         ? {
             ...call,
             qa_analysis: qaAnalysisTemp ?? {},
-            score : data.newScore
+            score: data.newScore
           }
         : call
-    );
-    setScore(data.newScore)
-    setCallList(merged);
-    setQaAnalysis(qaAnalysisTemp)
+    )
 
+    setCallList(merged)
+    setScore(data.newScore)
+    setQaAnalysis(qaAnalysisTemp ?? {})
+
+    // ✅ Correct QA recalculation using new type
     const yesCount = Object.values(qaAnalysisTemp ?? {}).filter(
-      (item) => item.answer?.toLowerCase() === "yes"
-    ).length;
+      (item) => item.Answer === "Yes"
+    ).length
 
     const noCount = Object.values(qaAnalysisTemp ?? {}).filter(
-      (item) => item.answer?.toLowerCase() === "no"
-    ).length;
+      (item) => item.Answer === "No"
+    ).length
 
-    setMetStandards(yesCount);
-    setCriticalViolations(noCount);
+    setMetStandards(yesCount)
+    setCriticalViolations(noCount)
   }
 
   const handleMarkCompleted = async () => {
@@ -215,40 +238,40 @@ export default function EvaluationsPage() {
     setExpandedQuestions(s)
   }
 
-  const handleAddQuestion = () => {
-    setDrawerOpen(true)
-  }
-
   const handleSelectEvaluationChange = (evaluation: CallData) => {
     const newId = evaluation._id
     setSelectedEvaluation(evaluation)
-    const yesCount = Object.values(evaluation.qa_analysis).filter(
-      (item) => item.answer?.toLowerCase() === "yes"
-    ).length;
 
-    const noCount = Object.values(evaluation.qa_analysis).filter(
-      (item) => item.answer?.toLowerCase() === "no"
-    ).length;
+    const qa = evaluation.qa_analysis ?? {}
 
-    setMetStandards(yesCount);
-    setCriticalViolations(noCount);
-    setQaAnswers(evaluation.scores)
-    setScore(evaluation.score)
-    setQaAnalysisTemp(evaluation.qa_analysis ?? {})
-    setQaAnalysis(evaluation.qa_analysis ?? {})
-    // Smoothly scroll to the QA form section
+    const yesCount = Object.values(qa).filter(
+      (item) => item.Answer?.toLowerCase() === "yes"
+    ).length
+
+    const noCount = Object.values(qa).filter(
+      (item) => item.Answer?.toLowerCase() === "no"
+    ).length
+
+    setMetStandards(yesCount)
+    setCriticalViolations(noCount)
+    setScore(evaluation.score ?? 0)
+
+    setQaAnalysisTemp(qa)
+    setQaAnalysis(qa)
+
+    // Smooth scroll
     qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  const updateQaDraft = (key: string, value: string) => {
+  const updateQaDraft = (key: string, value: QaValue) => {
     if (!isEditing) return
     setQaAnalysisTemp(prev => ({
-      ...prev!,
+      ...(prev ?? {}),
       [key]: {
-        answer: value,
-        proof: prev?.[key]?.proof ?? ""
+        Answer: value,                       // ✅ correct case
+        Proof: prev?.[key]?.Proof ?? ""
       }
-    }));
+    }))
   }
 
   const getScoreColor = (score: number) => {
@@ -367,8 +390,8 @@ const handleDialogExport = async (options: {
       addSectionTitle("QA Evaluation")
 
       qaQuestionsSet.forEach((q, index) => {
-        const a = qaSource[q._id]?.answer ?? "N/A"
-        const proof = qaSource[q._id]?.proof ?? ""
+        const a = qaSource[q._id]?.Answer ?? "N/A"
+        const proof = qaSource[q._id]?.Proof ?? ""
 
         addLine(`Q${index + 1}: ${q.editedQuestion}`, { bold: true })
         addLine(`Answer: ${a}`)
@@ -428,8 +451,8 @@ const handleDialogExport = async (options: {
 
   const filteredEvaluations = callList.filter(
     (evaluation) =>
-      evaluation.dispatcher_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evaluation.call_id.toLowerCase().includes(searchQuery.toLowerCase())
+      evaluation.dispatcher_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evaluation.call_id?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const qaQuestions = [
@@ -467,17 +490,22 @@ const handleDialogExport = async (options: {
     setCallList(data);
     try {
       if (data?.length > 0) {
-        
-        const first = data[0];
-        const answers = Object.values(first?.qa_analysis || {} as call_analysis).map((item) => (item as { answer: string; proof: string }).answer);
-        const score = first?.score ?? "";
-        const analysis: call_analysis = first?.qa_analysis ?? {}
+        const first = data[0]
 
-        setSelectedEvaluation(first);
-        const met = answers.filter((score) => score === "Yes").length;
-        const crit = answers.filter((score) => score === "No").length;
-        setMetStandards(met);
-        setCriticalViolations(crit);
+        const analysis: CallAnalysis = first?.qa_analysis ?? {}
+
+        const answers = Object.values(analysis).map((item) => item.Answer)
+
+        const score = first?.score ?? 0
+
+        setSelectedEvaluation(first)
+
+        const met = answers.filter((ans) => ans === "Yes").length
+        const crit = answers.filter((ans) => ans === "No").length
+
+        setMetStandards(met)
+        setCriticalViolations(crit)
+
         setQaAnalysisTemp(analysis)
         setQaAnalysis(analysis)
         setScore(score)
@@ -626,6 +654,7 @@ const handleDialogExport = async (options: {
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Resource</th>
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Agency</th>
+                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Call Type</th>
                                 <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
                                 <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
                               </tr>
@@ -643,14 +672,36 @@ const handleDialogExport = async (options: {
                                 >
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">
-                                      {new Date(evaluation.created_at).toDateString()}
+                                      {evaluation.created_at
+                                        ? new Date(evaluation.created_at).toLocaleDateString("en-GB", {
+                                            day: "2-digit",
+                                            month: "short",
+                                            year: "numeric",
+                                          })
+                                        : "-"}
                                     </p>
                                   </td>
                                   <td className="px-4 py-3">
                                     <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <p className="text-sm font-medium text-foreground">{evaluation.callType}</p>
+                                    <div className="flex flex-col gap-1">
+                                      {evaluation.callType?.map((item, index) => (
+                                        <p key={index} className="text-sm font-medium text-foreground">
+                                          {item.agency}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  </td>
+
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-col gap-1">
+                                      {evaluation.callType?.map((item, index) => (
+                                        <p key={index} className="text-sm font-medium text-foreground">
+                                          {item.specific_emergency}
+                                        </p>
+                                      ))}
+                                    </div>
                                   </td>
                                   <td className="px-4 py-3">
                                     <Badge variant="outline" className="text-xs">
@@ -659,7 +710,7 @@ const handleDialogExport = async (options: {
                                   </td>
                                   <td className="px-4 py-3 text-center">
                                     <Badge
-                                      variant={getScoreBadgeVariant(evaluation.score)}
+                                      variant={getScoreBadgeVariant(evaluation.score ?? 0)}
                                       className="text-xs font-semibold"
                                     >
                                       {evaluation.score}%
@@ -903,88 +954,84 @@ const handleDialogExport = async (options: {
                       {/* Full Form Tab */}
                       <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
                         <div className="space-y-2">
-                      {qaQuestionsSet.map((q, index) => {
-                        let answer = qaAnalysis?.[q._id]?.answer || ""
-                        let proof = qaAnalysis?.[q._id]?.proof || ""
+                        {Object.entries(qaAnalysis ?? {}).map(([question, qa], index) => {
+                            const val = (isEditing ? qaAnalysisTemp?.[question]?.Answer : qa.Answer) as QaValue
+                            const proof = qa.Proof || ""
 
-                        const val = (isEditing ? qaAnalysisTemp?.[q._id]?.answer : answer) as QaValue
-                        return (
-                          <div key={index} className="border border-border/50 rounded-lg bg-card overflow-hidden">
-                            <div className="flex items-center justify-between p-3 gap-3">
-                              <span className="text-sm text-foreground flex-1">{q.editedQuestion}</span>
-                              {/* <span className="text-sm text-foreground flex-1">{q.score}</span> */}
-                              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                                <Button
-                                  size="sm"
-                                  variant={val === "Yes" ? "default" : "outline"}
-                                  className={qaBtn(val === "Yes", "Yes")}
-                                  onClick={() => {updateQaDraft(q?._id, "Yes")}}
-                                  aria-disabled={!isEditing}
-                                  tabIndex={isEditing ? 0 : -1}
-                                >
-                                  Yes
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={val === "No" ? "destructive" : "outline"}
-                                  className={qaBtn(val === "No", "No")}
-                                  onClick={() => updateQaDraft(q?._id, "No")}
-                                  aria-disabled={!isEditing}
-                                  tabIndex={isEditing ? 0 : -1}
-                                >
-                                  No
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={val === "Refused" ? "default" : "outline"}
-                                  className={qaBtn(val === "Refused", "Refused")}
-                                  onClick={() => updateQaDraft(q?._id, "Refused")}
-                                  aria-disabled={!isEditing}
-                                  tabIndex={isEditing ? 0 : -1}
-                                >
-                                  Refused
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant={val === "N/A" ? "default" : "outline"}
-                                  className={qaBtn(val === "N/A", "N/A")}
-                                  onClick={() => updateQaDraft(q?._id, "N/A")}
-                                  aria-disabled={!isEditing}
-                                  tabIndex={isEditing ? 0 : -1}
-                                >
-                                  N/A
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => toggleQuestion(index)}>
-                                  {expandedQuestions.has(index) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                </Button>
-                              </div>
-                            </div>
+                            return (
+                              <div key={question} className="border border-border/50 rounded-lg bg-card overflow-hidden">
+                                <div className="flex items-center justify-between p-3 gap-3">
+                                  <span className="text-sm text-foreground flex-1">{question}</span>
 
-                            <div className={cn(
-                              "grid transition-all duration-300 ease-in-out overflow-hidden",
-                              expandedQuestions.has(index) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                            )}>
-                              <div className="overflow-hidden">
-                                <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                  <div className="mt-2 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs text-muted-foreground">AI Confidence</span>
-                                      <span className="text-xs font-semibold text-foreground">{q.confidence}%</span>
-                                    </div>
-                                    <div className="h-1 overflow-hidden rounded-full bg-muted/70">
-                                      <div className="h-full bg-primary transition-all" style={{ width: `${q.confidence}%` }} />
-                                    </div>
-                                    <div className="mt-2">
-                                      <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                      <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">{proof}</p>
+                                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                    <Button
+                                      size="sm"
+                                      variant={val === "Yes" ? "default" : "outline"}
+                                      className={qaBtn(val === "Yes", "Yes")}
+                                      onClick={() => updateQaDraft(question, "Yes")}
+                                      aria-disabled={!isEditing}
+                                    >
+                                      Yes
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant={val === "No" ? "destructive" : "outline"}
+                                      className={qaBtn(val === "No", "No")}
+                                      onClick={() => updateQaDraft(question, "No")}
+                                      aria-disabled={!isEditing}
+                                    >
+                                      No
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant={val === "Refused" ? "default" : "outline"}
+                                      className={qaBtn(val === "Refused", "Refused")}
+                                      onClick={() => updateQaDraft(question, "Refused")}
+                                      aria-disabled={!isEditing}
+                                    >
+                                      Refused
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant={val === "N/A" ? "default" : "outline"}
+                                      className={qaBtn(val === "N/A", "N/A")}
+                                      onClick={() => updateQaDraft(question, "N/A")}
+                                      aria-disabled={!isEditing}
+                                    >
+                                      N/A
+                                    </Button>
+
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => toggleQuestion(index)}>
+                                      {expandedQuestions.has(index) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className={cn(
+                                  "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                  expandedQuestions.has(index) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                )}>
+                                  <div className="overflow-hidden">
+                                    <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                      <div className="mt-2 space-y-2">
+
+                                        <div className="mt-2">
+                                          <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                          <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                            {proof}
+                                          </p>
+                                        </div>
+
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
                         </div>
 
                         {/* Action bar: sticky on mobile, normal on md+ */}
