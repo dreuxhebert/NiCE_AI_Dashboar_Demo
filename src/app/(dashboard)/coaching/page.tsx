@@ -236,27 +236,92 @@ export default function CoachingPage() {
   }
 
   // -------------------------
-  // Mark as Scheduled
+  // Mark as In Progress
   // -------------------------
   const handleMarkAsScheduled = async () => {
     if (!selectedTask) return
 
-    try {
-      const prev = selectedTask
-      setSelectedTask({ ...prev, status: "in-progress" })
-      setTasks((arr) => arr.map((t) => (t.id === prev.id ? { ...t, status: "in-progress" } : t)))
+    const prev = selectedTask
+    const optimistic: CoachingTask = { ...prev, status: "in-progress" }
 
-      await fetch(getApiUrl(`/coaching/tasks/${selectedTask.id}`), {
+    // optimistic UI
+    setSelectedTask(optimistic)
+    setTasks((arr) => arr.map((t) => (t.id === prev.id ? optimistic : t)))
+
+    try {
+      const res = await fetch(getApiUrl(`/coaching/tasks/${prev.id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "in-progress" }),
       })
 
+      if (!res.ok) {
+        throw new Error(`Update failed: ${res.status}`)
+      }
+
+      const updated: CoachingTask = await res.json()
+      const normalized = normalizeTaskText(updated)
+
+      setSelectedTask(normalized)
+      setTasks((arr) => arr.map((t) => (t.id === normalized.id ? normalized : t)))
+
       toast({
         title: "Task Updated",
-        description: `Coaching task for ${prev.callTakerName} marked as scheduled.`,
+        description: `Coaching task for ${prev.callTakerName} marked as in progress.`,
       })
     } catch (e: any) {
+      // rollback
+      setSelectedTask(prev)
+      setTasks((arr) => arr.map((t) => (t.id === prev.id ? prev : t)))
+
+      toast({
+        title: "Update failed",
+        description: e?.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  // -------------------------
+  // Mark as Completed
+  // -------------------------
+  const handleMarkAsCompleted = async () => {
+    if (!selectedTask) return
+
+    const prev = selectedTask
+    const completedDate = new Date().toISOString()
+    const optimistic: CoachingTask = { ...prev, status: "completed", completedDate }
+
+    // optimistic UI
+    setSelectedTask(optimistic)
+    setTasks((arr) => arr.map((t) => (t.id === prev.id ? optimistic : t)))
+
+    try {
+      const res = await fetch(getApiUrl(`/coaching/tasks/${prev.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed", completedDate }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Update failed: ${res.status}`)
+      }
+
+      const updated: CoachingTask = await res.json()
+      const normalized = normalizeTaskText(updated)
+
+      setSelectedTask(normalized)
+      setTasks((arr) => arr.map((t) => (t.id === normalized.id ? normalized : t)))
+
+      toast({
+        title: "Task Completed",
+        description: `Coaching task for ${prev.callTakerName} marked as completed.`,
+      })
+    } catch (e: any) {
+      // rollback
+      setSelectedTask(prev)
+      setTasks((arr) => arr.map((t) => (t.id === prev.id ? prev : t)))
+
       toast({
         title: "Update failed",
         description: e?.message,
@@ -594,7 +659,13 @@ export default function CoachingPage() {
                 {/* Buttons */}
                 {selectedTask.status === "pending" && (
                   <Button onClick={handleMarkAsScheduled} className="w-full">
-                    Mark as Scheduled
+                    Mark as In Progress
+                  </Button>
+                )}
+
+                {selectedTask.status === "in-progress" && (
+                  <Button onClick={handleMarkAsCompleted} className="w-full">
+                    Mark as Completed
                   </Button>
                 )}
               </CardContent>
