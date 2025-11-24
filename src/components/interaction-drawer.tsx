@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { StatusBadge } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
-import { AudioPlayerWithWaveform } from "@/components/audio-player-with-waveform"
+import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
@@ -113,6 +113,7 @@ export function InteractionDrawer({
   const [activeTab, setActiveTab] = useState<TabType>("summary")
   const [criteria, setCriteria] = useState<GradingCriterion[]>(initialCriteria)
   const [overallScore, setOverallScore] = useState(0)
+  const [isDark, setIsDark] = useState(false)
 
   const [sentiment, setSentiment] = useState<string | null>(null)
   const [sentimentScore, setSentimentScore] = useState<number | null>(null)
@@ -125,6 +126,23 @@ export function InteractionDrawer({
   const [sentimentError, setSentimentError] = useState<string | null>(null)
 
   const { toast } = useToast()
+
+  // ----- Theme detection -----
+  useEffect(() => {
+    const root = document.documentElement
+    setIsDark(root.classList.contains("dark"))
+
+    const observer = new MutationObserver(() => {
+      setIsDark(root.classList.contains("dark"))
+    })
+
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   // ----- Grading total -----
   useEffect(() => {
@@ -382,8 +400,8 @@ export function InteractionDrawer({
           <div className="flex items-center gap-4 relative z-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl">
               <img
-                src={logoUrl || "/callLogo.png"}
-                alt="Company Logo"
+                src={isDark ? "/Ai-icon_white.svg" : "/Ai-icon_blk.svg"}
+                alt="AI Icon"
                 className="h-8 w-8 object-contain"
               />
             </div>
@@ -425,12 +443,7 @@ export function InteractionDrawer({
                 </p>
               </div>
               <div className="space-y-4">
-                <AudioPlayerWithWaveform
-                  audioUrl={`/calls/audio/${interaction.call_id}`}
-                  fileName={interaction.call_id}
-                  className="space-y-4"
-                  callDuration={interaction.duration_seconds}
-                />
+                <AudioPlayerWithWaveformV2 />
               </div>
             </div>
 

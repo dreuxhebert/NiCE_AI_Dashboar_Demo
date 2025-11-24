@@ -27,7 +27,9 @@ import {
 import { StatusBadge, type Status } from "@/components/status-badge"
 import { SentimentBadge } from "@/components/sentiment-badge"
 import { InteractionDrawer } from "@/components/interaction-drawer"
-import { Search, Filter } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Search, Filter, X, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ---------------- API helper ----------------
@@ -83,6 +85,8 @@ export default function InteractionsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [keywordInput, setKeywordInput] = useState("")
+  const [keywords, setKeywords] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [callTypeFilter, setCallTypeFilter] = useState<string>("all")
 
@@ -197,6 +201,25 @@ export default function InteractionsPage() {
     setDrawerOpen(true)
   }
 
+  const addKeyword = () => {
+    const trimmed = keywordInput.trim()
+    if (trimmed && !keywords.includes(trimmed.toLowerCase())) {
+      setKeywords([...keywords, trimmed.toLowerCase()])
+      setKeywordInput("")
+    }
+  }
+
+  const removeKeyword = (keywordToRemove: string) => {
+    setKeywords(keywords.filter((k) => k !== keywordToRemove))
+  }
+
+  const handleKeywordInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addKeyword()
+    }
+  }
+
   // -------- Filtering --------
   const filteredInteractions = interactions.filter((interaction) => {
     const q = searchQuery.toLowerCase()
@@ -211,7 +234,14 @@ export default function InteractionsPage() {
     const matchesCallType =
       callTypeFilter === "all" || interaction.callType === callTypeFilter
 
-    return matchesSearch && matchesStatus && matchesCallType
+    // Keyword search: check if ALL keywords are present in the transcript
+    const matchesKeywords =
+      keywords.length === 0 ||
+      keywords.every((keyword) =>
+        interaction.transcript?.toLowerCase().includes(keyword)
+      )
+
+    return matchesSearch && matchesStatus && matchesCallType && matchesKeywords
   })
 
   return (
@@ -234,40 +264,90 @@ export default function InteractionsPage() {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="mb-6 flex flex-col gap-4 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by File Name, Operator, or Call Type..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col gap-4 md:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by File Name, Operator, or Call Type..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="queued">Queued</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="processed">Processed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={callTypeFilter} onValueChange={setCallTypeFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Call Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="EMS">EMS</SelectItem>
+                  <SelectItem value="Fire">Fire</SelectItem>
+                  <SelectItem value="Police">Police</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="queued">Queued</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="processed">Processed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={callTypeFilter} onValueChange={setCallTypeFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Call Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="EMS">EMS</SelectItem>
-                <SelectItem value="Fire">Fire</SelectItem>
-                <SelectItem value="Police">Police</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {/* Keyword Search */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Add keyword to search transcripts..."
+                    value={keywordInput}
+                    onChange={(e) => setKeywordInput(e.target.value)}
+                    onKeyDown={handleKeywordInputKeyDown}
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  onClick={addKeyword}
+                  disabled={!keywordInput.trim()}
+                  size="default"
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+
+              {/* Keyword Badges */}
+              {keywords.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {keywords.map((keyword) => (
+                    <Badge
+                      key={keyword}
+                      variant="secondary"
+                      className="pl-3 pr-1 py-1 text-sm"
+                    >
+                      {keyword}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 ml-2 hover:bg-transparent"
+                        onClick={() => removeKeyword(keyword)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Table */}
