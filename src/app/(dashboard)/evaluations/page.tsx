@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { jsPDF } from "jspdf"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,7 +19,6 @@ import {
   PencilLine,
   Save,
   RotateCcw,
-  Plus,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -27,11 +26,104 @@ import { cn } from "@/lib/utils"
 import { AddQuestionDrawer } from "@/components/add-question-drawer"
 import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
 import ProgressBar from "@/components/progress-bar"
-import { ExportReportDialog } from "@/components/export-report-dialog" 
-import { callsByTypeData } from "@/lib/sample-data"
+import { ExportReportDialog } from "@/components/export-report-dialog"
+
+// Environment-based API configuration (same pattern as other pages)
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
+const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+
+// Helper to get the correct API URL based on environment
+const getApiUrl = (path: string) => {
+  if (USE_PROXY) {
+    // In production, route through Next.js API proxy
+    return `/api/proxy${path}`;
+  }
+  // In development, connect directly to backend
+  return `${API_BASE}${path}`;
+}
+
+// ------- QA state (view vs draft) -------
+type QaValue = "yes" | "no" | "refused" | "na" | "Yes" | "No" | "Refused" | "N/A"
+type QaResults = Record<string, QaValue>
+
+interface QAQuestion {
+  _id: string;
+  originalQuestion: string;
+  editedQuestion: string;
+  questionDescription: string;
+  type: string;
+  evidence: string;
+  confidence: number;
+  score: number;
+}
+
+interface EmergencyType {
+  agency: string;
+  specific_emergency: string;
+  confidence: string;
+}
+
+interface QAResult {
+  Answer: QaValue;
+  Proof: string;
+}
+
+interface CallData {
+  _id: string;
+  dispatcher_id?: string;
+  call_id?: string;
+  duration_seconds?: number;
+  score?: number;
+  callEvaluationType?: string;
+  direction?: string;
+  language?: string;
+  model?: string;
+
+  callType?: EmergencyType[];
+
+  status?: string;
+
+  // Sentiment block
+  sentiment?: string;
+  sentimentDescription?: string | null;
+  sentimentScore?: number | null;
+  sentimentRawScore?: number | null;
+
+  transcript?: string;
+  summary?: string;
+
+  qa_analysis?: {
+    [question: string]: QAResult;
+  };
+
+  created_at?: string; // ISO string from backend
+
+  stored_audio?: string; // if you later store audio URL
+}
+
+interface CallAnalysis {
+  [question_id: string]: {
+    Answer: QaValue;
+    Proof: string;
+  };
+}
+
+// 🔹 Flattened protocol question interface from /protocols/forCall/{callId}
+interface ProtocolFlatQuestion {
+  protocolId: string
+  protocolName: string
+  sectionId: string
+  sectionTitle: string
+  questionId: string
+  question: string
+  points?: number
+  prompt?: string
+  isActive?: boolean
+}
 
 export default function EvaluationsPage() {
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set())
+  // switched to string keys so we can group questions and still track expand/collapse
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
   const [showTable, setShowTable] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -49,95 +141,14 @@ export default function EvaluationsPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<CallAnalysis>({})
   const [qaAnalysis, setQaAnalysis] = useState<CallAnalysis>({})
+  const [protocolQuestions, setProtocolQuestions] = useState<ProtocolFlatQuestion[]>([])
 
-  // This is your existing mock waveform bars
+  // This is your existing mock waveform bars (still unused but left in case)
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
 
   const qaRef = useRef<HTMLDivElement | null>(null)
 
-  // Environment-based API configuration (same pattern as other pages)
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
-  const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
-
-  // Helper to get the correct API URL based on environment
-  const getApiUrl = (path: string) => {
-    if (USE_PROXY) {
-      // In production, route through Next.js API proxy
-      return `/api/proxy${path}`;
-    }
-    // In development, connect directly to backend
-    return `${API_BASE}${path}`;
-  }
-
-  // ------- QA state (view vs draft) -------
-  type QaValue = "yes" | "no" | "refused" | "na" | "Yes" | "No" | "Refused" | "N/A"
-  type QaResults = Record<string, QaValue>
-
-  interface QAQuestion {
-    _id: string;
-    originalQuestion: string;
-    editedQuestion: string;
-    questionDescription: string;
-    type: string;
-    evidence: string;
-    confidence: number;
-    score: number;
-  }
-
-  interface EmergencyType {
-    agency: string;
-    specific_emergency: string;
-    confidence: string;
-  }
-  
-  interface QAResult {
-    Answer: QaValue;
-    Proof: string;
-  }
-
-  
-  interface CallData {
-    _id: string;
-    dispatcher_id?: string;
-    call_id?: string;
-    duration_seconds?: number;
-    score?: number;
-    callEvaluationType?: string;
-    direction?: string;
-    language?: string;
-    model?: string;
-
-    callType?: EmergencyType[];
-
-    status?: string;
-
-    // Sentiment block
-    sentiment?: string;
-    sentimentDescription?: string | null;
-    sentimentScore?: number | null;
-    sentimentRawScore?: number | null;
-
-    transcript?: string;
-    summary?: string;
-
-    qa_analysis?: {
-      [question: string]: QAResult;
-    };
-
-    created_at?: string; // ISO string from backend (recommended instead of Date)
-
-    stored_audio?: string; // if you later store audio URL
-  }
-
-  interface CallAnalysis {
-    [question_id: string]: {
-      Answer: QaValue;
-      Proof: string;
-    };
-  }
-
   useEffect(() => {
-
     getCallData()
     getQaQuestions()
     setIsEditing(false)
@@ -232,14 +243,16 @@ export default function EvaluationsPage() {
     return `${hr}h ${min}m`;
   };
 
-  const toggleQuestion = (index: number) => {
-    const s = new Set(expandedQuestions)
-    s.has(index) ? s.delete(index) : s.add(index)
-    setExpandedQuestions(s)
+  const toggleQuestion = (key: string) => {
+    setExpandedQuestions(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   const handleSelectEvaluationChange = (evaluation: CallData) => {
-    const newId = evaluation._id
     setSelectedEvaluation(evaluation)
 
     const qa = evaluation.qa_analysis ?? {}
@@ -258,6 +271,10 @@ export default function EvaluationsPage() {
 
     setQaAnalysisTemp(qa)
     setQaAnalysis(qa)
+    setProtocolQuestions([])
+
+    // 🔥 Append protocol questions for this specific call
+    loadProtocolQuestionsForCall(evaluation)
 
     // Smooth scroll
     qaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -268,7 +285,7 @@ export default function EvaluationsPage() {
     setQaAnalysisTemp(prev => ({
       ...(prev ?? {}),
       [key]: {
-        Answer: value,                       // ✅ correct case
+        Answer: value,
         Proof: prev?.[key]?.Proof ?? ""
       }
     }))
@@ -281,161 +298,162 @@ export default function EvaluationsPage() {
   }
 
   const getScoreBadgeVariant = (score: number) => {
-  if (score >= 80) return "default"
-  if (score >= 60) return "secondary"
-  return "destructive"
-}
-
-const handleExportReport = () => {
-  setExportDialogOpen(true)
-}
-
-const handleDialogExport = async (options: {
-  includeForm: boolean
-  includeTranscript: boolean
-  includeAudioLink: boolean
-}) => {
-  if (!selectedEvaluation) {
-    toast({
-      title: "No call selected",
-      description: "Please select an evaluation before exporting.",
-      variant: "destructive",
-    })
-    return
+    if (score >= 80) return "default"
+    if (score >= 60) return "secondary"
+    return "destructive"
   }
 
-  setIsExporting(true)
+  const handleExportReport = () => {
+    setExportDialogOpen(true)
+  }
 
-  try {
-    const doc = new jsPDF()
-    const qaSource = qaAnalysisTemp ?? qaAnalysis ?? {}
-    let y = 10
-    const left = 10
-    const lineHeight = 7
-    const maxWidth = 180 // page width minus margins
-    const bottomMargin = 280 // when to start a new page
+  const handleDialogExport = async (options: {
+    includeForm: boolean
+    includeTranscript: boolean
+    includeAudioLink: boolean
+  }) => {
+    if (!selectedEvaluation) {
+      toast({
+        title: "No call selected",
+        description: "Please select an evaluation before exporting.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    // Helper: add wrapped text with per-line page break handling
-    const addWrappedText = (text: string, opts: { bold?: boolean } = {}) => {
-      if (opts.bold) {
-        doc.setFont("helvetica", "bold")
-      } else {
-        doc.setFont("helvetica", "normal")
+    setIsExporting(true)
+
+    try {
+      const doc = new jsPDF()
+      const qaSource = qaAnalysisTemp ?? qaAnalysis ?? {}
+      let y = 10
+      const left = 10
+      const lineHeight = 7
+      const maxWidth = 180 // page width minus margins
+      const bottomMargin = 280 // when to start a new page
+
+      // Helper: add wrapped text with per-line page break handling
+      const addWrappedText = (text: string, opts: { bold?: boolean } = {}) => {
+        if (opts.bold) {
+          doc.setFont("helvetica", "bold")
+        } else {
+          doc.setFont("helvetica", "normal")
+        }
+
+        const lines = doc.splitTextToSize(text, maxWidth)
+
+        lines.forEach((line: string) => {
+          if (y > bottomMargin) {
+            doc.addPage()
+            y = 10
+          }
+          doc.text(line, left, y)
+          y += lineHeight
+        })
       }
 
-      const lines = doc.splitTextToSize(text, maxWidth)
+      const addLine = (text: string, opts: { bold?: boolean } = {}) => {
+        addWrappedText(text, opts)
+      }
 
-      lines.forEach((line: string) => {
-        if (y > bottomMargin) {
+      const addSectionTitle = (title: string) => {
+        if (y + lineHeight > bottomMargin) {
           doc.addPage()
           y = 10
         }
-        doc.text(line, left, y)
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(14)
+        doc.text(title, left, y)
         y += lineHeight
-      })
-    }
-
-    const addLine = (text: string, opts: { bold?: boolean } = {}) => {
-      addWrappedText(text, opts)
-    }
-
-    const addSectionTitle = (title: string) => {
-      if (y + lineHeight > bottomMargin) {
-        doc.addPage()
-        y = 10
+        doc.setFontSize(11)
       }
+
+      // -------- HEADER --------
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(14)
-      doc.text(title, left, y)
-      y += lineHeight
+      doc.setFontSize(16)
+      doc.text("Evaluation Report", left, y)
+      y += 10
       doc.setFontSize(11)
-    }
 
-    // -------- HEADER --------
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(16)
-    doc.text("Evaluation Report", left, y)
-    y += 10
-    doc.setFontSize(11)
+      addSectionTitle("Call Information")
+      addLine(`Operator: ${selectedEvaluation.dispatcher_id || "N/A"}`)
+      addLine(`Call ID: ${selectedEvaluation.call_id || "N/A"}`)
+      addLine(`Call Type: ${selectedEvaluation.callType || "N/A"}`)
+      addLine(`Evaluation Type: ${selectedEvaluation.callEvaluationType || "N/A"}`)
+      addLine(
+        `Date / Time: ${
+          selectedEvaluation.created_at
+            ? new Date(selectedEvaluation.created_at).toLocaleString()
+            : "N/A"
+        }`
+      )
+      addLine(`Duration: ${calTime(selectedEvaluation.duration_seconds)}`)
 
-    addSectionTitle("Call Information")
-    addLine(`Operator: ${selectedEvaluation.dispatcher_id || "N/A"}`)
-    addLine(`Call ID: ${selectedEvaluation.call_id || "N/A"}`)
-    addLine(`Call Type: ${selectedEvaluation.callType || "N/A"}`)
-    addLine(`Evaluation Type: ${selectedEvaluation.callEvaluationType || "N/A"}`)
-    addLine(
-      `Date / Time: ${
-        selectedEvaluation.created_at
-          ? new Date(selectedEvaluation.created_at).toLocaleString()
-          : "N/A"
-      }`
-    )
-    addLine(`Duration: ${calTime(selectedEvaluation.duration_seconds)}`)
+      // -------- SCORES --------
+      addSectionTitle("Scores & Compliance")
+      addLine(`Overall Score: ${score}%`)
+      addLine(`Standards Met: ${metStandards}`)
+      addLine(`Not Met (Critical): ${criticalViolations}`)
+      addLine(
+        `Total Standards Evaluated: ${metStandards + criticalViolations || "N/A"}`
+      )
 
-    // -------- SCORES --------
-    addSectionTitle("Scores & Compliance")
-    addLine(`Overall Score: ${score}%`)
-    addLine(`Standards Met: ${metStandards}`)
-    addLine(`Not Met (Critical): ${criticalViolations}`)
-    addLine(
-      `Total Standards Evaluated: ${metStandards + criticalViolations || "N/A"}`
-    )
+      // -------- SUMMARY --------
+      addSectionTitle("Call Summary")
+      addLine(selectedEvaluation.summary || "No summary available")
 
-    // -------- SUMMARY --------
-    addSectionTitle("Call Summary")
-    addLine(selectedEvaluation.summary || "No summary available")
+      // -------- QA FORM --------
+      if (options.includeForm) {
+        addSectionTitle("QA Evaluation")
 
-    // -------- QA FORM --------
-    if (options.includeForm) {
-      addSectionTitle("QA Evaluation")
+        qaQuestionsSet.forEach((q, index) => {
+          const a = qaSource[q._id]?.Answer ?? "N/A"
+          const proof = qaSource[q._id]?.Proof ?? ""
 
-      qaQuestionsSet.forEach((q, index) => {
-        const a = qaSource[q._id]?.Answer ?? "N/A"
-        const proof = qaSource[q._id]?.Proof ?? ""
+          addLine(`Q${index + 1}: ${q.editedQuestion}`, { bold: true })
+          addLine(`Answer: ${a}`)
+          addLine(`AI Confidence: ${q.confidence}%`)
+          if (proof) {
+            addLine(`Evidence: ${proof}`)
+          }
+          y += 3 // small spacer between questions
+        })
+      }
 
-        addLine(`Q${index + 1}: ${q.editedQuestion}`, { bold: true })
-        addLine(`Answer: ${a}`)
-        addLine(`AI Confidence: ${q.confidence}%`)
-        if (proof) {
-          addLine(`Evidence: ${proof}`)
-        }
-        y += 3 // small spacer between questions
+      // -------- TRANSCRIPT --------
+      if (options.includeTranscript && selectedEvaluation.transcript) {
+        addSectionTitle("Call Transcript")
+        addWrappedText(selectedEvaluation.transcript)
+      }
+
+      // -------- AUDIO LINK --------
+      if (options.includeAudioLink && selectedEvaluation.stored_audio) {
+        addSectionTitle("Audio Recording")
+        addLine(`URL: ${selectedEvaluation.stored_audio}`)
+      }
+
+      const fileName =
+        `evaluation-${selectedEvaluation.call_id || selectedEvaluation._id}.pdf`
+
+      doc.save(fileName)
+
+      toast({
+        title: "Export complete",
+        description: "Your evaluation report PDF has been downloaded.",
       })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Export failed",
+        description: "There was a problem generating the report.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExporting(false)
+      setExportDialogOpen(false)
     }
-
-    // -------- TRANSCRIPT --------
-    if (options.includeTranscript && selectedEvaluation.transcript) {
-      addSectionTitle("Call Transcript")
-      addWrappedText(selectedEvaluation.transcript)
-    }
-
-    // -------- AUDIO LINK --------
-    if (options.includeAudioLink && selectedEvaluation.stored_audio) {
-      addSectionTitle("Audio Recording")
-      addLine(`URL: ${selectedEvaluation.stored_audio}`)
-    }
-
-    const fileName =
-      `evaluation-${selectedEvaluation.call_id || selectedEvaluation._id}.pdf`
-
-    doc.save(fileName)
-
-    toast({
-      title: "Export complete",
-      description: "Your evaluation report PDF has been downloaded.",
-    })
-  } catch (error) {
-    console.error(error)
-    toast({
-      title: "Export failed",
-      description: "There was a problem generating the report.",
-      variant: "destructive",
-    })
-  } finally {
-    setIsExporting(false)
-    setExportDialogOpen(false)
   }
-}
+
   const handleGenerateCoaching = () => {
     toast({
       title: "AI Coaching Task Created",
@@ -482,6 +500,64 @@ const handleDialogExport = async (options: {
     return merged;
   };
 
+  // 🔥 NEW: Fetch protocol questions for a given call and merge into QA state
+  const loadProtocolQuestionsForCall = async (evaluation: CallData) => {
+    if (!evaluation?._id) return
+
+    try {
+      const res = await fetch(getApiUrl(`/protocols/forCall/${evaluation._id}`), {
+        cache: "no-store",
+      })
+
+      if (!res.ok) {
+        console.error("Failed to fetch protocol questions for call", evaluation._id)
+        return
+      }
+
+      const protocolQs: ProtocolFlatQuestion[] = await res.json()
+
+      if (!protocolQs || protocolQs.length === 0) {
+        setProtocolQuestions([])
+        return
+      }
+
+      setProtocolQuestions(protocolQs)
+
+      // Merge into QA analysis as additional questions (default N/A, empty Proof)
+      setQaAnalysis(prev => {
+        const base = { ...(prev ?? {}) }
+        for (const q of protocolQs) {
+          if (!base[q.question]) {
+            base[q.question] = {
+              Answer: "N/A",
+              Proof: "",
+            }
+          }
+        }
+        return base
+      })
+
+      setQaAnalysisTemp(prev => {
+        const base = { ...(prev ?? {}) }
+        for (const q of protocolQs) {
+          if (!base[q.question]) {
+            base[q.question] = {
+              Answer: "N/A",
+              Proof: "",
+            }
+          }
+        }
+        return base
+      })
+
+      // We do NOT touch metStandards / criticalViolations here.
+      // These protocol questions start as N/A and don't affect scoring
+      // until the evaluator manually selects Yes / No.
+
+    } catch (err) {
+      console.error("Error loading protocol questions for call:", err)
+    }
+  }
 
   const getCallData = async () => {
     const res = await fetch(getApiUrl('/calls'), { cache: 'no-store' });
@@ -509,6 +585,10 @@ const handleDialogExport = async (options: {
         setQaAnalysisTemp(analysis)
         setQaAnalysis(analysis)
         setScore(score)
+        setProtocolQuestions([])
+
+        // 🔥 NEW: also load protocol-specific questions (Fire / Medical / Police)
+        await loadProtocolQuestionsForCall(first)
       }
     } catch (error) {
       console.error("Error fetching calls:", error)
@@ -535,6 +615,36 @@ const handleDialogExport = async (options: {
     }
   }
 
+  // ---- Derived grouping for protocol-style layout ----
+  const protocolQuestionTexts = new Set(protocolQuestions.map(q => q.question))
+
+  const coreEntries = Object.entries(qaAnalysis ?? {}).filter(
+    ([question]) => !protocolQuestionTexts.has(question)
+  )
+
+  const sectionsMap = new Map<string, { sectionId: string; title: string; questions: ProtocolFlatQuestion[] }>()
+  protocolQuestions.forEach(q => {
+    const existing = sectionsMap.get(q.sectionId)
+    if (existing) {
+      existing.questions.push(q)
+    } else {
+      sectionsMap.set(q.sectionId, {
+        sectionId: q.sectionId,
+        title: q.sectionTitle,
+        questions: [q],
+      })
+    }
+  })
+  const protocolSections = Array.from(sectionsMap.values())
+
+  const protocolColorClass = (() => {
+    if (!protocolQuestions.length) return "bg-slate-400"
+    const pid = protocolQuestions[0].protocolId
+    if (pid === "protocol-fire") return "bg-red-500"
+    if (pid === "protocol-police") return "bg-blue-500"
+    if (pid === "protocol-ems") return "bg-green-500"
+    return "bg-slate-400"
+  })()
 
   // ---- Helpers ----
   const renderTranscript = (transcript?: string) => {
@@ -564,7 +674,6 @@ const handleDialogExport = async (options: {
           }
 
           const isDispatcher = speaker === "Dispatcher"
-          const speakerLabel = speaker === "Dispatcher" ? "Dispatcher" : "Caller"
 
           return (
             <div key={index} className="mb-4">
@@ -599,8 +708,7 @@ const handleDialogExport = async (options: {
     )
   }
 
-
- return (
+  return (
     <>
       {/* Outer scroll to avoid clipping when scaled down */}
       <div className="w-full overflow-auto">
@@ -733,7 +841,7 @@ const handleDialogExport = async (options: {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-hidden">
                 {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
                 <Card className="flex flex-col border border-border/50 bg-card rounded-lg md:h-[min(64vh,100%)]">
-                {/* Audio */}
+                  {/* Audio */}
                   <div className="p-3 sm:p-4 border-b border-border/50">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
@@ -744,7 +852,6 @@ const handleDialogExport = async (options: {
 
                     <AudioPlayerWithWaveformV2 />
                   </div>
-
 
                   {/* Tabs */}
                   <div className="flex-1 flex flex-col">
@@ -953,85 +1060,204 @@ const handleDialogExport = async (options: {
 
                       {/* Full Form Tab */}
                       <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
-                        <div className="space-y-2">
-                        {Object.entries(qaAnalysis ?? {}).map(([question, qa], index) => {
-                            const val = (isEditing ? qaAnalysisTemp?.[question]?.Answer : qa.Answer) as QaValue
-                            const proof = qa.Proof || ""
+                        <div className="space-y-4">
+                          {/* Core QA (first 4 AI/standard questions) */}
+                          {coreEntries.length > 0 && (
+                            <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xs font-semibold text-foreground">
+                                  Core QA Checklist
+                                </h3>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {coreEntries.length} items
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {coreEntries.map(([question, qa]) => {
+                                  const val = (isEditing ? qaAnalysisTemp?.[question]?.Answer : qa.Answer) as QaValue
+                                  const proof = qa.Proof || ""
 
-                            return (
-                              <div key={question} className="border border-border/50 rounded-lg bg-card overflow-hidden">
-                                <div className="flex items-center justify-between p-3 gap-3">
-                                  <span className="text-sm text-foreground flex-1">{question}</span>
+                                  return (
+                                    <div key={question} className="border border-border/50 rounded-lg bg-card overflow-hidden">
+                                      <div className="flex items-center justify-between p-3 gap-3">
+                                        <span className="text-sm text-foreground flex-1">{question}</span>
 
-                                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                                    <Button
-                                      size="sm"
-                                      variant={val === "Yes" ? "default" : "outline"}
-                                      className={qaBtn(val === "Yes", "Yes")}
-                                      onClick={() => updateQaDraft(question, "Yes")}
-                                      aria-disabled={!isEditing}
-                                    >
-                                      Yes
-                                    </Button>
+                                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                          <Button
+                                            size="sm"
+                                            variant={val === "Yes" ? "default" : "outline"}
+                                            className={qaBtn(val === "Yes", "Yes")}
+                                            onClick={() => updateQaDraft(question, "Yes")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            Yes
+                                          </Button>
 
-                                    <Button
-                                      size="sm"
-                                      variant={val === "No" ? "destructive" : "outline"}
-                                      className={qaBtn(val === "No", "No")}
-                                      onClick={() => updateQaDraft(question, "No")}
-                                      aria-disabled={!isEditing}
-                                    >
-                                      No
-                                    </Button>
+                                          <Button
+                                            size="sm"
+                                            variant={val === "No" ? "destructive" : "outline"}
+                                            className={qaBtn(val === "No", "No")}
+                                            onClick={() => updateQaDraft(question, "No")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            No
+                                          </Button>
 
-                                    <Button
-                                      size="sm"
-                                      variant={val === "Refused" ? "default" : "outline"}
-                                      className={qaBtn(val === "Refused", "Refused")}
-                                      onClick={() => updateQaDraft(question, "Refused")}
-                                      aria-disabled={!isEditing}
-                                    >
-                                      Refused
-                                    </Button>
+                                          <Button
+                                            size="sm"
+                                            variant={val === "Refused" ? "default" : "outline"}
+                                            className={qaBtn(val === "Refused", "Refused")}
+                                            onClick={() => updateQaDraft(question, "Refused")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            Refused
+                                          </Button>
 
-                                    <Button
-                                      size="sm"
-                                      variant={val === "N/A" ? "default" : "outline"}
-                                      className={qaBtn(val === "N/A", "N/A")}
-                                      onClick={() => updateQaDraft(question, "N/A")}
-                                      aria-disabled={!isEditing}
-                                    >
-                                      N/A
-                                    </Button>
+                                          <Button
+                                            size="sm"
+                                            variant={val === "N/A" ? "default" : "outline"}
+                                            className={qaBtn(val === "N/A", "N/A")}
+                                            onClick={() => updateQaDraft(question, "N/A")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            N/A
+                                          </Button>
 
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => toggleQuestion(index)}>
-                                      {expandedQuestions.has(index) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                <div className={cn(
-                                  "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                  expandedQuestions.has(index) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                )}>
-                                  <div className="overflow-hidden">
-                                    <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                      <div className="mt-2 space-y-2">
-
-                                        <div className="mt-2">
-                                          <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                          <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
-                                            {proof}
-                                          </p>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 w-7 p-0"
+                                            onClick={() => toggleQuestion(question)}
+                                          >
+                                            {expandedQuestions.has(question) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                          </Button>
                                         </div>
+                                      </div>
 
+                                      <div className={cn(
+                                        "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                        expandedQuestions.has(question) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                      )}>
+                                        <div className="overflow-hidden">
+                                          <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                            <div className="mt-2">
+                                              <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                              <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                                {proof}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
+                                  )
+                                })}
                               </div>
-                            )
-                          })}
+                            </Card>
+                          )}
+
+                          {/* Protocol sections: Interview, CAD, Telephone, Supervisor etc. */}
+                          {protocolSections.map(section => (
+                            <Card key={section.sectionId} className="p-3 bg-card border border-border/50 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("h-2.5 w-2.5 rounded-full", protocolColorClass)} />
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {section.title}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {section.questions.length} items
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                {section.questions.map(q => {
+                                  const qaObj = qaAnalysis[q.question] ?? { Answer: "N/A" as QaValue, Proof: "" }
+                                  const val = (isEditing
+                                    ? (qaAnalysisTemp?.[q.question]?.Answer ?? qaObj.Answer)
+                                    : qaObj.Answer) as QaValue
+                                  const proof = qaObj.Proof || ""
+                                  const key = q.question
+
+                                  return (
+                                    <div key={key} className="border border-border/50 rounded-lg bg-card overflow-hidden">
+                                      <div className="flex items-center justify-between p-3 gap-3">
+                                        <span className="text-sm text-foreground flex-1">{q.question}</span>
+
+                                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                          <Button
+                                            size="sm"
+                                            variant={val === "Yes" ? "default" : "outline"}
+                                            className={qaBtn(val === "Yes", "Yes")}
+                                            onClick={() => updateQaDraft(key, "Yes")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            Yes
+                                          </Button>
+
+                                          <Button
+                                            size="sm"
+                                            variant={val === "No" ? "destructive" : "outline"}
+                                            className={qaBtn(val === "No", "No")}
+                                            onClick={() => updateQaDraft(key, "No")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            No
+                                          </Button>
+
+                                          <Button
+                                            size="sm"
+                                            variant={val === "Refused" ? "default" : "outline"}
+                                            className={qaBtn(val === "Refused", "Refused")}
+                                            onClick={() => updateQaDraft(key, "Refused")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            Refused
+                                          </Button>
+
+                                          <Button
+                                            size="sm"
+                                            variant={val === "N/A" ? "default" : "outline"}
+                                            className={qaBtn(val === "N/A", "N/A")}
+                                            onClick={() => updateQaDraft(key, "N/A")}
+                                            aria-disabled={!isEditing}
+                                          >
+                                            N/A
+                                          </Button>
+
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 w-7 p-0"
+                                            onClick={() => toggleQuestion(key)}
+                                          >
+                                            {expandedQuestions.has(key) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      <div className={cn(
+                                        "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                        expandedQuestions.has(key) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                      )}>
+                                        <div className="overflow-hidden">
+                                          <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                            <div className="mt-2">
+                                              <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                              <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                                {proof}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </Card>
+                          ))}
                         </div>
 
                         {/* Action bar: sticky on mobile, normal on md+ */}

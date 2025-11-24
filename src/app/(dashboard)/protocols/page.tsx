@@ -1,12 +1,50 @@
 "use client"
 
-import { useState } from "react"
-import { type ProtocolQuestion, protocols } from "@/lib/sample-data"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronDown, ChevronUp, Power } from "lucide-react"
+
+// ---- API / proxy logic (same pattern as EvaluationsPage) ----
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
+const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+
+const getApiUrl = (path: string) => {
+  if (USE_PROXY) {
+    // In production, route through Next.js API proxy
+    return `/api/proxy${path}`
+  }
+  // In development, connect directly to backend
+  return `${API_BASE}${path}`
+}
+
+// ---- Types that match backend protocol schema ----
+interface ProtocolQuestion {
+  id: string
+  question: string
+  points: number
+  answer?: "Yes" | "No" | "Refused" | "N/A"
+  isActive?: boolean
+  prompt?: string
+}
+
+interface ProtocolSection {
+  id: string
+  title: string
+  totalPoints: number
+  questions: ProtocolQuestion[]
+}
+
+interface Protocol {
+  _id?: string
+  id: string
+  type: "Fire" | "Police" | "EMS" | string
+  name: string
+  color: string
+  sections: ProtocolSection[]
+}
 
 interface EditingQuestion extends ProtocolQuestion {
   sectionId: string
@@ -14,6 +52,7 @@ interface EditingQuestion extends ProtocolQuestion {
 }
 
 export default function ProtocolsPage() {
+  const [protocols, setProtocols] = useState<Protocol[]>([])
   const [activeProtocol, setActiveProtocol] = useState<string>("protocol-fire")
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set([
@@ -31,10 +70,10 @@ export default function ProtocolsPage() {
       "ems-supervisor",
     ]),
   )
-  const firstFireQuestion = protocols.find((p) => p.id === "protocol-fire")?.sections[0]?.questions[0]
-  // Do NOT auto-open the edit dialog on first render — initialize to null
+
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null)
   const [isAddingProtocol, setIsAddingProtocol] = useState(false)
+
   const [newProtocolData, setNewProtocolData] = useState({
     question: "",
     points: 0,
@@ -42,18 +81,39 @@ export default function ProtocolsPage() {
     section: "Interview Questions",
     isActive: true,
   })
-  const [formData, setFormData] = useState(
-    firstFireQuestion
-      ? {
-          question: firstFireQuestion.question,
-          points: firstFireQuestion.points,
-          prompt: firstFireQuestion.prompt || "",
-          isActive: firstFireQuestion.isActive ?? true,
-        }
-      : { question: "", points: 0, prompt: "", isActive: true },
-  )
+
+  const [formData, setFormData] = useState({
+    question: "",
+    points: 0,
+    prompt: "",
+    isActive: true,
+  })
 
   const currentProtocol = protocols.find((p) => p.id === activeProtocol)
+
+  // ---- Fetch protocols from backend ----
+  useEffect(() => {
+    const fetchProtocols = async () => {
+      try {
+        const res = await fetch(getApiUrl("/protocols"))
+        if (!res.ok) {
+          console.error("Failed to fetch protocols")
+          return
+        }
+        const data: Protocol[] = await res.json()
+        setProtocols(data)
+
+        // Ensure activeProtocol is valid; if not, default to first protocol
+        if (data.length > 0 && !data.find((p) => p.id === activeProtocol)) {
+          setActiveProtocol(data[0].id)
+        }
+      } catch (err) {
+        console.error("Error fetching protocols:", err)
+      }
+    }
+
+    fetchProtocols()
+  }, []) // run once
 
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections)
@@ -80,13 +140,14 @@ export default function ProtocolsPage() {
   }
 
   const handleSave = () => {
-    // In a real app, this would update the database
+    // TODO: wire this to PATCH /protocols/questions/{questionId}
+    // For now, just close dialog and reset form
     setEditingQuestion(null)
     setFormData({ question: "", points: 0, prompt: "", isActive: true })
   }
 
   const handleAddProtocol = () => {
-    // In a real app, this would add to the database
+    // TODO: wire this to POST /protocols/sections/{sectionId}/questions
     setIsAddingProtocol(false)
     setNewProtocolData({
       question: "",
@@ -127,7 +188,9 @@ export default function ProtocolsPage() {
                 <div className={`h-3 w-3 rounded-full ${protocol.color}`} />
                 {protocol.name}
               </div>
-              {activeProtocol === protocol.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+              {activeProtocol === protocol.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
             </button>
           ))}
         </div>
@@ -231,7 +294,9 @@ export default function ProtocolsPage() {
                 id="points"
                 type="number"
                 value={formData.points}
-                onChange={(e) => setFormData({ ...formData, points: Number.parseInt(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setFormData({ ...formData, points: Number.parseInt(e.target.value) || 0 })
+                }
                 placeholder="Enter points value"
               />
             </div>
@@ -276,6 +341,7 @@ export default function ProtocolsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Protocol Question Dialog */}
       <Dialog open={isAddingProtocol} onOpenChange={setIsAddingProtocol}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -288,7 +354,9 @@ export default function ProtocolsPage() {
               <Input
                 id="newQuestion"
                 value={newProtocolData.question}
-                onChange={(e) => setNewProtocolData({ ...newProtocolData, question: e.target.value })}
+                onChange={(e) =>
+                  setNewProtocolData({ ...newProtocolData, question: e.target.value })
+                }
                 placeholder="Enter question text"
                 className="h-20"
               />
@@ -301,7 +369,10 @@ export default function ProtocolsPage() {
                 type="number"
                 value={newProtocolData.points}
                 onChange={(e) =>
-                  setNewProtocolData({ ...newProtocolData, points: Number.parseInt(e.target.value) || 0 })
+                  setNewProtocolData({
+                    ...newProtocolData,
+                    points: Number.parseInt(e.target.value) || 0,
+                  })
                 }
                 placeholder="Enter points value"
               />
@@ -312,7 +383,9 @@ export default function ProtocolsPage() {
               <select
                 id="section"
                 value={newProtocolData.section}
-                onChange={(e) => setNewProtocolData({ ...newProtocolData, section: e.target.value })}
+                onChange={(e) =>
+                  setNewProtocolData({ ...newProtocolData, section: e.target.value })
+                }
                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option>Interview Questions</option>
@@ -327,7 +400,9 @@ export default function ProtocolsPage() {
               <textarea
                 id="newPrompt"
                 value={newProtocolData.prompt}
-                onChange={(e) => setNewProtocolData({ ...newProtocolData, prompt: e.target.value })}
+                onChange={(e) =>
+                  setNewProtocolData({ ...newProtocolData, prompt: e.target.value })
+                }
                 placeholder="Enter the prompt that AI should use to score this question"
                 className="h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground"
               />
@@ -343,14 +418,23 @@ export default function ProtocolsPage() {
                 </p>
               </div>
               <button
-                onClick={() => setNewProtocolData({ ...newProtocolData, isActive: !newProtocolData.isActive })}
+                onClick={() =>
+                  setNewProtocolData({
+                    ...newProtocolData,
+                    isActive: !newProtocolData.isActive,
+                  })
+                }
                 className={`relative inline-flex items-center justify-center h-12 w-12 rounded-lg transition-all ${
                   newProtocolData.isActive
                     ? "bg-green-500/20 hover:bg-green-500/30"
                     : "bg-red-500/20 hover:bg-red-500/30"
                 }`}
               >
-                <Power className={`h-6 w-6 ${newProtocolData.isActive ? "text-green-600" : "text-red-600"}`} />
+                <Power
+                  className={`h-6 w-6 ${
+                    newProtocolData.isActive ? "text-green-600" : "text-red-600"
+                  }`}
+                />
               </button>
             </div>
 
