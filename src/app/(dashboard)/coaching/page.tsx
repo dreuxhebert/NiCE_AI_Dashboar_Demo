@@ -54,6 +54,36 @@ interface CallOption {
   summary: string | null
 }
 
+/**
+ * Replace backend wording with desired terminology for display:
+ * - "agent"   -> "operator"
+ * - "customer" -> "caller"
+ */
+const replaceTerms = (text: string): string => {
+  if (!text) return text
+
+  return text
+    // Agent → Operator
+    .replace(/\bAgent\b/g, "Operator")
+    .replace(/\bagent\b/g, "operator")
+    // Customer → Caller
+    .replace(/\bCustomer\b/g, "Caller")
+    .replace(/\bcustomer\b/g, "caller")
+}
+
+/**
+ * Normalize all text fields of a CoachingTask before putting it into state.
+ */
+const normalizeTaskText = (task: CoachingTask): CoachingTask => ({
+  ...task,
+  issueDescription: task.issueDescription ? replaceTerms(task.issueDescription) : task.issueDescription,
+  coachingSuggestions: (task.coachingSuggestions ?? []).map((s) => replaceTerms(s)),
+  actionItems: (task.actionItems ?? []).map((item) => ({
+    ...item,
+    text: replaceTerms(item.text),
+  })),
+})
+
 export default function CoachingPage() {
   const [activeTab, setActiveTab] = useState<TaskStatus>("pending")
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -80,9 +110,13 @@ export default function CoachingPage() {
         const res = await fetch(getApiUrl("/coaching/tasks"), { cache: "no-store" })
         if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`)
         const data: CoachingTask[] = await res.json()
+
+        // Normalize wording before putting into state
+        const normalized = data.map(normalizeTaskText)
+
         if (mounted) {
-          setTasks(data)
-          setSelectedTask(data[0] ?? null)
+          setTasks(normalized)
+          setSelectedTask(normalized[0] ?? null)
         }
       } catch (e: any) {
         toast({
@@ -94,7 +128,10 @@ export default function CoachingPage() {
     }
 
     fetchTasks()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // -------------------------
@@ -129,7 +166,10 @@ export default function CoachingPage() {
     }
 
     fetchCalls()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // -------------------------
@@ -144,10 +184,10 @@ export default function CoachingPage() {
     })
   }, [tasks, activeTab, searchQuery])
 
-  const displayedTasks = useMemo(() => (showAll ? filteredTasks : filteredTasks.slice(0, ITEMS_TO_SHOW)), [
-    filteredTasks,
-    showAll,
-  ])
+  const displayedTasks = useMemo(
+    () => (showAll ? filteredTasks : filteredTasks.slice(0, ITEMS_TO_SHOW)),
+    [filteredTasks, showAll]
+  )
 
   const highPriorityTasks = useMemo(
     () => tasks.filter((t) => t.priority === "high" && t.status !== "completed").slice(0, 3),
@@ -187,7 +227,7 @@ export default function CoachingPage() {
     }
   }
 
-  // Build Call Label (cleaner UI)
+  // Build Call Label (if you ever want richer labels in the select)
   const getCallLabel = (c: CallOption) => {
     const base = `${c.dispatcherId} • ${c.callType}`
     if (!c.summary) return base
@@ -252,8 +292,10 @@ export default function CoachingPage() {
       const newTask: CoachingTask | null = result.task ?? null
 
       if (newTask) {
-        setTasks((prev) => [newTask, ...prev])
-        setSelectedTask(newTask)
+        // Normalize wording before adding to state
+        const normalized = normalizeTaskText(newTask)
+        setTasks((prev) => [normalized, ...prev])
+        setSelectedTask(normalized)
         toast({ title: "AI Coaching Task Created" })
       }
     } catch (e: any) {
@@ -273,7 +315,6 @@ export default function CoachingPage() {
   const handleAIModalOpenChange = (open: boolean) => {
     setShowAIModal(open)
     if (!open && typeof document !== "undefined") {
-      // blur the active element to ensure any open Select portals close and focus is cleared
       const ae = document.activeElement as HTMLElement | null
       ae?.blur()
     }
@@ -413,7 +454,9 @@ export default function CoachingPage() {
 
               {/* Scrollable List */}
               <div
-                className={filteredTasks.length > ITEMS_TO_SHOW ? "max-h-[calc(100vh-22rem)] overflow-y-auto pr-2" : ""}
+                className={
+                  filteredTasks.length > ITEMS_TO_SHOW ? "max-h-[calc(100vh-22rem)] overflow-y-auto pr-2" : ""
+                }
               >
                 {displayedTasks.map((task) => (
                   <div
@@ -445,9 +488,7 @@ export default function CoachingPage() {
               {filteredTasks.length > ITEMS_TO_SHOW && (
                 <div className="px-4 py-3">
                   <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowAll((s) => !s)}>
-                    {showAll
-                      ? "Show less"
-                      : `Show more (${filteredTasks.length - ITEMS_TO_SHOW} more)`}
+                    {showAll ? "Show less" : `Show more (${filteredTasks.length - ITEMS_TO_SHOW} more)`}
                   </Button>
                 </div>
               )}
@@ -486,7 +527,6 @@ export default function CoachingPage() {
               </CardHeader>
 
               <CardContent className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-
                 {/* ISSUE DESCRIPTION */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -571,7 +611,7 @@ export default function CoachingPage() {
       </div>
 
       {/* AI Coaching Modal */}
-  <Dialog open={showAIModal} onOpenChange={handleAIModalOpenChange}>
+      <Dialog open={showAIModal} onOpenChange={handleAIModalOpenChange}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -591,10 +631,10 @@ export default function CoachingPage() {
                 <SelectValue placeholder="Choose a call..." />
               </SelectTrigger>
 
-              {/* FIXED DROPDOWN UI */}
               <SelectContent className="w-[480px] max-h-72">
                 {availableCalls.map((c) => (
                   <SelectItem key={c.callId} value={c.callId} className="py-2">
+                    {/* You could use getCallLabel(c) if you want more detail */}
                     <span className="block text-sm font-medium text-foreground">{c.dispatcherId}</span>
                   </SelectItem>
                 ))}
