@@ -1,9 +1,13 @@
 // app/api/proxy/[...path]/route.js
 import { NextResponse } from "next/server"
 
-const API_BASE = process.env.API_BASE // set this on Vercel
+// Use API_BASE (server-side env var) or fall back to NEXT_PUBLIC_API_BASE
+const API_BASE = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE
 
 function upstreamUrl(req, parts) {
+  if (!API_BASE) {
+    throw new Error("API_BASE environment variable is not configured")
+  }
   const qs = req.nextUrl.search
   const base = API_BASE.replace(/\/+$/, "")
   const path = parts.join("/").replace(/^\/+/, "")
@@ -11,7 +15,8 @@ function upstreamUrl(req, parts) {
 }
 
 async function forward(req, { params }) {
-  const url = upstreamUrl(req, params.path)
+  try {
+    const url = upstreamUrl(req, params.path)
 
   // Clone the body for non-GET/HEAD
   const method = req.method.toUpperCase()
@@ -53,6 +58,20 @@ async function forward(req, { params }) {
   }
 
   return new NextResponse(buf, { status: upstream.status, headers: respHeaders })
+  } catch (error) {
+    console.error("[Proxy Error]:", error)
+    
+    // Return detailed error information
+    return NextResponse.json(
+      {
+        error: "Proxy request failed",
+        message: error.message,
+        details: `Failed to proxy request to ${API_BASE}`,
+        path: params.path?.join("/") || "unknown"
+      },
+      { status: 500 }
+    )
+  }
 }
 
 export async function GET(req, ctx)    { return forward(req, ctx) }
