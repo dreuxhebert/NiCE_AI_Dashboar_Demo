@@ -14,8 +14,10 @@ function upstreamUrl(req, parts) {
   return `${base}/${path}${qs}`
 }
 
-async function forward(req, { params }) {
+async function forward(req, context) {
   try {
+    // In Next.js 15, params is a Promise and must be awaited
+    const params = await context.params
     const url = upstreamUrl(req, params.path)
 
   // Clone the body for non-GET/HEAD
@@ -60,6 +62,9 @@ async function forward(req, { params }) {
   return new NextResponse(buf, { status: upstream.status, headers: respHeaders })
   } catch (error) {
     console.error("[Proxy Error]:", error)
+    
+    // Safely get params
+    const params = await context.params.catch(() => ({ path: [] }))
     
     // Return detailed error information
     return NextResponse.json(
