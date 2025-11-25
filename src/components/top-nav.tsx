@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ChangePasswordDrawer from "@/components/change-password-drawer"
+import { useToast } from "@/hooks/use-toast"
 
 interface TopNavProps {
   collapsed?: boolean
@@ -50,6 +52,70 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [user, setUser] = useState<CurrentUser | null>(null)
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState<string>("")
+  const { toast } = useToast()
+
+  const handleChangePassword = async (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const token = typeof window !== "undefined"
+      ? localStorage.getItem("access_token")
+      : null;
+
+    if (!token) {
+      toast({
+        title: "Not Logged In",
+        description: "Session expired",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001";
+    const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true";
+    const getApiUrl = (p: string) => (USE_PROXY ? `/api/proxy${p}` : `${API_BASE}${p}`);
+
+    const userRes = await fetch(getApiUrl("/auth/me"), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!userRes.ok) {
+      toast({ title: "Unable to fetch user" });
+      return;
+    }
+
+    const userData = await userRes.json();
+    const userEmail = userData.email;
+
+    const res = await fetch(getApiUrl("/user/updatePassword"), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        userEmail: userEmail,
+        oldPass: data.currentPassword,
+        newPass: data.newPassword,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      toast({
+        title: "Password change failed",
+        description: err,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Password Updated Successfully ",
+      });
+    }
+  };
+
 
   useEffect(() => {
     setMounted(true)
@@ -271,6 +337,15 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
               <DropdownMenuItem asChild>
                 <Link href="/support">Support</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="w-full text-left"
+                >
+                  Change Password
+                </button>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={(e) => {
@@ -286,6 +361,11 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
           </DropdownMenu>
         </div>
       </div>
+      <ChangePasswordDrawer
+        open={open}
+        onOpenChange={setOpen}
+        onSubmit={handleChangePassword}
+      />
     </header>
   )
 }

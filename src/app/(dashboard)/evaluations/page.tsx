@@ -142,6 +142,8 @@ export default function EvaluationsPage() {
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<CallAnalysis>({})
   const [qaAnalysis, setQaAnalysis] = useState<CallAnalysis>({})
   const [protocolQuestions, setProtocolQuestions] = useState<ProtocolFlatQuestion[]>([])
+  const [progressRefreshKey, setProgressRefreshKey] = useState(0);
+
 
   // This is your existing mock waveform bars (still unused but left in case)
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
@@ -183,17 +185,21 @@ export default function EvaluationsPage() {
       setIsEditing(false)
     }
 
+    const updatedEvaluation = {
+      ...selectedEvaluation,
+      qa_analysis: qaAnalysisTemp ?? {},
+      score: data.newScore,
+      callEvaluationType: "Validating",
+    }
+
     const merged = callList.map((call) =>
-      call._id === selectedEvaluation._id
-        ? {
-            ...call,
-            qa_analysis: qaAnalysisTemp ?? {},
-            score: data.newScore
-          }
-        : call
+      call._id === selectedEvaluation._id ? updatedEvaluation : call
     )
 
+    // ✅ Both states must be updated
     setCallList(merged)
+    setSelectedEvaluation(updatedEvaluation) // ⭐ THIS IS WHY IT WAS NOT UPDATING
+    setProgressRefreshKey(prev => prev + 1)
     setScore(data.newScore)
     setQaAnalysis(qaAnalysisTemp ?? {})
 
@@ -211,18 +217,35 @@ export default function EvaluationsPage() {
   }
 
   const handleMarkCompleted = async () => {
+    if (!selectedEvaluation) {
+      toast({ title: "No evaluation selected", variant: "destructive" })
+      return
+    }
     const res = await fetch(
       getApiUrl(`/calls/updateEvaluationStatus?id=${selectedEvaluation?._id}`),
       {
         method: "PATCH",
       }
     );
-
     const data = await res.json();
 
     if (res.ok) {
       toast({ title: "Updated Evaluation Status" });
     }
+
+    const updatedEvaluation = {
+      ...selectedEvaluation,
+      callEvaluationType: "Completed",
+    }
+
+    const merged = callList.map((call) =>
+      call._id === selectedEvaluation._id ? updatedEvaluation : call
+    )
+
+    // ✅ Both states must be updated
+    setCallList(merged)
+    setSelectedEvaluation(updatedEvaluation) // ⭐ THIS IS WHY IT WAS NOT UPDATING
+    setProgressRefreshKey(prev => prev + 1)
   };
 
   const calTime = (givenTime?: number) => {
@@ -996,7 +1019,10 @@ export default function EvaluationsPage() {
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
                             <h3 className="text-[12px] font-semibold text-foreground mb-1">Evaluation Status</h3>
                             <div className="text-center">
-                              <ProgressBar currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"} />
+                              <ProgressBar
+                                key={progressRefreshKey}
+                                currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"}
+                              />
                             </div>
                           </Card>
 
