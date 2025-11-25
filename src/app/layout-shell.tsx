@@ -17,18 +17,31 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  // Check if we're on analytics page
+  const isAnalyticsPage = pathname?.includes('/analyticsv2') || pathname?.includes('/analytics')
+
   // screen size
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1024px)")
     const onChange = (e: MediaQueryListEvent) => {
       setIsNarrow(e.matches)
-      setCollapsed(e.matches ? true : false)
+      // Force collapsed on analytics page
+      if (isAnalyticsPage) {
+        setCollapsed(true)
+      } else {
+        setCollapsed(e.matches ? true : false)
+      }
     }
     setIsNarrow(mq.matches)
-    setCollapsed(mq.matches ? true : false)
+    // Force collapsed on analytics page
+    if (isAnalyticsPage) {
+      setCollapsed(true)
+    } else {
+      setCollapsed(mq.matches ? true : false)
+    }
     mq.addEventListener("change", onChange)
     return () => mq.removeEventListener("change", onChange)
-  }, [])
+  }, [pathname])
 
   // auth & permissions
   useEffect(() => {
@@ -70,7 +83,8 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   }, [router, pathname])
 
   const handleToggleSidebar = () => {
-    if (isNarrow) return
+    // Disable toggle on analytics page
+    if (isNarrow || isAnalyticsPage) return
     setCollapsed((prev) => !prev)
   }
 
@@ -82,7 +96,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-hidden">
       <Sidebar collapsed={collapsed} permissions={permissions} />
-      <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} />
+      <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} isAnalyticsPage={isAnalyticsPage} />
       <main className={`mt-16 min-h-screen p-6 transition-[margin-left] duration-200 ${collapsed ? "ml-16" : "ml-64"}`}>
         <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
       </main>

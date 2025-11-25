@@ -218,29 +218,60 @@ export default function AnalyticsV2Page() {
       }
 
       // For authenticated users, try to fetch from backend
-      if (token) {
+      if (token && token !== "demo-token") {
         try {
           const apiUrl = getApiUrl('/user/layout');
           const res = await fetch(apiUrl, {
+            method: 'GET',
             headers: {
-              'Authorization': `Bearer ${token}`
-            }
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            cache: 'no-store'
           });
 
           if (res.ok) {
             const data = await res.json();
+            console.log('Loaded layout from backend:', data);
+            
             if (data.layout_coords) {
               if (data.layout_coords.overview) {
                 setLayouts(data.layout_coords.overview);
                 setIsSaved(true);
+                // Also save to localStorage as backup
+                localStorage.setItem("analyticsv2-layout", JSON.stringify(data.layout_coords.overview));
               }
               if (data.layout_coords.directory) {
                 setDirectoryLayouts(data.layout_coords.directory);
                 setIsDirectorySaved(true);
+                // Also save to localStorage as backup
+                localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(data.layout_coords.directory));
+              }
+            } else {
+              console.log("No layout_coords found, checking localStorage");
+              // Fallback to localStorage
+              const savedLayout = localStorage.getItem("analyticsv2-layout");
+              if (savedLayout) {
+                try {
+                  const parsed = JSON.parse(savedLayout);
+                  setLayouts(parsed);
+                } catch (e) {
+                  console.error("Failed to parse saved layout", e);
+                }
+              }
+
+              const savedDirectoryLayout = localStorage.getItem("analyticsv2-directory-layout");
+              if (savedDirectoryLayout) {
+                try {
+                  const parsed = JSON.parse(savedDirectoryLayout);
+                  setDirectoryLayouts(parsed);
+                } catch (e) {
+                  console.error("Failed to parse saved directory layout", e);
+                }
               }
             }
           } else {
-            console.log("No saved layout found in backend, checking localStorage");
+            console.log(`Backend layout fetch failed with status ${res.status}, checking localStorage`);
             // Fallback to localStorage if backend fetch fails
             const savedLayout = localStorage.getItem("analyticsv2-layout");
             if (savedLayout) {
@@ -264,6 +295,26 @@ export default function AnalyticsV2Page() {
           }
         } catch (error) {
           console.error("Error fetching layout from backend:", error);
+          // Fallback to localStorage on error
+          const savedLayout = localStorage.getItem("analyticsv2-layout");
+          if (savedLayout) {
+            try {
+              const parsed = JSON.parse(savedLayout);
+              setLayouts(parsed);
+            } catch (e) {
+              console.error("Failed to parse saved layout", e);
+            }
+          }
+
+          const savedDirectoryLayout = localStorage.getItem("analyticsv2-directory-layout");
+          if (savedDirectoryLayout) {
+            try {
+              const parsed = JSON.parse(savedDirectoryLayout);
+              setDirectoryLayouts(parsed);
+            } catch (e) {
+              console.error("Failed to parse saved directory layout", e);
+            }
+          }
         }
       }
     };
@@ -572,23 +623,28 @@ export default function AnalyticsV2Page() {
     if (token === "demo-token") {
       localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
       setIsSaved(true);
+      console.log('Layout saved to localStorage (demo mode)');
       return;
     }
 
     // For authenticated users, save to backend
-    if (token) {
+    if (token && token !== "demo-token") {
       try {
         // First, get existing layout_coords to preserve directory layout
         const getRes = await fetch(getApiUrl('/user/layout'), {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
         });
 
         let existingLayout = {};
         if (getRes.ok) {
           const data = await getRes.json();
           existingLayout = data.layout_coords || {};
+          console.log('Existing layout fetched:', existingLayout);
         }
 
         // Update with new overview layout
@@ -596,6 +652,8 @@ export default function AnalyticsV2Page() {
           ...existingLayout,
           overview: layouts
         };
+
+        console.log('Saving layout to backend:', updatedLayout);
 
         const apiUrl = getApiUrl('/user/layout');
         const res = await fetch(apiUrl, {
@@ -608,11 +666,14 @@ export default function AnalyticsV2Page() {
         });
 
         if (res.ok) {
+          const result = await res.json();
+          console.log('Layout saved to backend successfully:', result);
           setIsSaved(true);
           // Also save to localStorage as backup
           localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
         } else {
-          console.error("Failed to save layout to backend");
+          const errorText = await res.text();
+          console.error(`Failed to save layout to backend (${res.status}):`, errorText);
           // Fallback to localStorage
           localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
           setIsSaved(true);
@@ -627,6 +688,7 @@ export default function AnalyticsV2Page() {
       // No token, save to localStorage
       localStorage.setItem("analyticsv2-layout", JSON.stringify(layouts));
       setIsSaved(true);
+      console.log('Layout saved to localStorage (no token)');
     }
   };
 
@@ -640,6 +702,7 @@ export default function AnalyticsV2Page() {
     if (token === "demo-token") {
       localStorage.removeItem("analyticsv2-layout");
       setIsSaved(false);
+      console.log('Layout reset to default (demo mode)');
       return;
     }
 
@@ -648,9 +711,12 @@ export default function AnalyticsV2Page() {
       try {
         // Get existing layout_coords to preserve directory layout
         const getRes = await fetch(getApiUrl('/user/layout'), {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
         });
 
         let existingLayout = {};
@@ -659,14 +725,16 @@ export default function AnalyticsV2Page() {
           existingLayout = data.layout_coords || {};
         }
 
-        // Remove overview layout but keep directory
+        // Reset overview layout to default but keep directory
         const updatedLayout = {
           ...existingLayout,
           overview: DEFAULT_LAYOUTS
         };
 
+        console.log('Resetting layout to default in backend:', updatedLayout);
+
         const apiUrl = getApiUrl('/user/layout');
-        await fetch(apiUrl, {
+        const res = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -674,6 +742,13 @@ export default function AnalyticsV2Page() {
           },
           body: JSON.stringify({ layout_coords: updatedLayout })
         });
+
+        if (res.ok) {
+          console.log('Layout reset successfully in backend');
+        } else {
+          const errorText = await res.text();
+          console.error(`Failed to reset layout in backend (${res.status}):`, errorText);
+        }
       } catch (error) {
         console.error("Error resetting layout:", error);
       }
@@ -697,23 +772,28 @@ export default function AnalyticsV2Page() {
     if (token === "demo-token") {
       localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
       setIsDirectorySaved(true);
+      console.log('Directory layout saved to localStorage (demo mode)');
       return;
     }
 
     // For authenticated users, save to backend
-    if (token) {
+    if (token && token !== "demo-token") {
       try {
         // First, get existing layout_coords to preserve overview layout
         const getRes = await fetch(getApiUrl('/user/layout'), {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
         });
 
         let existingLayout = {};
         if (getRes.ok) {
           const data = await getRes.json();
           existingLayout = data.layout_coords || {};
+          console.log('Existing layout fetched:', existingLayout);
         }
 
         // Update with new directory layout
@@ -721,6 +801,8 @@ export default function AnalyticsV2Page() {
           ...existingLayout,
           directory: directoryLayouts
         };
+
+        console.log('Saving directory layout to backend:', updatedLayout);
 
         const apiUrl = getApiUrl('/user/layout');
         const res = await fetch(apiUrl, {
@@ -733,11 +815,14 @@ export default function AnalyticsV2Page() {
         });
 
         if (res.ok) {
+          const result = await res.json();
+          console.log('Directory layout saved to backend successfully:', result);
           setIsDirectorySaved(true);
           // Also save to localStorage as backup
           localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
         } else {
-          console.error("Failed to save directory layout to backend");
+          const errorText = await res.text();
+          console.error(`Failed to save directory layout to backend (${res.status}):`, errorText);
           // Fallback to localStorage
           localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
           setIsDirectorySaved(true);
@@ -752,6 +837,7 @@ export default function AnalyticsV2Page() {
       // No token, save to localStorage
       localStorage.setItem("analyticsv2-directory-layout", JSON.stringify(directoryLayouts));
       setIsDirectorySaved(true);
+      console.log('Directory layout saved to localStorage (no token)');
     }
   };
 
@@ -764,6 +850,7 @@ export default function AnalyticsV2Page() {
     if (token === "demo-token") {
       localStorage.removeItem("analyticsv2-directory-layout");
       setIsDirectorySaved(false);
+      console.log('Directory layout reset to default (demo mode)');
       return;
     }
 
@@ -772,9 +859,12 @@ export default function AnalyticsV2Page() {
       try {
         // Get existing layout_coords to preserve overview layout
         const getRes = await fetch(getApiUrl('/user/layout'), {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
         });
 
         let existingLayout = {};
@@ -783,14 +873,16 @@ export default function AnalyticsV2Page() {
           existingLayout = data.layout_coords || {};
         }
 
-        // Remove directory layout but keep overview
+        // Reset directory layout to default but keep overview
         const updatedLayout = {
           ...existingLayout,
           directory: DEFAULT_DIRECTORY_LAYOUTS
         };
 
+        console.log('Resetting directory layout to default in backend:', updatedLayout);
+
         const apiUrl = getApiUrl('/user/layout');
-        await fetch(apiUrl, {
+        const res = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -798,6 +890,13 @@ export default function AnalyticsV2Page() {
           },
           body: JSON.stringify({ layout_coords: updatedLayout })
         });
+
+        if (res.ok) {
+          console.log('Directory layout reset successfully in backend');
+        } else {
+          const errorText = await res.text();
+          console.error(`Failed to reset directory layout in backend (${res.status}):`, errorText);
+        }
       } catch (error) {
         console.error("Error resetting directory layout:", error);
       }

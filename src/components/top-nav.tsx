@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast"
 interface TopNavProps {
   collapsed?: boolean
   onToggleSidebar: () => void
+  isAnalyticsPage?: boolean
 }
 
 interface CurrentUser {
@@ -47,7 +48,7 @@ function getInitials(user: CurrentUser | null) {
   return "NA"
 }
 
-export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
+export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = false }: TopNavProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
@@ -266,6 +267,8 @@ export function TopNav({ collapsed = false, onToggleSidebar }: TopNavProps) {
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={onToggleSidebar}
+            disabled={isAnalyticsPage}
+            className={isAnalyticsPage ? "opacity-50 cursor-not-allowed" : ""}
           >
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </Button>
