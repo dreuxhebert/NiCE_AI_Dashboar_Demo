@@ -238,22 +238,6 @@ export default function InteractionsPage() {
     }
   }
 
-  const calTime = (givenTime?: number) => {
-    const time_sec = givenTime ?? 0
-
-    if (time_sec < 60) return `${time_sec}s`
-
-    if (time_sec < 3600) {
-      const min = Math.floor(time_sec / 60)
-      const sec = time_sec % 60
-      return `${min}m ${sec}s`
-    }
-
-    const hr = Math.floor(time_sec / 3600)
-    const min = Math.floor((time_sec % 3600) / 60)
-    return `${hr}h ${min}m`
-  }
-
   // -------- Filtering --------
   const filteredInteractions = interactions.filter((interaction) => {
     const q = searchQuery.toLowerCase()
@@ -441,7 +425,7 @@ export default function InteractionsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {calTime(interaction.duration_seconds)}
+                          {interaction.duration_seconds} sec
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={(interaction.status ?? "failed") as Status} />
