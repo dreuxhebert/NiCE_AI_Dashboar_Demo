@@ -79,15 +79,15 @@ export default function ProgressBar({ currentStep }: { currentStep: string }) {
           Auto-Scored
         </div>
 
-        <div className="text-[10px] ml-2.5 text-center w-15">
+        <div className="text-[10px] text-center w-15" style={{ marginLeft: '10%' }}>
           Validating
         </div>
 
-        <div className="text-[10px] ml-2.5 text-center w-15">
+        <div className="text-[10px] text-center w-15" style={{ marginLeft: '11%' }}>
           Completed
         </div>
 
-        <div className="text-[10px] ml-3 text-center w-15">
+        <div className="text-[10px] text-center w-15" style={{ marginLeft: '11%' }}>
           Finalized
         </div>
 

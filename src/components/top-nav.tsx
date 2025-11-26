@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ChangePasswordDrawer from "@/components/change-password"
+import { useToast } from "@/hooks/use-toast"
 
 interface TopNavProps {
   collapsed?: boolean
@@ -51,6 +53,13 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [user, setUser] = useState<CurrentUser | null>(null)
+  const { toast } = useToast()
+
+  const [open, setOpen] = useState(false);
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
+  const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
+  const getApiUrl = (path: string) =>
+  USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
 
   useEffect(() => {
     setMounted(true)
@@ -125,11 +134,6 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
     if (!token) return
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
-    const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
-    const getApiUrl = (path: string) =>
-      USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
-
     fetch(getApiUrl("/auth/me"), {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -142,6 +146,33 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
       })
       .catch(() => {})
   }, [])
+
+  const handleChangePassword = async (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const res = await fetch(getApiUrl("/user/updatePassword"), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userEmail: user?.email,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      }),
+    });
+
+    if(!res.ok){
+      toast({
+        title: "Error updating the password ",
+      })
+    }else{
+      toast({
+        title: "Password Update Successful",
+      })
+    }
+  };
 
   const toggleTheme = async () => {
     const next = !isDark
@@ -274,6 +305,15 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
               <DropdownMenuItem asChild>
                 <Link href="/support">Support</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="w-full text-left"
+                >
+                  Change Password
+                </button>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={(e) => {
@@ -289,6 +329,11 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
           </DropdownMenu>
         </div>
       </div>
+      <ChangePasswordDrawer
+        open={open}
+        onOpenChange={setOpen}
+        onSubmit={handleChangePassword}
+      />
     </header>
   )
 }
