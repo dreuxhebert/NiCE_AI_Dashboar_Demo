@@ -142,6 +142,7 @@ export default function EvaluationsPage() {
   const [qaAnalysisTemp, setQaAnalysisTemp] = useState<CallAnalysis>({})
   const [qaAnalysis, setQaAnalysis] = useState<CallAnalysis>({})
   const [protocolQuestions, setProtocolQuestions] = useState<ProtocolFlatQuestion[]>([])
+  const [progressRefreshKey, setProgressRefreshKey] = useState<number>(0)
 
   // This is your existing mock waveform bars (still unused but left in case)
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
@@ -162,68 +163,97 @@ export default function EvaluationsPage() {
         key,
         {
           Answer: value.Answer,
-          Proof: value.Proof ?? ""
-        }
+          Proof: value.Proof ?? "",
+        },
       ])
     )
 
-    const res = await fetch(getApiUrl(`/calls/update`), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: selectedEvaluation._id,
-        changedAnalysis: cleanedAnalysis
+    try {
+      const res = await fetch(getApiUrl(`/calls/update`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedEvaluation._id,
+          changedAnalysis: cleanedAnalysis,
+        }),
       })
-    })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({ title: "Failed to save changes", variant: "destructive" })
+        return
+      }
+
+      toast({ title: "Saved", description: "QA Evaluation Updated (Status: Validating)" })
+
+      const updatedEvaluation = {
+        ...selectedEvaluation,
+        qa_analysis: qaAnalysisTemp ?? {},
+        score: data.newScore,
+        callEvaluationType: "Validating",
+      }
+
+      const updatedCallList = callList.map((call) =>
+        call._id === selectedEvaluation._id ? updatedEvaluation : call
+      )
+
+      setCallList(updatedCallList)
+      setSelectedEvaluation(updatedEvaluation)
+      setScore(data.newScore)
+      setQaAnalysis(qaAnalysisTemp ?? {})
+      setIsEditing(false)
+
+      const yesCount = Object.values(qaAnalysisTemp ?? {}).filter(
+        (item) => item.Answer === "Yes"
+      ).length
+
+      const noCount = Object.values(qaAnalysisTemp ?? {}).filter(
+        (item) => item.Answer === "No"
+      ).length
+
+      setMetStandards(yesCount)
+      setCriticalViolations(noCount)
+
+      setProgressRefreshKey((prev) => prev + 1)
+
+    } catch (error) {
+      console.error(error)
+      toast({ title: "Unexpected error", variant: "destructive" })
+    }
+  }
+
+
+  const handleMarkCompleted = async () => {
+    if (!selectedEvaluation) return
+
+    const res = await fetch(
+      getApiUrl(`/calls/updateEvaluationStatus?id=${selectedEvaluation._id}`),
+      {
+        method: "PATCH",
+      }
+    )
 
     const data = await res.json()
 
     if (res.ok) {
-      toast({ title: "Saved", description: "QA Evaluation Updated" })
-      setIsEditing(false)
+      toast({ title: "Updated Evaluation Status (Status: Completed)" })
+    }
+
+    const updatedEvaluation = {
+      ...selectedEvaluation,
+      callEvaluationType: "Completed",
     }
 
     const merged = callList.map((call) =>
-      call._id === selectedEvaluation._id
-        ? {
-            ...call,
-            qa_analysis: qaAnalysisTemp ?? {},
-            score: data.newScore
-          }
-        : call
+      call._id === selectedEvaluation._id ? updatedEvaluation : call
     )
 
+    // ✅ Both states must be updated
     setCallList(merged)
-    setScore(data.newScore)
-    setQaAnalysis(qaAnalysisTemp ?? {})
-
-    // ✅ Correct QA recalculation using new type
-    const yesCount = Object.values(qaAnalysisTemp ?? {}).filter(
-      (item) => item.Answer === "Yes"
-    ).length
-
-    const noCount = Object.values(qaAnalysisTemp ?? {}).filter(
-      (item) => item.Answer === "No"
-    ).length
-
-    setMetStandards(yesCount)
-    setCriticalViolations(noCount)
+    setSelectedEvaluation(updatedEvaluation)
+    setProgressRefreshKey(prev => prev + 1)
   }
-
-  const handleMarkCompleted = async () => {
-    const res = await fetch(
-      getApiUrl(`/calls/updateEvaluationStatus?id=${selectedEvaluation?._id}`),
-      {
-        method: "PATCH",
-      }
-    );
-
-    const data = await res.json();
-
-    if (res.ok) {
-      toast({ title: "Updated Evaluation Status" });
-    }
-  };
 
   const calTime = (givenTime?: number) => {
     const time_sec = givenTime ?? 0;
@@ -996,7 +1026,10 @@ export default function EvaluationsPage() {
                           <Card className="p-3 bg-card border border-border/50 rounded-lg">
                             <h3 className="text-[12px] font-semibold text-foreground mb-1">Evaluation Status</h3>
                             <div className="text-center">
-                              <ProgressBar currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"} />
+                              <ProgressBar
+                                key={progressRefreshKey}
+                                currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"}
+                              />
                             </div>
                           </Card>
 

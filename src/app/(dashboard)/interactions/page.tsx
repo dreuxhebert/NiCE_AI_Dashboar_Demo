@@ -168,50 +168,6 @@ export default function InteractionsPage() {
     fetchInteractions()
   }, [])
 
-  // -------- Fetch per-row sentiment --------
-  useEffect(() => {
-    if (interactions.length === 0) return
-
-    interactions.forEach((interaction) => {
-      if (!interaction._id) return
-      if (rowSentiments[interaction._id]) return // already fetched
-
-      ;(async () => {
-        try {
-          const url = getApiUrl(
-            `/elevate.api/sentiment?interaction_id=${encodeURIComponent(
-              interaction.call_id ?? "",
-            )}`,
-          )
-          const res = await fetch(url)
-          if (!res.ok) {
-            console.error(
-              `Failed to fetch sentiment for ${interaction._id}:`,
-              res.status,
-            )
-            return
-          }
-
-          const data = await res.json()
-          setRowSentiments((prev) => ({
-            ...prev,
-            [interaction._id]: {
-              sentiment: data.sentiment || "Neutral",
-              sentimentScore:
-                typeof data.sentimentScore === "number"
-                  ? data.sentimentScore
-                  : null,
-            },
-          }))
-        } catch (err) {
-          console.error(
-            `Error calling /elevate.api/sentiment for ${interaction._id}:`,
-            err,
-          )
-        }
-      })()
-    })
-  }, [interactions, rowSentiments])
 
   // -------- Handlers --------
   const handleRowClick = (interaction: CallData) => {
