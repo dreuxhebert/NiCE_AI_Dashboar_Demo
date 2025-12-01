@@ -136,7 +136,10 @@ export default function EvaluationsPage() {
   const [metStandards, setMetStandards] = useState<number>(0)
   const [criticalViolations, setCriticalViolations] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>("summary")
+
+  // 🔄 DEFAULT TAB NOW FULL FORM
+  const [activeTab, setActiveTab] = useState<string>("fullform")
+
   const { toast } = useToast()
   const router = useRouter()
   const [score, setScore] = useState<number>(0)
@@ -657,14 +660,33 @@ export default function EvaluationsPage() {
     }
   }
 
+  //Core QA questions we always want in the Core QA Checklist
+  const CORE_QUESTIONS = new Set<string>([
+    "Did the dispatcher ask for or confirm the location of the incident (street name, number, landmark, etc)?",
+    "Were safety concerns for the caller assessed?",
+    "Did the dispatcher ask or confirm the caller's phone number?",
+    "Did the dispatcher ask or confirm the caller's name?",
+  ])
+
+
   // ---- Derived grouping for protocol-style layout ----
+
+  // Current protocol questions (from /protocols/forCall)
   const protocolQuestionTexts = new Set(protocolQuestions.map(q => q.question))
 
-  const coreEntries = Object.entries(qaAnalysis ?? {}).filter(
-    ([question]) => !protocolQuestionTexts.has(question)
-  )
+  // All QA entries stored on the call (may include old legacy keys)
+  const allEntries = Object.entries(qaAnalysis ?? {})
 
-  const sectionsMap = new Map<string, { sectionId: string; title: string; questions: ProtocolFlatQuestion[] }>()
+  // Core QA: only the 4 whitelisted questions
+  //    This prevents old, no-longer-used keys from flooding the Core section.
+  const coreEntries = allEntries.filter(([question]) => CORE_QUESTIONS.has(question))
+
+  // Protocol sections stay the same – they use protocolQuestions.
+  // Any legacy QA keys that are not in the current protocol are simply not rendered anywhere.
+  const sectionsMap = new Map<
+    string,
+    { sectionId: string; title: string; questions: ProtocolFlatQuestion[] }
+  >()
   protocolQuestions.forEach(q => {
     const existing = sectionsMap.get(q.sectionId)
     if (existing) {
@@ -691,13 +713,13 @@ export default function EvaluationsPage() {
   // Hard-coded height per protocol / tab
   const getBottomHeightClass = () => {
     if (activeTab !== "fullform") {
-      return "h-[75vh]" // summary height
+      return "h-[60vh]" // evaluation info height
     }
     const pid = protocolQuestions[0]?.protocolId
 
-    if (pid === "protocol-police") return "h-[307vh]" // police height
-    if (pid === "protocol-ems") return "h-[294vh]"   // medical height
-    if (pid === "protocol-fire") return "h-[273vh]"  // fire height
+    if (pid === "protocol-police") return "h-[345vh]" // police height
+    if (pid === "protocol-ems") return "h-[340vh]"   // medical height
+    if (pid === "protocol-fire") return "h-[304vh]"  // fire height
 
     // fallback if no protocol or a new type shows up
     return "h-[250vh]"
@@ -767,175 +789,175 @@ export default function EvaluationsPage() {
 
   return (
     <ProtectedPage required={["Evaluations"]}>
-    <>
-      {/* Outer scroll to avoid clipping when scaled down */}
-      <div className="w-full overflow-auto">
-        {/* SCALE WRAPPER: keeps desktop look, shrinks on smaller breakpoints */}
-        <div className="mobile-scale">
-          <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30 rounded-lg p-3 sm:p-4 md:p-6">
-            {/* LEFT & CENTER */}
-            <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 gap-4">
-              {/* Recent Evaluations */}
-              <Card className="shrink-0 border border-border/50 bg-card rounded-lg">
-                <div className="px-3 sm:px-6 h-12 flex items-center justify-between border-b border-border/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-border/50">
-                      <CheckCircle className="h-5 w-5 text-primary" />
+      <>
+        {/* Outer scroll to avoid clipping when scaled down */}
+        <div className="w-full overflow-auto">
+          {/* SCALE WRAPPER: keeps desktop look, shrinks on smaller breakpoints */}
+          <div className="mobile-scale">
+            <div className="flex min-h-[calc(100vh-4rem)] bg-muted/30 rounded-lg p-3 sm:px-4 sm:py-4 md:p-6">
+              {/* LEFT & CENTER */}
+              <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 gap-4">
+                {/* Recent Evaluations */}
+                <Card className="shrink-0 border border-border/50 bg-card rounded-lg">
+                  <div className="px-3 sm:px-6 h-12 flex items-center justify-between border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-border/50">
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      </div>
+                      <h2 className="text-sm sm:text-lg font-bold text-foreground">Evaluations</h2>
                     </div>
-                    <h2 className="text-sm sm:text-lg font-bold text-foreground">Evaluations</h2>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-[190px] sm:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by operator or call ID..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 h-9 bg-card border-border/50"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={showTable ? "Collapse" : "Expand"}
+                        onClick={() => setShowTable((v) => !v)}
+                      >
+                        {showTable ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-[190px] sm:w-80">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by operator or call ID..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 h-9 bg-card border-border/50"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={showTable ? "Collapse" : "Expand"}
-                      onClick={() => setShowTable((v) => !v)}
-                    >
-                      {showTable ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className={cn(
-                  "grid transition-all duration-300 ease-in-out overflow-hidden",
-                  showTable ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                )}>
-                  <div className="overflow-hidden">
-                    <div className="px-3 sm:px-6 py-4 overflow-hidden h-[32vh] sm:h-[38vh] md:h-[46vh]">
-                      <div className="border border-border/50 rounded-lg bg-card overflow-hidden h-full">
-                        <div className="h-full overflow-y-auto">
-                          <table className="w-full">
-                            <thead className="sticky top-0 z-10 bg-card">
-                              <tr className="border-b border-border/50">
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Resource</th>
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Agency</th>
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Call Type</th>
-                                <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
-                                <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredEvaluations.map((evaluation, idx) => (
-                                <tr
-                                  key={evaluation._id}
-                                  onClick={() => handleSelectEvaluationChange(evaluation)}
-                                  className={cn(
-                                    "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/80",
-                                    idx % 2 !== 1 && "bg-muted/30",
-                                    selectedEvaluation?._id === evaluation._id && "bg-primary/30"
-                                  )}
-                                >
-                                  <td className="px-4 py-3">
-                                    <p className="text-sm font-medium text-foreground">
-                                      {evaluation.created_at
-                                        ? new Date(evaluation.created_at).toLocaleDateString("en-GB", {
+                  <div className={cn(
+                    "grid transition-all duration-300 ease-in-out overflow-hidden",
+                    showTable ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  )}>
+                    <div className="overflow-hidden">
+                      <div className="px-3 sm:px-6 py-4 overflow-hidden h-[32vh] sm:h-[38vh] md:h-[46vh]">
+                        <div className="border border-border/50 rounded-lg bg-card overflow-hidden h-full">
+                          <div className="h-full overflow-y-auto">
+                            <table className="w-full">
+                              <thead className="sticky top-0 z-10 bg-card">
+                                <tr className="border-b border-border/50">
+                                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Date</th>
+                                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Resource</th>
+                                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Agency</th>
+                                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Call Type</th>
+                                  <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
+                                  <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredEvaluations.map((evaluation, idx) => (
+                                  <tr
+                                    key={evaluation._id}
+                                    onClick={() => handleSelectEvaluationChange(evaluation)}
+                                    className={cn(
+                                      "border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/80",
+                                      idx % 2 !== 1 && "bg-muted/30",
+                                      selectedEvaluation?._id === evaluation._id && "bg-primary/30"
+                                    )}
+                                  >
+                                    <td className="px-4 py-3">
+                                      <p className="text-sm font-medium text-foreground">
+                                        {evaluation.created_at
+                                          ? new Date(evaluation.created_at).toLocaleDateString("en-GB", {
                                             day: "2-digit",
                                             month: "short",
                                             year: "numeric",
                                           })
-                                        : "-"}
-                                    </p>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <div className="flex flex-col gap-1">
-                                      {evaluation.callType?.map((item, index) => (
-                                        <p key={index} className="text-sm font-medium text-foreground">
-                                          {item.agency}
-                                        </p>
-                                      ))}
-                                    </div>
-                                  </td>
+                                          : "-"}
+                                      </p>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="flex flex-col gap-1">
+                                        {evaluation.callType?.map((item, index) => (
+                                          <p key={index} className="text-sm font-medium text-foreground">
+                                            {item.agency}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </td>
 
-                                  <td className="px-4 py-3">
-                                    <div className="flex flex-col gap-1">
-                                      {evaluation.callType?.map((item, index) => (
-                                        <p key={index} className="text-sm font-medium text-foreground">
-                                          {item.specific_emergency}
-                                        </p>
-                                      ))}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <Badge variant="outline" className="text-xs">
-                                      {evaluation.callEvaluationType}
-                                    </Badge>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <Badge
-                                      variant={getScoreBadgeVariant(evaluation.score ?? 0)}
-                                      className="text-xs font-semibold"
-                                    >
-                                      {evaluation.score}%
-                                    </Badge>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
+                                    <td className="px-4 py-3">
+                                      <div className="flex flex-col gap-1">
+                                        {evaluation.callType?.map((item, index) => (
+                                          <p key={index} className="text-sm font-medium text-foreground">
+                                            {item.specific_emergency}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <Badge variant="outline" className="text-xs">
+                                        {evaluation.callEvaluationType}
+                                      </Badge>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <Badge
+                                        variant={getScoreBadgeVariant(evaluation.score ?? 0)}
+                                        className="text-xs font-semibold"
+                                      >
+                                        {evaluation.score}%
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
 
 
-                          </table>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
 
-              {/* Bottom: grid that collapses on small screens */}
-              <div
-                className={cn(
-                  "grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden",
-                  getBottomHeightClass()
-                )}
-              >
-                {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
-                <Card className="flex flex-col h-full border border-border/50 bg-card rounded-lg overflow-hidden">
-                  {/* Audio */}
-                  <div className="p-3 sm:p-4 border-b border-border/50">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
-                      <span className="text-xs text-muted-foreground">
-                        {calTime(selectedEvaluation?.duration_seconds) || 0}
-                      </span>
+                {/* Bottom: grid that collapses on small screens */}
+                <div
+                  className={cn(
+                    "grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden",
+                    getBottomHeightClass()
+                  )}
+                >
+                  {/* LEFT: Audio + Tabs in one card; remove fixed height on mobile */}
+                  <Card className="flex flex-col h-full border border-border/50 bg-card rounded-lg overflow-hidden">
+                    {/* Audio */}
+                    <div className="p-3 sm:p-4 border-b border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-foreground">Audio Player</h3>
+                        <span className="text-xs text-muted-foreground">
+                          {calTime(selectedEvaluation?.duration_seconds) || 0}
+                        </span>
+                      </div>
+
+                      <AudioPlayerWithWaveformV2 />
                     </div>
 
-                    <AudioPlayerWithWaveformV2 />
-                  </div>
+                    {/* Tabs */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      <Tabs defaultValue="transcript" className="flex flex-col flex-1 overflow-hidden">
+                        <div className="shrink-0 border-b border-border/50 bg-card px-3">
+                          <TabsList className="h-10 bg-transparent flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible flex w-full">
+                            <TabsTrigger
+                              value="transcript"
+                              className="flex-1 text-center text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted"
+                            >
+                              Call Transcript
+                            </TabsTrigger>
 
-                  {/* Tabs */}
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <Tabs defaultValue="transcript" className="flex flex-col flex-1 overflow-hidden">
-                      <div className="shrink-0 border-b border-border/50 bg-card px-3">
-                        <TabsList className="h-10 bg-transparent flex-nowrap overflow-x-auto -mx-3 px-3 md:overflow-visible flex w-full">
-                          <TabsTrigger
-                            value="transcript"
-                            className="flex-1 text-center text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted"
-                          >
-                            Call Transcript
-                          </TabsTrigger>
-
-                          <TabsTrigger
-                            value="summary"
-                            className="flex-1 text-center text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted"
-                          >
-                            Call Summary
-                          </TabsTrigger>
-                        </TabsList>
-                      </div>
+                            <TabsTrigger
+                              value="summary"
+                              className="flex-1 text-center text-[11px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-muted"
+                            >
+                              Call Summary
+                            </TabsTrigger>
+                          </TabsList>
+                        </div>
                         {/* Transcript Content */}
                         <TabsContent value="transcript" className="flex-1 overflow-y-auto p-3 sm:p-4 mt-0 bg-card">
                           <h3 className="text-xs font-semibold text-foreground mb-2">Call Transcript</h3>
@@ -951,486 +973,506 @@ export default function EvaluationsPage() {
                             {selectedEvaluation?.summary || "No summary available"}
                           </p>
                         </TabsContent>
-                    </Tabs>
-                  </div>
-                </Card>
+                      </Tabs>
+                    </div>
+                  </Card>
 
-                {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
-                <Card className="md:col-span-2 flex flex-col h-full overflow-hidden border border-border/50 bg-card rounded-lg">
-                  <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50 shrink-0">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                  {/* RIGHT: QA (now includes right-column summary/actions merged in) */}
+                  <Card className="md:col-span-2 flex flex-col h-full overflow-hidden border border-border/50 bg-card rounded-lg">
+                    <div ref={qaRef} className="shrink-0 border-b border-border/50 bg-card px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-border/50 shrink-0">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="text-sm font-bold text-foreground">QA Evaluation</h2>
+                          <p className="text-[11px] text-muted-foreground truncate">Automated evaluation based on ANS 1.107.1-2015 standards</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <h2 className="text-sm font-bold text-foreground">QA Evaluation</h2>
-                        <p className="text-[11px] text-muted-foreground truncate">Automated evaluation based on ANS 1.107.1-2015 standards</p>
+                      <div className="grid grid-cols-2 gap-2 shrink-0 lg:flex lg:flex-row lg:items-center">
+                        {activeTab === "fullform" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant={isEditing ? "secondary" : "outline"}
+                              className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
+                              onClick={() => {
+                                setIsEditing((v) => !v)
+                              }}
+                            >
+                              <PencilLine className="h-3.5 w-3.5 mr-1.5" />
+                              {isEditing ? "Cancel" : "Edit"}
+                            </Button>
+                          </>
+                        )}
+                        {/* Actions moved from right column */}
+                        <Button
+                          size="sm"
+                          onClick={handleExportReport}
+                          className="h-8 text-xs px-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                        >
+                          <FileDown className="mr-1.5 h-3.5 w-3.5" />
+                          Export
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleGenerateCoaching}
+                          className="h-8 text-xs px-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                        >
+                          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                          Coach
+                        </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 shrink-0 lg:flex lg:flex-row lg:items-center">
-                      {activeTab === "fullform" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant={isEditing ? "secondary" : "outline"}
-                            className="h-8 text-xs px-2 animate-in fade-in slide-in-from-left-2 duration-200"
-                            onClick={() => {
-                              setIsEditing((v) => !v)
-                            }}
+
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
+                      {/* 🔄 Tabs: Full Form (left, default) + Evaluation Info (right) */}
+                      <Tabs
+                        defaultValue="fullform"
+                        className="flex flex-col h-full"
+                        onValueChange={setActiveTab}
+                      >
+                        <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
+                          <TabsTrigger
+                            value="fullform"
+                            className="flex-1 data-[state=active]:bg-card"
                           >
-                            <PencilLine className="h-3.5 w-3.5 mr-1.5" />
-                            {isEditing ? "Cancel" : "Edit"}
-                          </Button>
-                        </>
-                      )}
-                      {/* Actions moved from right column */}
-                      <Button
-                        size="sm"
-                        onClick={handleExportReport}
-                        className="h-8 text-xs px-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
-                      >
-                        <FileDown className="mr-1.5 h-3.5 w-3.5" />
-                        Export
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleGenerateCoaching}
-                        className="h-8 text-xs px-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                      >
-                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                        Coach
-                      </Button>
-                    </div>
-                  </div>
+                            Full Form
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="summary"
+                            className="flex-1 data-[state=active]:bg-card"
+                          >
+                            Evaluation Information
+                          </TabsTrigger>
+                        </TabsList>
 
-                  <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-card">
-                    <Tabs defaultValue="summary" className="flex flex-col h-full" onValueChange={setActiveTab}>
-                      <TabsList className="w-full bg-muted/50 p-1 rounded-lg mb-4">
-                        <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-card">
-                          Summary
-                        </TabsTrigger>
-                        <TabsTrigger value="fullform" className="flex-1 data-[state=active]:bg-card">
-                          Update Form
-                        </TabsTrigger>
-                      </TabsList>
-                      {/* Summary Tab */}
-                      <TabsContent value="summary" className="flex-1 overflow-y-auto mt-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                          {/* Compliance Summary */}
-                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
-                            <div className="flex items-center justify-around">
-                              <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
-                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                                </div>
-                                <div>
-                                  <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
-                                  <p className="text-[11px] text-muted-foreground">Met</p>
-                                </div>
+                        {/* ▶️ Evaluation Information TAB (right) */}
+                        <TabsContent value="summary" className="flex-1 overflow-y-auto mt-0">
+                          <Card className="p-4 bg-card border border-border/50 rounded-lg">
+                            <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Information</h3>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-muted-foreground">Operator</span>
+                                <span className="text-xs font-medium text-foreground">
+                                  {selectedEvaluation?.dispatcher_id}
+                                </span>
                               </div>
-                              <Separator orientation="vertical" className="h-8 bg-border/50" />
-                              <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
-                                  <XCircle className="h-3.5 w-3.5 text-red-500" />
-                                </div>
-                                <div>
-                                  <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
-                                  <p className="text-[11px] text-muted-foreground">Not Met</p>
-                                </div>
+                              <Separator className="bg-border/50" />
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-muted-foreground">Call ID</span>
+                                <span className="text-xs font-medium text-foreground">
+                                  {selectedEvaluation?.call_id}
+                                </span>
+                              </div>
+                              <Separator className="bg-border/50" />
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-muted-foreground">Evaluation Type</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {selectedEvaluation?.callEvaluationType}
+                                </Badge>
+                              </div>
+                              <Separator className="bg-border/50" />
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-muted-foreground">Date / Time</span>
+                                <span className="text-xs font-medium text-foreground">
+                                  {selectedEvaluation?.created_at
+                                    ? new Date(selectedEvaluation.created_at).toLocaleString()
+                                    : 'N/A'}
+                                </span>
+                              </div>
+                              <Separator className="bg-border/50" />
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-muted-foreground">Duration</span>
+                                <span className="text-xs font-medium text-foreground">
+                                  {calTime(selectedEvaluation?.duration_seconds)}
+                                </span>
                               </div>
                             </div>
                           </Card>
+                        </TabsContent>
 
-                          {/* QA Protocol Evaluation */}
-                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
-                            <div className="text-center">
-                              <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(score))}>
-                                {score}%
-                              </div>
-                              <p className="text-[11px] text-muted-foreground">
-                                {metStandards} of {metStandards + criticalViolations} Standards
-                              </p>
-                            </div>
-                          </Card>
-
-                          {/* Progress Bar */}
-                          <Card className="p-3 bg-card border border-border/50 rounded-lg">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1">Evaluation Status</h3>
-                            <div className="text-center">
-                              <ProgressBar
-                                key={progressRefreshKey}
-                                currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"}
-                              />
-                            </div>
-                          </Card>
-
-                          {/* Quick Actions for small screens */}
-                          <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
-                            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                onClick={handleExportReport}
-                                className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
-                              >
-                                <FileDown className="mr-2 h-3.5 w-3.5" />
-                                Export
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={handleGenerateCoaching}
-                                className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                              >
-                                <Sparkles className="mr-2 h-3.5 w-3.5" />
-                                Coaching
-                              </Button>
-                            </div>
-                          </Card>
-                        </div>
-
-                        {/* Additional summary information */}
-                        <Card className="p-4 bg-card border border-border/50 rounded-lg">
-                          <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Information</h3>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Operator</span>
-                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.dispatcher_id}</span>
-                            </div>
-                            <Separator className="bg-border/50" />
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Call ID</span>
-                              <span className="text-xs font-medium text-foreground">{selectedEvaluation?.call_id}</span>
-                            </div>
-                            <Separator className="bg-border/50" />
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Evaluation Type</span>
-                              <Badge variant="outline" className="text-xs">{selectedEvaluation?.callEvaluationType}</Badge>
-                            </div>
-                            <Separator className="bg-border/50" />
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Date / Time</span>
-                              <span className="text-xs font-medium text-foreground">
-                                {selectedEvaluation?.created_at ? new Date(selectedEvaluation.created_at).toLocaleString() : 'N/A'}
-                              </span>
-                            </div>
-                            <Separator className="bg-border/50" />
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Duration</span>
-                              <span className="text-xs font-medium text-foreground">{calTime(selectedEvaluation?.duration_seconds)}</span>
-                            </div>
-                          </div>
-                        </Card>
-                      </TabsContent>
-
-                      {/* Full Form Tab */}
-                      <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
-                        <div className="space-y-4">
-                          {/* Core QA (first 4 AI/standard questions) */}
-                          {coreEntries.length > 0 && (
-                            <Card className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden">
-                              <div className={cn(
-                                "flex items-center justify-between cursor-pointer",
-                                // Reduce header padding for less vertical space
-                                collapsedSections.has('core') ? 'py-1 px-3' : 'py-1.5 px-3'
-                              )} onClick={() => toggleSection('core')}>
-                                <h3 className="text-xs font-semibold text-foreground">Core QA Checklist</h3>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-[11px] text-muted-foreground">{coreEntries.length} items</span>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    {collapsedSections.has('core') ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className={cn(
-                                "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                collapsedSections.has('core') ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
-                              )}>
-                                <div className={cn(
-                                  "overflow-hidden transition-all duration-200",
-                                  // Reduce top padding for less space above first question
-                                  collapsedSections.has('core') ? 'p-0 max-h-0' : 'pt-1 pb-3 px-3 max-h-[200vh]'
-                                )}>
-                                  <div className="space-y-2">
-                                    {coreEntries.map(([question, qa]) => {
-                                      const val = (isEditing ? qaAnalysisTemp?.[question]?.Answer : qa.Answer) as QaValue
-                                      const proof = qa.Proof || ""
-
-                                      return (
-                                        <div key={question} className="border border-border/50 rounded-lg bg-card overflow-hidden">
-                                          <div className="flex items-center justify-between p-3 gap-3">
-                                            <span className="text-sm text-foreground flex-1">{question}</span>
-
-                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                                              <Button
-                                                size="sm"
-                                                variant={val === "Yes" ? "default" : "outline"}
-                                                className={qaBtn(val === "Yes", "Yes")}
-                                                onClick={() => updateQaDraft(question, "Yes")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                Yes
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "No" ? "destructive" : "outline"}
-                                                className={qaBtn(val === "No", "No")}
-                                                onClick={() => updateQaDraft(question, "No")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                No
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "Refused" ? "default" : "outline"}
-                                                className={qaBtn(val === "Refused", "Refused")}
-                                                onClick={() => updateQaDraft(question, "Refused")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                Refused
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "N/A" ? "default" : "outline"}
-                                                className={qaBtn(val === "N/A", "N/A")}
-                                                onClick={() => updateQaDraft(question, "N/A")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                N/A
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-7 w-7 p-0"
-                                                onClick={() => toggleQuestion(question)}
-                                              >
-                                                {expandedQuestions.has(question) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                              </Button>
-                                            </div>
-                                          </div>
-
-                                          <div className={cn(
-                                            "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                            expandedQuestions.has(question) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                          )}>
-                                            <div className="overflow-hidden">
-                                              <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                                <div className="mt-2">
-                                                  <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                                  <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
-                                                    {proof}
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-                            </Card>
-                          )}
-
-                          {/* Protocol sections: Interview, CAD, Telephone, Supervisor etc. */}
-                          {protocolSections.map(section => (
-                            <Card key={section.sectionId} className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden">
-                              <div
-                                className={cn(
-                                  "flex items-center justify-between cursor-pointer",
-                                  // slightly smaller header padding when expanded, even smaller when collapsed
-                                  collapsedSections.has(section.sectionId) ? 'py-1.5 px-3' : 'py-2 px-3'
-                                )}
-                                onClick={() => toggleSection(section.sectionId)}
-                              >
+                        {/* ▶️ FULL FORM TAB (left / default) */}
+                        <TabsContent value="fullform" className="flex-1 overflow-y-auto mt-0">
+                          {/* 🔹 Row of summary cards now above form */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                            {/* Compliance Summary */}
+                            <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                              <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Compliance Summary</h3>
+                              <div className="flex items-center justify-around">
                                 <div className="flex items-center gap-2">
-                                  <span className={cn("h-2.5 w-2.5 rounded-full", protocolColorClass)} />
-                                  <span className="text-xs font-semibold text-foreground">{section.title}</span>
+                                  <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center border border-border/50">
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                  </div>
+                                  <div>
+                                    <p className="text-lg font-bold text-green-500 leading-none">{metStandards}</p>
+                                    <p className="text-[11px] text-muted-foreground">Met</p>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-[11px] text-muted-foreground">{section.questions.length} items</span>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    {collapsedSections.has(section.sectionId) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className={cn(
-                                "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                collapsedSections.has(section.sectionId) ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
-                              )}>
-                                <div className={cn(
-                                  "overflow-hidden transition-all duration-200",
-                                  collapsedSections.has(section.sectionId) ? 'p-0 max-h-0' : 'pt-2 pb-3 px-3 max-h-[200vh]'
-                                )}>
-                                  <div className="space-y-2">
-                                    {section.questions.map(q => {
-                                      const qaObj = qaAnalysis[q.question] ?? { Answer: "N/A" as QaValue, Proof: "" }
-                                      const val = (isEditing
-                                        ? (qaAnalysisTemp?.[q.question]?.Answer ?? qaObj.Answer)
-                                        : qaObj.Answer) as QaValue
-                                      const proof = qaObj.Proof || ""
-                                      const key = q.question
-
-                                      return (
-                                        <div key={key} className="border border-border/50 rounded-lg bg-card overflow-hidden">
-                                          <div className="flex items-center justify-between p-3 gap-3">
-                                            <span className="text-sm text-foreground flex-1">{q.question}</span>
-
-                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                                              <Button
-                                                size="sm"
-                                                variant={val === "Yes" ? "default" : "outline"}
-                                                className={qaBtn(val === "Yes", "Yes")}
-                                                onClick={() => updateQaDraft(key, "Yes")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                Yes
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "No" ? "destructive" : "outline"}
-                                                className={qaBtn(val === "No", "No")}
-                                                onClick={() => updateQaDraft(key, "No")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                No
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "Refused" ? "default" : "outline"}
-                                                className={qaBtn(val === "Refused", "Refused")}
-                                                onClick={() => updateQaDraft(key, "Refused")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                Refused
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant={val === "N/A" ? "default" : "outline"}
-                                                className={qaBtn(val === "N/A", "N/A")}
-                                                onClick={() => updateQaDraft(key, "N/A")}
-                                                aria-disabled={!isEditing}
-                                              >
-                                                N/A
-                                              </Button>
-
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-7 w-7 p-0"
-                                                onClick={() => toggleQuestion(key)}
-                                              >
-                                                {expandedQuestions.has(key) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                              </Button>
-                                            </div>
-                                          </div>
-
-                                          <div className={cn(
-                                            "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                            expandedQuestions.has(key) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                          )}>
-                                            <div className="overflow-hidden">
-                                              <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                                <div className="mt-2">
-                                                  <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                                  <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
-                                                    {proof}
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )
-                                    })}
+                                <Separator orientation="vertical" className="h-8 bg-border/50" />
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center border border-border/50">
+                                    <XCircle className="h-3.5 w-3.5 text-red-500" />
+                                  </div>
+                                  <div>
+                                    <p className="text-lg font-bold text-red-500 leading-none">{criticalViolations}</p>
+                                    <p className="text-[11px] text-muted-foreground">Not Met</p>
                                   </div>
                                 </div>
                               </div>
                             </Card>
-                          ))}
-                        </div>
 
-                        {/* Action bar: sticky on mobile, normal on md+ */}
-                        {isEditing && (
-                          <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={handleResetChanges}>
-                              <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                              Reset Changes
-                            </Button>
-                            <Button size="sm" onClick={handleClickSave}>
-                              <Save className="h-3.5 w-3.5 mr-2" />
-                              Save Changes
-                            </Button>
+                            {/* QA Protocol Evaluation */}
+                            <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                              <h3 className="text-[12px] font-semibold text-foreground mb-1.5">QA Protocol Evaluation</h3>
+                              <div className="text-center">
+                                <div className={cn("text-3xl font-bold mb-0.5", getScoreColor(score))}>
+                                  {score}%
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {metStandards} of {metStandards + criticalViolations} Standards
+                                </p>
+                              </div>
+                            </Card>
+
+                            {/* Progress Bar */}
+                            <Card className="p-3 bg-card border border-border/50 rounded-lg">
+                              <h3 className="text-[12px] font-semibold text-foreground mb-1">Evaluation Status</h3>
+                              <div className="text-center">
+                                <ProgressBar
+                                  key={progressRefreshKey}
+                                  currentStep={selectedEvaluation?.callEvaluationType || "Unable to load Status Bar"}
+                                />
+                              </div>
+                            </Card>
+
+                            {/* Quick Actions for small screens */}
+                            <Card className="p-3 bg-card border border-border/50 rounded-lg sm:hidden">
+                              <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Actions</h3>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleExportReport}
+                                  className="flex-1 h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-md"
+                                >
+                                  <FileDown className="mr-2 h-3.5 w-3.5" />
+                                  Export
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={handleGenerateCoaching}
+                                  className="flex-1 h-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                                >
+                                  <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                  Coaching
+                                </Button>
+                              </div>
+                            </Card>
                           </div>
-                        )}
-                        {!isEditing && (
-                          <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
-                            <p className="text-[11px] text-muted-foreground truncate content-center">On completing the evalution mark it as Completed</p>
-                            <Button size="sm" onClick={handleMarkCompleted}>
-                              Mark Completed
-                            </Button>
+
+                          {/* ---- FULL FORM CONTENT (Core QA + protocol sections) ---- */}
+                          <div className="space-y-4">
+                            {/* Core QA (first 4 AI/standard questions) */}
+                            {coreEntries.length > 0 && (
+                              <Card className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden">
+                                <div className={cn(
+                                  "flex items-center justify-between cursor-pointer",
+                                  collapsedSections.has('core') ? 'py-1 px-3' : 'py-1.5 px-3'
+                                )} onClick={() => toggleSection('core')}>
+                                  <h3 className="text-xs font-semibold text-foreground">Core QA Checklist</h3>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[11px] text-muted-foreground">{coreEntries.length} items</span>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                      {collapsedSections.has('core') ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className={cn(
+                                  "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                  collapsedSections.has('core') ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+                                )}>
+                                  <div className={cn(
+                                    "overflow-hidden transition-all duration-200",
+                                    collapsedSections.has('core') ? 'p-0 max-h-0' : 'pt-1 pb-3 px-3 max-h-[200vh]'
+                                  )}>
+                                    <div className="space-y-2">
+                                      {coreEntries.map(([question, qa]) => {
+                                        const val = (isEditing ? qaAnalysisTemp?.[question]?.Answer : qa.Answer) as QaValue
+                                        const proof = qa.Proof || ""
+
+                                        return (
+                                          <div key={question} className="border border-border/50 rounded-lg bg-card overflow-hidden">
+                                            <div className="flex items-center justify-between p-3 gap-3">
+                                              <span className="text-sm text-foreground flex-1">{question}</span>
+
+                                              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "Yes" ? "default" : "outline"}
+                                                  className={qaBtn(val === "Yes", "Yes")}
+                                                  onClick={() => updateQaDraft(question, "Yes")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  Yes
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "No" ? "destructive" : "outline"}
+                                                  className={qaBtn(val === "No", "No")}
+                                                  onClick={() => updateQaDraft(question, "No")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  No
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "Refused" ? "default" : "outline"}
+                                                  className={qaBtn(val === "Refused", "Refused")}
+                                                  onClick={() => updateQaDraft(question, "Refused")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  Refused
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "N/A" ? "default" : "outline"}
+                                                  className={qaBtn(val === "N/A", "N/A")}
+                                                  onClick={() => updateQaDraft(question, "N/A")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  N/A
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-7 w-7 p-0"
+                                                  onClick={() => toggleQuestion(question)}
+                                                >
+                                                  {expandedQuestions.has(question) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                </Button>
+                                              </div>
+                                            </div>
+
+                                            <div className={cn(
+                                              "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                              expandedQuestions.has(question) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                            )}>
+                                              <div className="overflow-hidden">
+                                                <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                                  <div className="mt-2">
+                                                    <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                                      {proof}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            )}
+
+                            {/* Protocol sections: Interview, CAD, Telephone, Supervisor etc. */}
+                            {protocolSections.map(section => (
+                              <Card key={section.sectionId} className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "flex items-center justify-between cursor-pointer",
+                                    collapsedSections.has(section.sectionId) ? 'py-1.5 px-3' : 'py-2 px-3'
+                                  )}
+                                  onClick={() => toggleSection(section.sectionId)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn("h-2.5 w-2.5 rounded-full", protocolColorClass)} />
+                                    <span className="text-xs font-semibold text-foreground">{section.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[11px] text-muted-foreground">{section.questions.length} items</span>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                      {collapsedSections.has(section.sectionId) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className={cn(
+                                  "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                  collapsedSections.has(section.sectionId) ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+                                )}>
+                                  <div className={cn(
+                                    "overflow-hidden transition-all duration-200",
+                                    collapsedSections.has(section.sectionId) ? 'p-0 max-h-0' : 'pt-2 pb-3 px-3 max-h-[200vh]'
+                                  )}>
+                                    <div className="space-y-2">
+                                      {section.questions.map(q => {
+                                        const qaObj = qaAnalysis[q.question] ?? { Answer: "N/A" as QaValue, Proof: "" }
+                                        const val = (isEditing
+                                          ? (qaAnalysisTemp?.[q.question]?.Answer ?? qaObj.Answer)
+                                          : qaObj.Answer) as QaValue
+                                        const proof = qaObj.Proof || ""
+                                        const key = q.question
+
+                                        return (
+                                          <div key={key} className="border border-border/50 rounded-lg bg-card overflow-hidden">
+                                            <div className="flex items-center justify-between p-3 gap-3">
+                                              <span className="text-sm text-foreground flex-1">{q.question}</span>
+
+                                              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "Yes" ? "default" : "outline"}
+                                                  className={qaBtn(val === "Yes", "Yes")}
+                                                  onClick={() => updateQaDraft(key, "Yes")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  Yes
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "No" ? "destructive" : "outline"}
+                                                  className={qaBtn(val === "No", "No")}
+                                                  onClick={() => updateQaDraft(key, "No")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  No
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "Refused" ? "default" : "outline"}
+                                                  className={qaBtn(val === "Refused", "Refused")}
+                                                  onClick={() => updateQaDraft(key, "Refused")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  Refused
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant={val === "N/A" ? "default" : "outline"}
+                                                  className={qaBtn(val === "N/A", "N/A")}
+                                                  onClick={() => updateQaDraft(key, "N/A")}
+                                                  aria-disabled={!isEditing}
+                                                >
+                                                  N/A
+                                                </Button>
+
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-7 w-7 p-0"
+                                                  onClick={() => toggleQuestion(key)}
+                                                >
+                                                  {expandedQuestions.has(key) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                </Button>
+                                              </div>
+                                            </div>
+
+                                            <div className={cn(
+                                              "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                              expandedQuestions.has(key) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                            )}>
+                                              <div className="overflow-hidden">
+                                                <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                                  <div className="mt-2">
+                                                    <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
+                                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                                      {proof}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
                           </div>
-                        )}
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                </Card>
+
+                          {/* Action bar: sticky on mobile, normal on md+ */}
+                          {isEditing && (
+                            <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                              <Button size="sm" variant="outline" onClick={handleResetChanges}>
+                                <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                                Reset Changes
+                              </Button>
+                              <Button size="sm" onClick={handleClickSave}>
+                                <Save className="h-3.5 w-3.5 mr-2" />
+                                Save Changes
+                              </Button>
+                            </div>
+                          )}
+                          {!isEditing && (
+                            <div className="md:static md:mt-4 sticky bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border/50 px-3 py-2 flex justify-end gap-2">
+                              <p className="text-[11px] text-muted-foreground truncate content-center">On completing the evalution mark it as Completed</p>
+                              <Button size="sm" onClick={handleMarkCompleted}>
+                                Mark Completed
+                              </Button>
+                            </div>
+                          )}
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  </Card>
+                </div>
               </div>
+
+              {/* RIGHT COLUMN removed: content merged into QA card above */}
             </div>
-
-            {/* RIGHT COLUMN removed: content merged into QA card above */}
           </div>
+          <AddQuestionDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onAdded={() => { getQaQuestions() }}
+          />
+
+          {/*Export dialog */}
+          <ExportReportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            onExport={handleDialogExport}
+            isExporting={isExporting}
+          />
         </div>
-        <AddQuestionDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onAdded={() => { getQaQuestions() }}
-        />
+        {/* Responsive scaling styles */}
+        <style jsx global>{`
+          /* The trick:
+             - We scale the entire UI down on smaller screens
+             - We expand width by the inverse factor so layout doesn't get cut off
+             - Keeps your desktop look untouched, but "mini" on mobile
+          */
+          .mobile-scale {
+            --ui-scale: 1;
+            transform: scale(var(--ui-scale));
+            transform-origin: top left;
+            width: calc(100% / var(--ui-scale));
+          }
 
-        {/*Export dialog */}
-        <ExportReportDialog
-          open={exportDialogOpen}
-          onOpenChange={setExportDialogOpen}
-          onExport={handleDialogExport}
-          isExporting={isExporting}
-        />
-      </div>
-      {/* Responsive scaling styles */}
-      <style jsx global>{`
-        /* The trick:
-           - We scale the entire UI down on smaller screens
-           - We expand width by the inverse factor so layout doesn't get cut off
-           - Keeps your desktop look untouched, but "mini" on mobile
-        */
-        .mobile-scale {
-          --ui-scale: 1;
-          transform: scale(var(--ui-scale));
-          transform-origin: top left;
-          width: calc(100% / var(--ui-scale));
-        }
-
-        @media (max-width: 1024px) {
-          .mobile-scale { --ui-scale: 0.95; }
-        }
-        @media (max-width: 768px) {
-          .mobile-scale { --ui-scale: 0.9; }
-        }
-        @media (max-width: 480px) {
-          .mobile-scale { --ui-scale: 0.85; }
-        }
-      `}</style>
-    </>
+          @media (max-width: 1024px) {
+            .mobile-scale { --ui-scale: 0.95; }
+          }
+          @media (max-width: 768px) {
+            .mobile-scale { --ui-scale: 0.9; }
+          }
+          @media (max-width: 480px) {
+            .mobile-scale { --ui-scale: 0.85; }
+          }
+        `}</style>
+      </>
     </ProtectedPage>
   )
 }
