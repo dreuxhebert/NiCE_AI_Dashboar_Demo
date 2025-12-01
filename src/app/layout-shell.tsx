@@ -54,6 +54,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
       const u = JSON.parse(localStorage.getItem("current_user") || "{}")
       setPermissions(u.permissions || ALL_PERMISSIONS)
       setAuthStatus("authed")
+      return
     }
 
     if (!token) {
