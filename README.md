@@ -195,4 +195,12 @@ This project is proprietary software developed for NICE Ltd.
 
 ---
 
+## 📚 Additional Documentation
+
+- [**Developer Guide**](./DEVELOPER_GUIDE.md) - In-depth technical documentation, architecture, and development workflows
+- [**System Data Flow**](./SYSTEM_DATA_FLOW.mmd) - Mermaid diagram showing data flow architecture
+- [**Backend README**](../Inform-AI-Backend/README.md) - FastAPI backend documentation and API reference
+
+---
+
 **Built with ❤️ by the NICE AI Team**
