@@ -1,0 +1,74 @@
+flowchart LR
+    %% NiCE AI Platform - System Data Flow
+    %% Simplified left-to-right layout for better readability
+    
+    %% External Actors
+    User["👤 User"]
+    
+    %% Frontend Layer
+    subgraph Frontend["🖥️ Frontend (Next.js/Vercel)"]
+        Login["🔐 Login"]
+        Upload["📤 Upload"]
+        Dashboard["📊 Dashboard"]
+        Pages["📄 Pages<br/>(Analytics, Coaching,<br/>Interactions, etc.)"]
+    end
+    
+    %% Backend Layer
+    subgraph Backend["⚙️ Backend (FastAPI/Render)"]
+        direction TB
+        API["API Routes<br/>(Auth, Calls, Users,<br/>Protocols, Coaching)"]
+        Controllers["Controllers<br/>(Business Logic)"]
+        Helpers["AI Helpers<br/>(GPT, Agency QA)"]
+    end
+    
+    %% External Services
+    subgraph External["🌐 External Services"]
+        direction TB
+        Elevate["🤖 Elevate AI<br/>(Transcription)"]
+        GPT["🧠 OpenAI GPT<br/>(Analysis)"]
+    end
+    
+    %% Database
+    subgraph DB["🗄️ MongoDB Atlas"]
+        direction TB
+        Collections["Collections:<br/>• users<br/>• calls<br/>• call_summaries<br/>• transcripts<br/>• evaluations<br/>• coaching_tasks<br/>• questionsets"]
+    end
+    
+    %% Main Data Flows
+    User -->|"1. Login"| Login
+    Login -->|"Authenticate"| API
+    API -->|"Verify"| Collections
+    Collections -->|"JWT Token"| Login
+    Login -->|"Success"| Dashboard
+    
+    User -->|"2. Upload Audio"| Upload
+    Upload -->|"POST /upload"| API
+    API -->|"Process"| Controllers
+    Controllers -->|"3. Transcribe"| Elevate
+    Elevate -->|"4. Text + Sentiment"| Controllers
+    
+    Controllers -->|"5. Analyze"| Helpers
+    Helpers -->|"QA Questions"| GPT
+    GPT -->|"6. Answers"| Helpers
+    Helpers -->|"7. Store Results"| Collections
+    
+    User -->|"8. View Data"| Pages
+    Pages -->|"GET Requests"| API
+    API -->|"Query"| Collections
+    Collections -->|"9. Return Data"| API
+    API -->|"Response"| Pages
+    
+    Dashboard -.->|"Navigate"| Pages
+    
+    %% Styling
+    classDef frontend fill:#3087DF,stroke:#1a5490,color:#fff,stroke-width:3px
+    classDef backend fill:#10b981,stroke:#059669,color:#fff,stroke-width:3px
+    classDef database fill:#f59e0b,stroke:#d97706,color:#fff,stroke-width:3px
+    classDef external fill:#8b5cf6,stroke:#7c3aed,color:#fff,stroke-width:3px
+    classDef user fill:#ef4444,stroke:#dc2626,color:#fff,stroke-width:3px
+    
+    class Login,Upload,Dashboard,Pages frontend
+    class API,Controllers,Helpers backend
+    class Collections database
+    class Elevate,GPT external
+    class User user
