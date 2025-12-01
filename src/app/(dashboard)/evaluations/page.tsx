@@ -690,7 +690,7 @@ export default function EvaluationsPage() {
   // Hard-coded height per protocol / tab
   const getBottomHeightClass = () => {
     if (activeTab !== "fullform") {
-      return "h-[71vh]" // summary height
+      return "h-[75vh]" // summary height
     }
     const pid = protocolQuestions[0]?.protocolId
 
