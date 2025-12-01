@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronDown, ChevronUp, Power } from "lucide-react"
 
-// ---- API / proxy logic (same pattern as EvaluationsPage) ----
+// ---- API / proxy logic (same pattern as other pages) ----
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
 const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
 

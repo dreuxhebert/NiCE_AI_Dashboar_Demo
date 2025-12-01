@@ -145,7 +145,7 @@ export default function InteractionsPage() {
           language: item.language,
           model: item.model,
           callType: item.callType,
-          status: item.status as Status, // 👈 cast to Status type
+          status: item.status as Status,
           sentiment: item.sentiment,
           transcript: item.transcript,
           summary: item.summary,

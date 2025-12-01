@@ -80,8 +80,7 @@ export default function LoginPage() {
         return
       }
 
-      // 👇 THIS is the important part
-      // your backend returns: { message, access_token, token_type, user: {...} }
+      //backend returns: { message, access_token, token_type, user: {...} }
       if (typeof window !== "undefined") {
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token)
