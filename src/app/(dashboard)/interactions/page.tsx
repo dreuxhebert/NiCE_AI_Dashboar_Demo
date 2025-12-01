@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Search, Filter, X, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import ProtectedPage from "@/components/protectedPage"
 
 // ---------------- API helper ----------------
 const API_BASE =
@@ -242,6 +243,7 @@ export default function InteractionsPage() {
   })
 
   return (
+    <ProtectedPage required={["Interactions"]}>
     <div className="space-y-6">
       <div>
         <h1 className="font-sans text-3xl font-bold tracking-tight text-foreground">
@@ -433,5 +435,6 @@ export default function InteractionsPage() {
         onOpenChange={setDrawerOpen}
       />
     </div>
+    </ProtectedPage>
   )
 }

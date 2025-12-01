@@ -15,6 +15,7 @@ import { dispatcherLeaderboard, callsByTypeData, evaluations } from "@/lib/sampl
 import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award, RotateCcw, Save, GripVertical, Users, Phone, Star, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Responsive, WidthProvider, Layout } from "react-grid-layout";
+import ProtectedPage from "@/components/protectedPage";
 import { number } from "framer-motion";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -919,6 +920,7 @@ export default function AnalyticsV2Page() {
   }
 
   return (
+    <ProtectedPage required={["Analytics"]}>
     <div className="space-y-6">
       <div>
         <h1 className="font-sans text-3xl font-bold tracking-tight text-foreground">Analytics V2</h1>
@@ -1683,5 +1685,6 @@ export default function AnalyticsV2Page() {
         </TabsContent>
       </Tabs>
     </div>
+    </ProtectedPage>
   );
 }

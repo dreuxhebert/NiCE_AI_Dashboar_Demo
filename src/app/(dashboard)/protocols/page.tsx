@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronDown, ChevronUp, Power } from "lucide-react"
+import ProtectedPage from "@/components/protectedPage"
 
 // ---- API / proxy logic (same pattern as other pages) ----
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
@@ -159,6 +160,7 @@ export default function ProtocolsPage() {
   }
 
   return (
+    <ProtectedPage required={["Protocol"]}>
     <main className="flex-1 overflow-auto bg-background">
       <div className="space-y-6 p-8">
         {/* Header */}
@@ -448,5 +450,6 @@ export default function ProtocolsPage() {
         </DialogContent>
       </Dialog>
     </main>
+    </ProtectedPage>
   )
 }

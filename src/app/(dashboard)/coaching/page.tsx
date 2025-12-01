@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import ProtectedPage from "@/components/protectedPage"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com"
 const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
@@ -386,6 +387,7 @@ export default function CoachingPage() {
   }
 
   return (
+    <ProtectedPage required={["Coaching"]}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -744,5 +746,6 @@ export default function CoachingPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedPage>
   )
 }

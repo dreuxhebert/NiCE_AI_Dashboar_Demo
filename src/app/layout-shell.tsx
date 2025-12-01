@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { TopNav } from "@/components/top-nav"
 import { Toaster } from "@/components/ui/toaster"
+import { AuthContext } from "@/context/authContext"
 
 const ALL_PERMISSIONS  = ["Overview","Evaluations","Coaching","Analytics","Interactions","Protocol","Administrator"]
 
@@ -16,6 +17,7 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const [authStatus, setAuthStatus] = useState<"loading"|"authed"|"guest">("loading")
   const router = useRouter()
   const pathname = usePathname()
+  
 
   // Check if we're on analytics page
   const isAnalyticsPage = pathname?.includes('/analyticsv2') || pathname?.includes('/analytics')
@@ -52,13 +54,11 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
       const u = JSON.parse(localStorage.getItem("current_user") || "{}")
       setPermissions(u.permissions || ALL_PERMISSIONS)
       setAuthStatus("authed")
-      return
     }
 
     if (!token) {
       setAuthStatus("guest")
-      router.replace(`/login?next=${encodeURIComponent(pathname || "/")}`)
-      return
+      router.replace("/no-access?reason=login")
     }
 
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
@@ -89,18 +89,25 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   }
 
   // Block UI until authenticated (prevents flash/bypass)
-  if (authStatus !== "authed") {
-    return <div className="p-6">Loading…</div>
+  if (authStatus === "loading") {
+    return <div className="p-6">Loading…</div>;
   }
 
   return (
-    <div className="overflow-x-hidden">
-      <Sidebar collapsed={collapsed} permissions={permissions} />
-      <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} isAnalyticsPage={isAnalyticsPage} />
-      <main className={`mt-16 min-h-screen p-6 transition-[margin-left] duration-200 ${collapsed ? "ml-16" : "ml-64"}`}>
-        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-      </main>
-      <Toaster />
-    </div>
+    <AuthContext.Provider
+      value={{
+        permissions,
+        authStatus,
+      }}
+    >
+      <div className="overflow-x-hidden">
+        <Sidebar collapsed={collapsed} permissions={permissions} />
+        <TopNav collapsed={collapsed} onToggleSidebar={handleToggleSidebar} isAnalyticsPage={isAnalyticsPage} />
+        <main className={`mt-16 min-h-screen p-6 transition-[margin-left] duration-200 ${collapsed ? "ml-16" : "ml-64"}`}>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </main>
+        <Toaster />
+      </div>
+    </AuthContext.Provider>
   )
 }

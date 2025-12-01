@@ -27,6 +27,7 @@ import { AddQuestionDrawer } from "@/components/add-question-drawer"
 import AudioPlayerWithWaveformV2 from "@/components/audio-player-with-waveform-v2"
 import ProgressBar from "@/components/progress-bar"
 import { ExportReportDialog } from "@/components/export-report-dialog"
+import ProtectedPage from "@/components/protectedPage"
 
 // Environment-based API configuration (same pattern as other pages)
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://inform-ai-backend.onrender.com";
@@ -765,6 +766,7 @@ export default function EvaluationsPage() {
   }
 
   return (
+    <ProtectedPage required={["Evaluations"]}>
     <>
       {/* Outer scroll to avoid clipping when scaled down */}
       <div className="w-full overflow-auto">
@@ -1429,5 +1431,6 @@ export default function EvaluationsPage() {
         }
       `}</style>
     </>
+    </ProtectedPage>
   )
 }

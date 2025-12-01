@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AddUserDrawer from "@/components/add-user-drawer";
 import { Trash, Pencil } from "lucide-react";
 import UpdateUserDrawer from "@/components/update-user-drawer";
+import ProtectedPage from "@/components/protectedPage"
 
 export default function EmployeeManagementPage() {
     const [search, setSearch] = useState("");
@@ -70,6 +71,7 @@ export default function EmployeeManagementPage() {
   const refresh = async () => await getUsers();
 
   return (
+    <ProtectedPage required={["Administrator"]}>
     <div className="p-6 space-y-6 w-full">
       {openDrawer && <AddUserDrawer closeDrawer={() => setOpenDrawer(false)} refresh={getUsers} />}
 
@@ -173,5 +175,6 @@ export default function EmployeeManagementPage() {
       )}
 
     </div>
+    </ProtectedPage>
   );
 }
