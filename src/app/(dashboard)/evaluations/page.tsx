@@ -120,6 +120,7 @@ interface ProtocolFlatQuestion {
   points?: number
   prompt?: string
   isActive?: boolean
+  allowedAnswers?: [string]
 }
 
 export default function EvaluationsPage() {
@@ -574,7 +575,7 @@ export default function EvaluationsPage() {
         for (const q of protocolQs) {
           if (!base[q.question]) {
             base[q.question] = {
-              Answer: "N/A",
+              Answer: "No",
               Proof: "",
             }
           }
@@ -587,7 +588,7 @@ export default function EvaluationsPage() {
         for (const q of protocolQs) {
           if (!base[q.question]) {
             base[q.question] = {
-              Answer: "N/A",
+              Answer: "No",
               Proof: "",
             }
           }
@@ -1284,123 +1285,177 @@ export default function EvaluationsPage() {
 
                             {/* Protocol sections: Interview, CAD, Telephone, Supervisor etc. */}
                             {protocolSections.map(section => (
-                              <Card key={section.sectionId} className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden">
-                                <div
-                                  className={cn(
-                                    "flex items-center justify-between cursor-pointer",
-                                    collapsedSections.has(section.sectionId) ? 'py-1.5 px-3' : 'py-2 px-3'
-                                  )}
-                                  onClick={() => toggleSection(section.sectionId)}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className={cn("h-2.5 w-2.5 rounded-full", protocolColorClass)} />
-                                    <span className="text-xs font-semibold text-foreground">{section.title}</span>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-[11px] text-muted-foreground">{section.questions.length} items</span>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                      {collapsedSections.has(section.sectionId) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                                    </Button>
-                                  </div>
+                            <Card
+                              key={section.sectionId}
+                              className="p-0 bg-card border border-border/50 rounded-lg overflow-hidden"
+                            >
+                              {/* Section Header */}
+                              <div
+                                className={cn(
+                                  "flex items-center justify-between cursor-pointer",
+                                  collapsedSections.has(section.sectionId)
+                                    ? "py-1.5 px-3"
+                                    : "py-2 px-3"
+                                )}
+                                onClick={() => toggleSection(section.sectionId)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("h-2.5 w-2.5 rounded-full", protocolColorClass)} />
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {section.title}
+                                  </span>
                                 </div>
 
-                                <div className={cn(
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {section.questions.length} items
+                                  </span>
+
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                    {collapsedSections.has(section.sectionId) ? (
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Section Questions */}
+                              <div
+                                className={cn(
                                   "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                  collapsedSections.has(section.sectionId) ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
-                                )}>
-                                  <div className={cn(
+                                  collapsedSections.has(section.sectionId)
+                                    ? "grid-rows-[0fr] opacity-0"
+                                    : "grid-rows-[1fr] opacity-100"
+                                )}
+                              >
+                                <div
+                                  className={cn(
                                     "overflow-hidden transition-all duration-200",
-                                    collapsedSections.has(section.sectionId) ? 'p-0 max-h-0' : 'pt-2 pb-3 px-3 max-h-[200vh]'
-                                  )}>
-                                    <div className="space-y-2">
-                                      {section.questions.map(q => {
-                                        const qaObj = qaAnalysis[q.question] ?? { Answer: "N/A" as QaValue, Proof: "" }
-                                        const val = (isEditing
-                                          ? (qaAnalysisTemp?.[q.question]?.Answer ?? qaObj.Answer)
-                                          : qaObj.Answer) as QaValue
-                                        const proof = qaObj.Proof || ""
-                                        const key = q.question
+                                    collapsedSections.has(section.sectionId)
+                                      ? "p-0 max-h-0"
+                                      : "pt-2 pb-3 px-3 max-h-[200vh]"
+                                  )}
+                                >
+                                  <div className="space-y-2">
+                                    {section.questions.map(q => {
+                                      const qaObj =
+                                        qaAnalysis[q.question] ??
+                                        ({ Answer: "N/A", Proof: "" } as {
+                                          Answer: QaValue;
+                                          Proof: string;
+                                        });
 
-                                        return (
-                                          <div key={key} className="border border-border/50 rounded-lg bg-card overflow-hidden">
-                                            <div className="flex items-center justify-between p-3 gap-3">
-                                              <span className="text-sm text-foreground flex-1">{q.question}</span>
+                                      const val = (isEditing
+                                        ? qaAnalysisTemp?.[q.question]?.Answer ?? qaObj.Answer
+                                        : qaObj.Answer) as QaValue;
 
-                                              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                      const proof = qaObj.Proof || "";
+                                      const key = q.question;
+
+                                      const match = protocolQuestions.find(
+                                        p => p.questionId === q.questionId
+                                      );
+
+                                      const allowedAnswers = (match?.allowedAnswers ??
+                                        []) as QaValue[];
+
+                                      // 🔥 Proper Button variant typing (shadcn)
+                                      type ButtonVariant = import("@/components/ui/button").ButtonProps["variant"];
+
+                                      const answerStyles: Record<QaValue, { variant: ButtonVariant }> = {
+                                        Yes: { variant: val === "Yes" ? "default" : "outline" },
+                                        No: { variant: val === "No" ? "destructive" : "outline" },
+                                        Refused: {
+                                          variant: val === "Refused" ? "default" : "outline"
+                                        },
+                                        "N/A": { variant: val === "N/A" ? "default" : "outline" },
+
+                                        // lowercase versions (fallback)
+                                        yes: { variant: val === "yes" ? "default" : "outline" },
+                                        no: { variant: val === "no" ? "destructive" : "outline" },
+                                        refused: {
+                                          variant: val === "refused" ? "default" : "outline"
+                                        },
+                                        na: { variant: val === "na" ? "default" : "outline" }
+                                      };
+
+                                      return (
+                                        <div
+                                          key={key}
+                                          className="border border-border/50 rounded-lg bg-card overflow-hidden"
+                                        >
+                                          {/* Question + Buttons */}
+                                          <div className="flex items-center justify-between p-3 gap-3">
+                                            <span className="text-sm text-foreground flex-1">
+                                              {q.question}
+                                            </span>
+
+                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                              {/* 🔥 Dynamic answer buttons */}
+                                              {allowedAnswers.map(ans => (
                                                 <Button
+                                                  key={ans}
                                                   size="sm"
-                                                  variant={val === "Yes" ? "default" : "outline"}
-                                                  className={qaBtn(val === "Yes", "Yes")}
-                                                  onClick={() => updateQaDraft(key, "Yes")}
+                                                  variant={answerStyles[ans]?.variant ?? "outline"}
+                                                  className={qaBtn(val === ans, ans)}
+                                                  onClick={() =>
+                                                    updateQaDraft(key, ans as QaValue)
+                                                  }
                                                   aria-disabled={!isEditing}
                                                 >
-                                                  Yes
+                                                  {ans}
                                                 </Button>
+                                              ))}
 
-                                                <Button
-                                                  size="sm"
-                                                  variant={val === "No" ? "destructive" : "outline"}
-                                                  className={qaBtn(val === "No", "No")}
-                                                  onClick={() => updateQaDraft(key, "No")}
-                                                  aria-disabled={!isEditing}
-                                                >
-                                                  No
-                                                </Button>
-
-                                                <Button
-                                                  size="sm"
-                                                  variant={val === "Refused" ? "default" : "outline"}
-                                                  className={qaBtn(val === "Refused", "Refused")}
-                                                  onClick={() => updateQaDraft(key, "Refused")}
-                                                  aria-disabled={!isEditing}
-                                                >
-                                                  Refused
-                                                </Button>
-
-                                                <Button
-                                                  size="sm"
-                                                  variant={val === "N/A" ? "default" : "outline"}
-                                                  className={qaBtn(val === "N/A", "N/A")}
-                                                  onClick={() => updateQaDraft(key, "N/A")}
-                                                  aria-disabled={!isEditing}
-                                                >
-                                                  N/A
-                                                </Button>
-
-                                                <Button
-                                                  size="sm"
-                                                  variant="ghost"
-                                                  className="h-7 w-7 p-0"
-                                                  onClick={() => toggleQuestion(key)}
-                                                >
-                                                  {expandedQuestions.has(key) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                                </Button>
-                                              </div>
+                                              {/* Expand */}
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 w-7 p-0"
+                                                onClick={() => toggleQuestion(key)}
+                                              >
+                                                {expandedQuestions.has(key) ? (
+                                                  <ChevronUp className="h-3.5 w-3.5" />
+                                                ) : (
+                                                  <ChevronDown className="h-3.5 w-3.5" />
+                                                )}
+                                              </Button>
                                             </div>
+                                          </div>
 
-                                            <div className={cn(
+                                          {/* Proof */}
+                                          <div
+                                            className={cn(
                                               "grid transition-all duration-300 ease-in-out overflow-hidden",
-                                              expandedQuestions.has(key) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                            )}>
-                                              <div className="overflow-hidden">
-                                                <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
-                                                  <div className="mt-2">
-                                                    <p className="text-xs text-muted-foreground mb-1">Evidence from Transcript:</p>
-                                                    <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
-                                                      {proof}
-                                                    </p>
-                                                  </div>
+                                              expandedQuestions.has(key)
+                                                ? "grid-rows-[1fr] opacity-100"
+                                                : "grid-rows-[0fr] opacity-0"
+                                            )}
+                                          >
+                                            <div className="overflow-hidden">
+                                              <div className="px-3 pb-3 pt-0 border-t border-border/50 bg-muted">
+                                                <div className="mt-2">
+                                                  <p className="text-xs text-muted-foreground mb-1">
+                                                    Evidence from Transcript:
+                                                  </p>
+                                                  <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
+                                                    {proof}
+                                                  </p>
                                                 </div>
                                               </div>
                                             </div>
                                           </div>
-                                        )
-                                      })}
-                                    </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
-                              </Card>
-                            ))}
+                              </div>
+                            </Card>
+                          ))}
+
                           </div>
 
                           {/* Action bar: sticky on mobile, normal on md+ */}

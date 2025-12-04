@@ -443,12 +443,12 @@ export default function ProtocolsPage() {
 
         {/* Edit Question Dialog */}
         <Dialog open={!!editingQuestion} onOpenChange={() => setEditingQuestion(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Edit Protocol Question</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4 max-h-256 overflow-y-auto">
               <div className="space-y-2">
                 <Label htmlFor="question">Question</Label>
                 <Input
