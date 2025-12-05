@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Bell,
   ChevronDown,
@@ -11,6 +11,7 @@ import {
   Sun,
   PanelLeftOpen,
   PanelLeftClose,
+  MessageSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -50,16 +51,17 @@ function getInitials(user: CurrentUser | null) {
 
 export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = false }: TopNavProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [user, setUser] = useState<CurrentUser | null>(null)
   const { toast } = useToast()
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
   const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
   const getApiUrl = (path: string) =>
-  USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
+    USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
 
   useEffect(() => {
     setMounted(true)
@@ -69,8 +71,8 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
 
     const loadTheme = async () => {
       const token = localStorage.getItem("access_token")
-      
-      // For demo user, use localStorage only
+
+      // Demo user: use local storage only
       if (token === "demo-token") {
         try {
           const saved = localStorage.getItem("theme")
@@ -82,18 +84,13 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
         return
       }
 
-      // For authenticated users, try to fetch from backend
+      // Authenticated users: try backend
       if (token) {
         try {
-          const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
-          const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
-          const getApiUrl = (path: string) =>
-            USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
-
-          const res = await fetch(getApiUrl('/user/theme'), {
+          const res = await fetch(getApiUrl("/user/theme"), {
             headers: {
-              'Authorization': `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           })
 
           if (res.ok) {
@@ -102,7 +99,6 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
               const next = data.theme === "dark"
               el.classList.toggle("dark", next)
               setIsDark(next)
-              // Also save to localStorage as backup
               localStorage.setItem("theme", data.theme)
               return
             }
@@ -112,7 +108,7 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
         }
       }
 
-      // Fallback to localStorage or system preference
+      // Fallback: local storage or system
       try {
         const saved = localStorage.getItem("theme")
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -129,7 +125,7 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
     return () => obs.disconnect()
   }, [])
 
-  // Match login logic
+  // Load user
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
     if (!token) return
@@ -148,8 +144,8 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
   }, [])
 
   const handleChangePassword = async (data: {
-    currentPassword: string;
-    newPassword: string;
+    currentPassword: string
+    newPassword: string
   }) => {
     const res = await fetch(getApiUrl("/user/updatePassword"), {
       method: "PATCH",
@@ -161,46 +157,39 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       }),
-    });
+    })
 
-    if(!res.ok){
+    if (!res.ok) {
       toast({
         title: "Error updating the password ",
       })
-    }else{
+    } else {
       toast({
         title: "Password Update Successful",
       })
     }
-  };
+  }
 
   const toggleTheme = async () => {
     const next = !isDark
     setIsDark(next)
     document.documentElement.classList.toggle("dark", next)
     const themeValue = next ? "dark" : "light"
-    
-    // Always save to localStorage as backup
+
     try {
       localStorage.setItem("theme", themeValue)
     } catch {}
 
-    // For authenticated users (not demo), save to backend
     const token = localStorage.getItem("access_token")
     if (token && token !== "demo-token") {
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:5001"
-        const USE_PROXY = process.env.NEXT_PUBLIC_USE_PROXY === "true"
-        const getApiUrl = (path: string) =>
-          USE_PROXY ? `/api/proxy${path}` : `${API_BASE}${path}`
-
-        await fetch(getApiUrl('/user/theme'), {
-          method: 'PUT',
+        await fetch(getApiUrl("/user/theme"), {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ theme: themeValue })
+          body: JSON.stringify({ theme: themeValue }),
         })
       } catch (error) {
         console.error("Error saving theme to backend:", error)
@@ -224,8 +213,10 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
       }`}
     >
       <div className="absolute inset-y-0 left-0 border-l border-sidebar-border" aria-hidden />
+
       <div className="relative flex h-full items-center justify-between px-6">
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* LEFT: sidebar toggle + top tabs (Interactions like NICE UI) */}
+        <div className="flex items-center gap-6">
           <Button
             variant="ghost"
             size="icon"
@@ -235,11 +226,35 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
             disabled={isAnalyticsPage}
             className={isAnalyticsPage ? "opacity-50 cursor-not-allowed" : ""}
           >
-            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            {collapsed ? (
+              <PanelLeftOpen className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
           </Button>
-          <h2 className="font-sans text-lg font-medium text-foreground">Dashboard</h2>
+
+          {/* Top bar nav – Search and Replay pill replaces "Dashboard" */}
+          <nav className="flex items-center gap-.5 text-base font-semibold">
+           <Link
+              href="/SearchandReplay"
+              className="flex items-center gap-1 px-2 py-3 text-primary tracking-wide"
+            >
+              <span className="text-lg font-semibold">Search and Replay</span>
+            </Link>
+
+            {/* QAi logo replaces text label, switches with theme */}
+            <Image
+              key={isDark ? "qai-dark" : "qai-light"}
+              src={isDark ? "/QAi_white.svg" : "/QAi_black.svg"}
+              alt="QAi"
+              width={32}
+              height={16}
+              className="h-4 w-auto"
+            />
+          </nav>
         </div>
 
+        {/* CENTER LOGO */}
         <div className="absolute left-1/2 -translate-x-1/2">
           <Image
             key={isDark ? "dark" : "light"}
@@ -252,6 +267,7 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
           />
         </div>
 
+        {/* RIGHT: notifications, theme toggle, user menu */}
         <div className="flex items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -320,7 +336,7 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
                   e.preventDefault()
                   localStorage.removeItem("access_token")
                   setUser(null)
-                  router.push("/auth/login")   //Redirect to login after logout
+                  router.push("/auth/login")
                 }}
               >
                 Log out
@@ -329,6 +345,7 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
           </DropdownMenu>
         </div>
       </div>
+
       <ChangePasswordDrawer
         open={open}
         onOpenChange={setOpen}

@@ -24,7 +24,6 @@ const menuItems = [
   { title: "Evaluations", href: "/evaluations", icon: FileCheck, permission: "Evaluations" },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck, permission: "Coaching" },
   { title: "Analytics", href: "/analyticsv2", icon: BarChart3, permission: "Analytics" },
-  { title: "Interactions", href: "/interactions", icon: MessageSquare, permission: "Interactions" },
   { title: "Protocols", href: "/protocols", icon: ListChecks, permission: "Protocol" },
   { title: "Administrator", href: "/employeeManagement", icon: UserPen, permission: "Administrator" },
   { title: "Settings", href: "/settings", icon: Settings},
@@ -57,7 +56,7 @@ export function Sidebar({ collapsed, permissions }: SidebarProps) {
   const [tooltip, setTooltip] = useState<null | { text: string; top: number; left: number }>(null)
 
   const logoSrc = useMemo(
-    () => (isDark ? "/Inform-QAi_white.svg" : "/Inform-QAi_blk.svg"),
+    () => (isDark ? "/NiCE_Inform-Ai_white-blue.svg" : "/NiCE_Inform-Ai_black-blue.svg"),
     [isDark]
   )
 

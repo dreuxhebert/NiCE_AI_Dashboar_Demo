@@ -22,7 +22,7 @@ export default function AddUserDrawer({ closeDrawer, refresh }: AddUserDialog) {
     "Evaluations",
     "Coaching",
     "Analytics",
-    "Interactions",
+    "Search and Replay",
     "Protocol",
     "Administrator"
   ];

@@ -35,7 +35,7 @@ export default function UpdateUserDrawer({ closeDrawer, refresh, user }: UpdateU
     "Evaluations",
     "Coaching",
     "Analytics",
-    "Interactions",
+    "Search and Replay",
     "Protocol",
     "Administrator",
   ];
