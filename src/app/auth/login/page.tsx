@@ -15,7 +15,8 @@ import { Eye, EyeOff } from "lucide-react"
     "Analytics",
     "Interactions",
     "Protocol",
-    "Administrator"
+    "Administrator",
+    "Search and Replay"
   ];
 
 export default function LoginPage() {
