@@ -18,10 +18,10 @@ import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 
-
 const menuItems = [
   { title: "Overview", href: "/overview", icon: LayoutDashboard, permission: "Overview" },
   { title: "Evaluations", href: "/evaluations", icon: FileCheck, permission: "Evaluations" },
+  { title: "Search and Replay", href: "/SearchandReplay", icon: MessageSquare, permission: "Search and Replay" },
   { title: "Coaching", href: "/coaching", icon: ClipboardCheck, permission: "Coaching" },
   { title: "Analytics", href: "/analyticsv2", icon: BarChart3, permission: "Analytics" },
   { title: "Protocols", href: "/protocols", icon: ListChecks, permission: "Protocol" },
@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, permissions }: SidebarProps) {
   const [tooltip, setTooltip] = useState<null | { text: string; top: number; left: number }>(null)
 
   const logoSrc = useMemo(
-    () => (isDark ? "/NiCE_Inform-Ai_white-blue.svg" : "/NiCE_Inform-Ai_black-blue.svg"),
+    () => (isDark ? "/Inform-QAi_white.svg" : "/Inform-QAi_blk.svg"),
     [isDark]
   )
 

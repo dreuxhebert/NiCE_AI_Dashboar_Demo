@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import {
   Bell,
   ChevronDown,
@@ -11,7 +11,6 @@ import {
   Sun,
   PanelLeftOpen,
   PanelLeftClose,
-  MessageSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -51,7 +50,6 @@ function getInitials(user: CurrentUser | null) {
 
 export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = false }: TopNavProps) {
   const router = useRouter()
-  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [user, setUser] = useState<CurrentUser | null>(null)
@@ -215,8 +213,8 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
       <div className="absolute inset-y-0 left-0 border-l border-sidebar-border" aria-hidden />
 
       <div className="relative flex h-full items-center justify-between px-6">
-        {/* LEFT: sidebar toggle + top tabs (Interactions like NICE UI) */}
-        <div className="flex items-center gap-6">
+        {/* LEFT: sidebar toggle + Dashboard label */}
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -233,24 +231,11 @@ export function TopNav({ collapsed = false, onToggleSidebar, isAnalyticsPage = f
             )}
           </Button>
 
-          {/* Top bar nav – Search and Replay pill replaces "Dashboard" */}
-          <nav className="flex items-center gap-.5 text-base font-semibold">
-           <Link
-              href="/SearchandReplay"
-              className="flex items-center gap-1 px-2 py-3 text-primary tracking-wide"
-            >
-              <span className="text-lg font-semibold">Search and Replay</span>
-            </Link>
-
-            {/* QAi logo replaces text label, switches with theme */}
-            <Image
-              key={isDark ? "qai-dark" : "qai-light"}
-              src={isDark ? "/QAi_white.svg" : "/QAi_black.svg"}
-              alt="QAi"
-              width={32}
-              height={16}
-              className="h-4 w-auto"
-            />
+          {/* Top bar nav – Dashboard text only */}
+          <nav className="flex items-center text-base font-medium">
+            <span className="text-lg font-semibold px-2 py-3 text-white tracking-wide">
+               Dashboard
+            </span>
           </nav>
         </div>
 
