@@ -104,7 +104,7 @@ export default function LoginPage() {
         {/* Logo section */}
         <div className="flex justify-center mb-8">
           <img
-            src="/Inform-QAi_white.svg"
+            src="/NiCE_Inform-Ai_white-blue.svg"
             alt="Inform QAi Logo"
             className="h-12 object-contain"
           />

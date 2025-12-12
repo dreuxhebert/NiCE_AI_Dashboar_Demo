@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, permissions }: SidebarProps) {
   const [tooltip, setTooltip] = useState<null | { text: string; top: number; left: number }>(null)
 
   const logoSrc = useMemo(
-    () => (isDark ? "/Inform-QAi_white.svg" : "/Inform-QAi_blk.svg"),
+    () => (isDark ? "/NiCE_Inform-Ai_white-blue.svg" : "/NiCE_Inform-Ai_black-blue.svg"),
     [isDark]
   )
 
