@@ -99,6 +99,11 @@ interface CallData {
 
   created_at?: string; // ISO string from backend
 
+   //Required sampling fields (from backend)
+  required?: boolean;
+  required_strategy?: string | null;
+  required_assigned_at?: string | null;
+
   stored_audio?: string; // if we later store audio URL
 }
 
@@ -844,6 +849,7 @@ export default function EvaluationsPage() {
                                   <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Resource</th>
                                   <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Agency</th>
                                   <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Call Type</th>
+                                  <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Required</th>
                                   <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5">Status</th>
                                   <th className="text-center text-xs font-semibold text-muted-foreground px-4 py-2.5">Score</th>
                                 </tr>
@@ -859,17 +865,17 @@ export default function EvaluationsPage() {
                                       selectedEvaluation?._id === evaluation._id && "bg-primary/30"
                                     )}
                                   >
-                                    <td className="px-4 py-3">
-                                      <p className="text-sm font-medium text-foreground">
-                                        {evaluation.created_at
-                                          ? new Date(evaluation.created_at).toLocaleDateString("en-GB", {
-                                            day: "2-digit",
-                                            month: "short",
-                                            year: "numeric",
-                                          })
-                                          : "-"}
-                                      </p>
+                                    <td className={cn( "px-4 py-3", evaluation.required ? "border-l-4 border-red-600 pl-3" : "" )}>
+                                      <p className="text-sm font-medium text-foreground">{evaluation.created_at
+                                    ? new Date(evaluation.created_at).toLocaleDateString("en-GB", {
+                                   day: "2-digit",
+                                   month: "short",
+                                   year: "numeric",
+                                  })
+                                   : "-"}
+                                     </p>
                                     </td>
+
                                     <td className="px-4 py-3">
                                       <p className="text-sm font-medium text-foreground">{evaluation.dispatcher_id}</p>
                                     </td>
@@ -892,11 +898,17 @@ export default function EvaluationsPage() {
                                         ))}
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3">
-                                      <Badge variant="outline" className="text-xs">
-                                        {evaluation.callEvaluationType}
-                                      </Badge>
+                                    <td className="px-4 py-3 text-center"> {evaluation.required ? (
+                                   <CheckCircle className="inline-block h-4 w-4 text-red-600" />
+                                   ) : (
+                                  <span className="text-muted-foreground/40">—</span> )}
+                                  </td>
+                                  
+                                   <td className="px-4 py-3">
+                                    <Badge variant="outline" className="text-xs"> {evaluation.callEvaluationType}
+                                    </Badge>
                                     </td>
+
                                     <td className="px-4 py-3 text-center">
                                       <Badge
                                         variant={getScoreBadgeVariant(evaluation.score ?? 0)}
