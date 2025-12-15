@@ -24,6 +24,7 @@ import {
   Save,
   RotateCcw,
   Filter,
+  User
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,8 @@ type QaValue =
   | "Yes"
   | "No"
   | "Refused"
-  | "N/A";
+  | "N/A"
+  | "";
 type QaResults = Record<string, QaValue>;
 
 interface QAQuestion {
@@ -189,6 +191,7 @@ export default function EvaluationsPage() {
     ProtocolFlatQuestion[]
   >([]);
   const [progressRefreshKey, setProgressRefreshKey] = useState<number>(0);
+  const [humanEditedKeys, setHumanEditedKeys] = useState<Set<string>>(new Set());
 
   // Existing mock waveform bars (still unused but left in case)
   const bars = [...Array(60)].map(() => Math.floor(Math.random() * 100));
@@ -340,6 +343,7 @@ export default function EvaluationsPage() {
 
   const handleSelectEvaluationChange = (evaluation: CallData) => {
     setSelectedEvaluation(evaluation);
+    setHumanEditedKeys(new Set());
 
     const qa = evaluation.qa_analysis ?? {};
 
@@ -368,6 +372,11 @@ export default function EvaluationsPage() {
 
   const updateQaDraft = (key: string, value: QaValue) => {
     if (!isEditing) return;
+    setHumanEditedKeys((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
     setQaAnalysisTemp((prev) => ({
       ...(prev ?? {}),
       [key]: {
@@ -495,7 +504,7 @@ export default function EvaluationsPage() {
         addSectionTitle("QA Evaluation");
 
         qaQuestionsSet.forEach((q, index) => {
-          const a = qaSource[q._id]?.Answer ?? "N/A";
+          const a = qaSource[q._id]?.Answer ?? "";
           const proof = qaSource[q._id]?.Proof ?? "";
 
           addLine(`Q${index + 1}: ${q.editedQuestion}`, { bold: true });
@@ -552,6 +561,7 @@ export default function EvaluationsPage() {
 
   const handleResetChanges = () => {
     setQaAnalysisTemp(selectedEvaluation?.qa_analysis ?? {});
+    setHumanEditedKeys(new Set());
     toast({
       title: "Draft reset",
       description: "Reverted to last saved answers.",
@@ -692,7 +702,7 @@ export default function EvaluationsPage() {
         for (const q of protocolQs) {
           if (!base[q.question]) {
             base[q.question] = {
-              Answer: "No",
+              Answer: "",
               Proof: "",
             };
           }
@@ -705,7 +715,7 @@ export default function EvaluationsPage() {
         for (const q of protocolQs) {
           if (!base[q.question]) {
             base[q.question] = {
-              Answer: "No",
+              Answer: "",
               Proof: "",
             };
           }
@@ -1046,7 +1056,31 @@ export default function EvaluationsPage() {
     },
   ];
 
-  return (
+  
+  const renderAnswerSourceIcon = (key: string, val?: QaValue) => {
+    if (!val) return null;
+    const isHuman = humanEditedKeys.has(key);
+    if (isHuman) {
+      return (
+        <span
+          className="inline-flex items-center justify-center h-5 w-5"
+          title="Manually set by human"
+        >
+          <User className="h-4 w-4 text-muted-foreground" />
+        </span>
+      );
+    }
+    return (
+      <span
+        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-900/80"
+        title="Auto-scored by AI"
+      >
+        <img src="/Ai-icon_white.svg" alt="Auto-scored by AI" className="h-3.5 w-3.5" />
+      </span>
+    );
+  };
+
+return (
     <ProtectedPage required={["Evaluations"]}>
       <>
         <div className="w-full overflow-auto">
@@ -1589,9 +1623,12 @@ export default function EvaluationsPage() {
                                             className="border border-border/50 rounded-lg bg-card overflow-hidden"
                                           >
                                             <div className="flex items-center justify-between p-3 gap-3">
-                                              <span className="text-sm text-foreground flex-1">
-                                                {question}
-                                              </span>
+                                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                {renderAnswerSourceIcon(question, val)}
+                                                <span className="text-sm text-foreground">
+                                                  {question}
+                                                </span>
+                                              </div>
 
                                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                                 <Button
@@ -1834,6 +1871,7 @@ export default function EvaluationsPage() {
                                           QaValue,
                                           { variant: ButtonVariant }
                                         > = {
+                                          "": { variant: "outline" },
                                           Yes: {
                                             variant:
                                               val === "Yes"
@@ -1893,9 +1931,12 @@ export default function EvaluationsPage() {
                                           >
                                             {/* Question + Buttons */}
                                             <div className="flex items-center justify-between p-3 gap-3">
-                                              <span className="text-sm text-foreground flex-1">
-                                                {q.question}
-                                              </span>
+                                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                {renderAnswerSourceIcon(key, val)}
+                                                <span className="text-sm text-foreground">
+                                                  {q.question}
+                                                </span>
+                                              </div>
 
                                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                                 {/* 🔥 Dynamic answer buttons */}
