@@ -90,6 +90,8 @@ interface EmergencyType {
 interface QAResult {
   Answer: QaValue;
   Proof: string;
+  source?: "ai" | "human";
+  comment?: string;
 }
 
 interface CallData {
@@ -135,6 +137,8 @@ interface CallAnalysis {
   [question_id: string]: {
     Answer: QaValue;
     Proof: string;
+    source?: "ai" | "human";
+    comment?: string;
   };
 }
 
@@ -202,77 +206,117 @@ export default function EvaluationsPage() {
     getCallData();
     getQaQuestions();
     setIsEditing(false);
+      setHumanEditedKeys(new Set());
   }, []);
 
   const handleClickSave = async () => {
-    if (!selectedEvaluation?._id) return;
+  if (!selectedEvaluation?._id) return;
 
-    const cleanedAnalysis = Object.fromEntries(
-      Object.entries(qaAnalysisTemp ?? {}).map(([key, value]) => [
-        key,
-        {
-          Answer: value.Answer,
-          Proof: value.Proof ?? "",
-        },
-      ])
+  const cleanedAnalysis = Object.fromEntries(
+    Object.entries(qaAnalysisTemp ?? {}).map(([key, value]) => {
+      const ans = (value as any)?.Answer ?? "";
+      const normalized = String(ans ?? "").trim();
+
+      // Get original values to check if anything changed
+      const originalAnswer = (qaAnalysis as any)?.[key]?.Answer ?? "";
+      const originalComment = (qaAnalysis as any)?.[key]?.comment ?? "";
+      const currentComment = (value as any)?.comment ?? "";
+
+      // Check if answer or comment was modified
+      const answerChanged = String(normalized).trim() !== String(originalAnswer).trim();
+      const commentChanged = String(currentComment).trim() !== String(originalComment).trim();
+      const isHumanEdited = humanEditedKeys.has(key);
+// Determine source:
+// - If user touched it (answer/comment changed) OR in humanEditedKeys, force "human"
+// - Else if answered, keep existing source or default to "ai"
+// - Else (blank + untouched), omit source
+const touched = isHumanEdited || answerChanged || commentChanged;
+
+const existingSource =
+  (value as any)?.source ?? (qaAnalysis as any)?.[key]?.source;
+
+// Keep a source even when Answer is blank.
+// If we truly don't know, default to "human" (matches your backend behavior).
+const source = touched ? "human" : existingSource;
+
+const commentRaw = currentComment;
+const comment =
+  typeof commentRaw === "string" && commentRaw.trim().length > 0
+    ? commentRaw
+    : undefined;
+
+const payload: any = {
+  Answer: (value as any)?.Answer ?? "",
+  Proof: (value as any)?.Proof ?? "",
+  comment,
+};
+
+if (source) {
+  payload.source = source;
+}
+
+return [key, payload];
+    })
+  );
+
+  try {
+    const res = await fetch(getApiUrl(`/calls/update`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: selectedEvaluation._id,
+        changedAnalysis: cleanedAnalysis,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast({ title: "Failed to save changes", variant: "destructive" });
+      return;
+    }
+
+    toast({
+      title: "Saved",
+      description: "QA Evaluation Updated (Status: Validating)",
+    });
+
+    const updatedEvaluation = {
+      ...selectedEvaluation,
+      qa_analysis: cleanedAnalysis,
+      score: data.newScore,
+      callEvaluationType: "Validating",
+    };
+
+    const updatedCallList = callList.map((call) =>
+      call._id === selectedEvaluation._id ? updatedEvaluation : call
     );
 
-    try {
-      const res = await fetch(getApiUrl(`/calls/update`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: selectedEvaluation._id,
-          changedAnalysis: cleanedAnalysis,
-        }),
-      });
+    setCallList(updatedCallList);
+    setSelectedEvaluation(updatedEvaluation);
+    setScore(data.newScore);
+    setQaAnalysis(cleanedAnalysis);
+    setQaAnalysisTemp(cleanedAnalysis);
+    setIsEditing(false);
+    setHumanEditedKeys(new Set()); // Clear edited keys after save
 
-      const data = await res.json();
+    const yesCount = Object.values(cleanedAnalysis ?? {}).filter(
+      (item) => item.Answer === "Yes"
+    ).length;
 
-      if (!res.ok) {
-        toast({ title: "Failed to save changes", variant: "destructive" });
-        return;
-      }
+    const noCount = Object.values(cleanedAnalysis ?? {}).filter(
+      (item) => item.Answer === "No"
+    ).length;
 
-      toast({
-        title: "Saved",
-        description: "QA Evaluation Updated (Status: Validating)",
-      });
+    setMetStandards(yesCount);
+    setCriticalViolations(noCount);
 
-      const updatedEvaluation = {
-        ...selectedEvaluation,
-        qa_analysis: qaAnalysisTemp ?? {},
-        score: data.newScore,
-        callEvaluationType: "Validating",
-      };
-
-      const updatedCallList = callList.map((call) =>
-        call._id === selectedEvaluation._id ? updatedEvaluation : call
-      );
-
-      setCallList(updatedCallList);
-      setSelectedEvaluation(updatedEvaluation);
-      setScore(data.newScore);
-      setQaAnalysis(qaAnalysisTemp ?? {});
-      setIsEditing(false);
-
-      const yesCount = Object.values(qaAnalysisTemp ?? {}).filter(
-        (item) => item.Answer === "Yes"
-      ).length;
-
-      const noCount = Object.values(qaAnalysisTemp ?? {}).filter(
-        (item) => item.Answer === "No"
-      ).length;
-
-      setMetStandards(yesCount);
-      setCriticalViolations(noCount);
-
-      setProgressRefreshKey((prev) => prev + 1);
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Unexpected error", variant: "destructive" });
-    }
-  };
+    setProgressRefreshKey((prev) => prev + 1);
+  } catch (error) {
+    console.error(error);
+    toast({ title: "Unexpected error", variant: "destructive" });
+  }
+};
 
   const handleMarkCompleted = async () => {
     if (!selectedEvaluation) return;
@@ -371,20 +415,46 @@ export default function EvaluationsPage() {
   };
 
   const updateQaDraft = (key: string, value: QaValue) => {
-    if (!isEditing) return;
-    setHumanEditedKeys((prev) => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
-    setQaAnalysisTemp((prev) => ({
-      ...(prev ?? {}),
-      [key]: {
-        Answer: value,
-        Proof: prev?.[key]?.Proof ?? "",
-      },
-    }));
-  };
+  if (!isEditing) return;
+
+  // Touch = human immediately (even if value is blank/unchanged)
+  setHumanEditedKeys((prev) => {
+    const next = new Set(prev);
+    next.add(key);
+    return next;
+  });
+
+  setQaAnalysisTemp((prev) => ({
+    ...(prev ?? {}),
+    [key]: {
+      Answer: value,
+      Proof: prev?.[key]?.Proof ?? "",
+      source: "human", // always human once touched
+      comment: prev?.[key]?.comment ?? "",
+    },
+  }));
+};
+
+const updateQaComment = (key: string, comment: string) => {
+  if (!isEditing) return;
+
+  // Touch = human immediately (even if comment is blank/unchanged)
+  setHumanEditedKeys((prev) => {
+    const next = new Set(prev);
+    next.add(key);
+    return next;
+  });
+
+  setQaAnalysisTemp((prev) => ({
+    ...(prev ?? {}),
+    [key]: {
+      Answer: prev?.[key]?.Answer ?? "",
+      Proof: prev?.[key]?.Proof ?? "",
+      source: "human", // always human once touched
+      comment,
+    },
+  }));
+};
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";
@@ -1057,28 +1127,44 @@ export default function EvaluationsPage() {
   ];
 
   
-  const renderAnswerSourceIcon = (key: string, val?: QaValue) => {
-    if (!val) return null;
-    const isHuman = humanEditedKeys.has(key);
-    if (isHuman) {
-      return (
-        <span
-          className="inline-flex items-center justify-center h-5 w-5"
-          title="Manually set by human"
-        >
-          <User className="h-4 w-4 text-muted-foreground" />
-        </span>
-      );
-    }
+ const renderAnswerSourceIcon = (key: string, val?: QaValue) => {
+  const effectiveAnswer = String(val ?? "").trim();
+
+  const tempSource = (qaAnalysisTemp as any)?.[key]?.source;
+  const storedSource = (qaAnalysis as any)?.[key]?.source;
+  const isInEditedSet = humanEditedKeys.has(key);
+
+  const isHuman = isInEditedSet || tempSource === "human" || storedSource === "human";
+
+  // If there's no answer and nobody marked it human, no icon.
+  if (!effectiveAnswer && !isHuman) return null;
+
+  // If human, show human icon (whether answered or not).
+  if (isHuman) {
     return (
       <span
-        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-900/80"
-        title="Auto-scored by AI"
+        className="inline-flex items-center justify-center h-5 w-5"
+        title="Manually set by human"
       >
-        <img src="/Ai-icon_white.svg" alt="Auto-scored by AI" className="h-3.5 w-3.5" />
+        <User className="h-4 w-4 text-muted-foreground" />
       </span>
     );
-  };
+  }
+
+  // Otherwise it's AI (answered + not human)
+  return (
+    <span
+      className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-900/80"
+      title="Auto-scored by AI"
+    >
+      <img
+        src="/Ai-icon_white.svg"
+        alt="Auto-scored by AI"
+        className="h-3.5 w-3.5"
+      />
+    </span>
+  );
+};
 
 return (
     <ProtectedPage required={["Evaluations"]}>
@@ -1615,7 +1701,13 @@ return (
                                             ? qaAnalysisTemp?.[question]?.Answer
                                             : qa.Answer
                                         ) as QaValue;
+                                        const key = question;
                                         const proof = qa.Proof || "";
+                                        const comment = (
+                                          isEditing
+                                            ? (qaAnalysisTemp as any)?.[question]?.comment
+                                            : (qa as any)?.comment
+                                        ) as string | undefined;
 
                                         return (
                                           <div
@@ -1624,13 +1716,14 @@ return (
                                           >
                                             <div className="flex items-center justify-between p-3 gap-3">
                                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                {renderAnswerSourceIcon(question, val)}
                                                 <span className="text-sm text-foreground">
                                                   {question}
                                                 </span>
                                               </div>
 
                                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                                {renderAnswerSourceIcon(key, val)}
+
                                                 <Button
                                                   size="sm"
                                                   variant={
@@ -1755,6 +1848,21 @@ return (
                                                     <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
                                                       {proof}
                                                     </p>
+
+                                                    <div className="mt-3">
+                                                      <p className="text-xs text-muted-foreground mb-1">
+                                                        Comment:
+                                                      </p>
+                                                      <textarea
+                                                        className="w-full rounded-md border border-border/50 bg-card p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                                                        placeholder="Add a comment (saved with this evaluation)"
+                                                        value={comment ?? ""}
+                                                        onChange={(e) =>
+                                                          updateQaComment(key, e.target.value)
+                                                        }
+                                                        disabled={!isEditing}
+                                                      />
+                                                    </div>
                                                   </div>
                                                 </div>
                                               </div>
@@ -1854,6 +1962,11 @@ return (
 
                                         const proof = qaObj.Proof || "";
                                         const key = q.question;
+                                        const comment = (
+                                          isEditing
+                                            ? (qaAnalysisTemp as any)?.[key]?.comment
+                                            : (qaObj as any)?.comment
+                                        ) as string | undefined;
 
                                         const match = protocolQuestions.find(
                                           (p) => p.questionId === q.questionId
@@ -1932,14 +2045,14 @@ return (
                                             {/* Question + Buttons */}
                                             <div className="flex items-center justify-between p-3 gap-3">
                                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                {renderAnswerSourceIcon(key, val)}
                                                 <span className="text-sm text-foreground">
                                                   {q.question}
                                                 </span>
                                               </div>
 
                                               <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                                                {/* 🔥 Dynamic answer buttons */}
+                                                {/* Dynamic answer buttons */}
+                                                {renderAnswerSourceIcon(key, val)}
                                                 {allowedAnswers.map((ans) => (
                                                   <Button
                                                     key={ans}
@@ -2002,6 +2115,21 @@ return (
                                                     <p className="text-xs text-foreground bg-muted/70 rounded p-2 leading-relaxed border border-border/50">
                                                       {proof}
                                                     </p>
+
+                                                    <div className="mt-3">
+                                                      <p className="text-xs text-muted-foreground mb-1">
+                                                        Comment:
+                                                      </p>
+                                                      <textarea
+                                                        className="w-full rounded-md border border-border/50 bg-card p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                                                        placeholder="Add a comment (saved with this evaluation)"
+                                                        value={comment ?? ""}
+                                                        onChange={(e) =>
+                                                          updateQaComment(key, e.target.value)
+                                                        }
+                                                        disabled={!isEditing}
+                                                      />
+                                                    </div>
                                                   </div>
                                                 </div>
                                               </div>
